@@ -1,8 +1,8 @@
 # Progress Table
 
-Display progress as a table in CLI.
+Display progress as a pretty table in CLI.
 
-Designed for monitor machine learning experiments, but can be used for anything.
+Designed to monitor machine learning experiments, but can be used for anything.
 
 ![example](progress_table_example.png)
 

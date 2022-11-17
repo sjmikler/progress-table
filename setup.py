@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="cli-progress-table",
-    version="0.0.2",
+    version="0.0.3",
     url="https://github.com/gahaalt/cli-progress-table.git",
     author="Szymon Mikler",
     author_email="sjmikler@gmail.com",
