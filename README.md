@@ -6,24 +6,24 @@ Designed to monitor machine learning experiments, but can be used for anything.
 
 Produce pretty tables on the fly during your experiment, allowing you to quickly see what is going on.
 
-![example](progress_table_example.png)
+![example](https://github.com/gahaalt/cli-progress-table/blob/main/progress_table_example.png?raw=true)
 
 ## Example
 
 ```python
-from progress_table import ProgressTable
-from colorama import Fore
 import random
 import time
+from colorama import Fore
+from progress_table import ProgressTable
 
 progress = ProgressTable(columns=["step", "x", "x squared"], default_column_width=2)
 progress.add_column("x root", color=Fore.RED)
 
 for step in range(20):
-    progress["step"] = step
+    progress["step"] = step  # insert value in the current row
 
-    for _ in progress(range(10)):
-        time.sleep(0.1)  # artificial work
+    for _ in progress(range(10)):  # progress bar
+        time.sleep(0.1)  # simulate artificial work
 
     x = random.randint(0, 100)
     progress["x"] = x
@@ -32,6 +32,11 @@ for step in range(20):
     progress.next_row()
 
 progress.close()
+
+# export your data
+data = progress.to_list()
+pandas_df = progress.df()
+np_array = progress.numpy()
 ```
 
 ```stdout
@@ -63,5 +68,7 @@ progress.close()
 
 ## Alternatives
 
-* `tqdm`: great and quick tool, but combining CLI logging with it is not pretty
-* `keras.utils.Progbar`: as above
+* Progress bars: many of them are great, but they do not provide pretty CLI logging
+	* `tqdm`
+	* `keras.utils.Progbar`
+	* `alive-progress`

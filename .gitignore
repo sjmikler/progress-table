@@ -2,5 +2,6 @@
 __pycache__
 *.egg-info
 
+devel.py
 dist
 *.sh

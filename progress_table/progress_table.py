@@ -15,13 +15,13 @@ all_colors_styles = all_colors + all_styles
 
 
 @dataclass
-class Boxes:
+class Symbols:
+    full: str = "■"
+    empty: str = "□"
+
     horizontal: str = "─"
     vertical: str = "│"
     all: str = "┼"
-
-    full: str = "■"
-    empty: str = "□"
 
     up_left: str = "┘"
     up_right: str = "└"
@@ -64,9 +64,6 @@ class ProgressTable:
         for column in columns:
             self.add_column(column)
 
-    def check_color(self, color):
-        assert color in all_colors_styles, "Only colorama colors are allowed, e.g. colorama.Fore.GREEN!"
-
     def add_column(self, name, width=None, color=None):
         assert not self.header_printed, "Header is already frozen!"
         self.columns.append(name)
@@ -76,43 +73,73 @@ class ProgressTable:
             width = len(name)
 
         if color is not None:
-            self.check_color(color)
+            self._check_color(color)
             self.colors[name] = color
 
         self.widths[name] = width
 
+    def next_row(self, save=True):
+        self._maybe_line_ending()
+
+        if save and len(self.values) > 0:
+            self.finished_rows.append(self.values)
+            self.num_rows += 1
+
+        self.values = defaultdict(str)
+
     def close(self):
-        self.print_row()
+        self._print_row()
         self.next_row()
-        self.print_bottom_bar()
+        self._print_bottom_bar()
         self.header_printed = False
         print()
 
-    def bar(self, left: str, center: str, right: str):
+    def to_list(self):
+        return [[row[col] for col in self.columns] for row in self.finished_rows]
+
+    def numpy(self):
+        import numpy as np
+
+        return np.array(self.to_list())
+
+    def df(self):
+        import pandas as pd
+
+        return pd.DataFrame(self.to_list(), columns=self.columns)
+
+    def display(self):
+        if self.header_printed:
+            self.close()
+        self._display_custom(self.to_list())
+
+    def _bar(self, left: str, center: str, right: str):
         content = []
         for col in self.columns:
-            content.append(Boxes.horizontal * (self.widths[col] + 2))
+            content.append(Symbols.horizontal * (self.widths[col] + 2))
 
         content = center.join(content)
         content = [left, content, right]
         print("".join(content), end="")
 
-    def print_top_bar(self):
-        return self.bar(left=Boxes.down_right, center=Boxes.no_up, right=Boxes.down_left)
+    def _print_top_bar(self):
+        return self._bar(left=Symbols.down_right, center=Symbols.no_up, right=Symbols.down_left)
 
-    def print_bottom_bar(self):
-        return self.bar(left=Boxes.up_right, center=Boxes.no_down, right=Boxes.up_left)
+    def _print_bottom_bar(self):
+        return self._bar(left=Symbols.up_right, center=Symbols.no_down, right=Symbols.up_left)
 
-    def print_center_bar(self):
-        return self.bar(left=Boxes.no_left, center=Boxes.all, right=Boxes.no_right)
+    def _print_center_bar(self):
+        return self._bar(left=Symbols.no_left, center=Symbols.all, right=Symbols.no_right)
 
-    def print_header(self, top=True):
+    def _check_color(self, color):
+        assert color in all_colors_styles, "Only colorama colors are allowed, e.g. colorama.Fore.GREEN!"
+
+    def _print_header(self, top=True):
         assert self.columns, "Columns are required! Use .add_column method or specify them in __init__!"
 
         if top:
-            self.print_top_bar()
+            self._print_top_bar()
         else:
-            self.print_center_bar()
+            self._print_center_bar()
         print()
 
         content = []
@@ -121,22 +148,22 @@ class ProgressTable:
             value = col[:width].center(width)
 
             if self.colors[col] is not None:
-                self.check_color(self.colors[col])
+                self._check_color(self.colors[col])
                 value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
-        print(Boxes.vertical, f"{' │ '.join(content)}", Boxes.vertical)
+        print(Symbols.vertical, f" {Symbols.vertical} ".join(content), Symbols.vertical)
 
         self.last_header_printed_at_row_count = self.num_rows
         self.header_printed = True
-        self.print_center_bar()
+        self._print_center_bar()
         print()
 
-    def print_row(self):
+    def _print_row(self):
         if not self.header_printed:
-            self.print_header(top=True)
+            self._print_header(top=True)
         if self.num_rows - self.last_header_printed_at_row_count >= self.reprint_header_rows:
-            self.print_header(top=False)
+            self._print_header(top=False)
 
         if len(self.values) == 0:
             return
@@ -155,13 +182,13 @@ class ProgressTable:
             value = str(value)[:width].center(width)
 
             if self.colors[col] is not None:
-                self.check_color(self.colors[col])
+                self._check_color(self.colors[col])
                 value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
-        print(Boxes.vertical, f"{' │ '.join(content)}", Boxes.vertical, end="")
+        print(Symbols.vertical, f" {Symbols.vertical} ".join(content), Symbols.vertical, end="")
 
-    def print_progress_bar(self, i, n, show_before=" ", show_after=" "):
+    def _print_progress_bar(self, i, n, show_before=" ", show_after=" "):
         tot_width = sum(self.widths.values()) + 3 * (len(self.widths) - 1) + 2
         tot_width = tot_width - len(show_before) - len(show_after)
 
@@ -169,31 +196,22 @@ class ProgressTable:
         num_empty = tot_width - num_hashes
 
         print(
-            Boxes.vertical,
+            Symbols.vertical,
             show_before,
-            Boxes.full * num_hashes,
-            Boxes.empty * num_empty,
+            Symbols.full * num_hashes,
+            Symbols.empty * num_empty,
             show_after,
-            Boxes.vertical,
+            Symbols.vertical,
             end="\r",
             sep="",
         )
 
-    def maybe_line_ending(self):
+    def _maybe_line_ending(self):
         if self.needs_line_ending:
             print()
             self.needs_line_ending = False
 
-    def next_row(self, save=True):
-        self.maybe_line_ending()
-
-        if save and len(self.values) > 0:
-            self.finished_rows.append(self.values)
-            self.num_rows += 1
-
-        self.values = defaultdict(str)
-
-    def display_custom(self, data):
+    def _display_custom(self, data):
         if self.header_printed:
             self.close()
 
@@ -201,18 +219,13 @@ class ProgressTable:
             assert len(row) == len(self.columns)
             for key, value in zip(self.columns, row):
                 self.values[key] = value
-            self.print_row()
+            self._print_row()
             self.next_row(save=False)
         self.close()
 
-    def display(self):
-        if self.header_printed:
-            self.close()
-        self.display_custom(self.to_list())
-
     def __call__(self, iterator):
         if not self.header_printed:
-            self.print_header()
+            self._print_header()
 
         assert hasattr(iterator, "__len__")
         length = len(iterator)
@@ -228,28 +241,15 @@ class ProgressTable:
                 s = sum(time_measurements)
                 iterations_per_sec = idx / s if s > 0 else 0.0
                 iterations_per_sec = f" [{iterations_per_sec: <.2f} it/s] "
-                self.print_progress_bar(idx, length, show_before=iterations_per_sec)
+                self._print_progress_bar(idx, length, show_before=iterations_per_sec)
                 t_last_printed = time.time()
 
             yield element
             time_measurements.append(time.time() - t_last_step)
             t_last_step = time.time()
-        self.print_row()
-
-    def to_list(self):
-        return [[row[col] for col in self.columns] for row in self.finished_rows]
-
-    def numpy(self):
-        import numpy as np
-
-        return np.array(self.to_list())
-
-    def df(self):
-        import pandas as pd
-
-        return pd.DataFrame(self.to_list(), columns=self.columns)
+        self._print_row()
 
     def __setitem__(self, key, value):
         assert key in self.columns, f"Column {key} not in {self.columns}"
         self.values[key] = value
-        self.print_row()
+        self._print_row()
