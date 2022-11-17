@@ -1,12 +1,12 @@
 # Progress Table
 
-Lightweight utility to display progress as a pretty table in CLI.
+Lightweight utility to display progress as a pretty table in the command line.
 
 Designed to monitor machine learning experiments, but can be used for anything.
 
-Produce pretty tables on the fly during your experiment, allowing you to quickly see what is going on.
+Produces pretty tables on the fly during your experiment, allowing you to quickly see what is going on.
 
-![example](https://github.com/gahaalt/cli-progress-table/blob/main/progress_table_example.png?raw=true)
+![example](https://github.com/gahaalt/progress-table/blob/main/progress_table_example.png?raw=true)
 
 ## Example
 
@@ -66,9 +66,19 @@ np_array = progress.numpy()
 └──────┴────┴───────────┴────────┘
 ```
 
+## Installation
+
+Install Progress Table easily with pip:
+
+```
+pip install progress-table
+```
+
+## Links
+
+* [See on GitHub](https://github.com/gahaalt/progress-table)
+* [See on PyPI](https://pypi.org/project/progress-table)
+
 ## Alternatives
 
-* Progress bars: many of them are great, but they do not provide pretty CLI logging
-	* `tqdm`
-	* `keras.utils.Progbar`
-	* `alive-progress`
+* Progress bars: many of them are great and useful, but they do not provide pretty CLI logging

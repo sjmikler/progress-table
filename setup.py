@@ -8,13 +8,13 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
 setup(
-    name="cli-progress-table",
-    version="0.0.5",
-    url="https://github.com/gahaalt/cli-progress-table.git",
+    name="progress-table",
+    version="0.0.1",
+    url="https://github.com/gahaalt/progress-table.git",
     author="Szymon Mikler",
     author_email="sjmikler@gmail.com",
     license="MIT",
-    description="Display progress as a table in CLI.",
+    description="Display progress as a table in the command line.",
     packages=["progress_table"],
     python_requires=">=3.7",
     classifiers=[
