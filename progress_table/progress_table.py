@@ -6,6 +6,7 @@ import math
 import time
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import List
 
 from colorama import Fore, Style
 
@@ -18,6 +19,7 @@ all_colors_styles = all_colors + all_styles
 class Symbols:
     full: str = "■"
     empty: str = "□"
+    dots: str = "…"
 
     horizontal: str = "─"
     vertical: str = "│"
@@ -113,12 +115,12 @@ class ProgressTable:
         self._display_custom(self.to_list())
 
     def _bar(self, left: str, center: str, right: str):
-        content = []
+        content_list: List[str] = []
         for col in self.columns:
-            content.append(Symbols.horizontal * (self.widths[col] + 2))
+            content_list.append(Symbols.horizontal * (self.widths[col] + 2))
 
-        content = center.join(content)
-        content = [left, content, right]
+        center = center.join(content_list)
+        content = [left, center, right]
         print("".join(content), end="")
 
     def _print_top_bar(self):
@@ -181,7 +183,7 @@ class ProgressTable:
                 value = self.custom_format(value)
 
             clipped = len(str(value)) > width
-            end_symbol = "…" if clipped else " "
+            end_symbol = Symbols.dots if clipped else " "
             value = str(value)[:width].center(width)
             value += end_symbol
 
@@ -190,13 +192,7 @@ class ProgressTable:
                 value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
-        print(
-            Symbols.vertical,
-            " ",
-            f"{Symbols.vertical} ".join(content),
-            Symbols.vertical,
-            end="", sep=""
-        )
+        print(Symbols.vertical, " ", f"{Symbols.vertical} ".join(content), Symbols.vertical, end="", sep="")
 
     def _print_progress_bar(self, i, n, show_before=" ", show_after=" "):
         tot_width = sum(self.widths.values()) + 3 * (len(self.widths) - 1) + 2
