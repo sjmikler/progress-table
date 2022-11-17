@@ -9,12 +9,12 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="progress-table",
-    version="0.0.4",
+    version="0.0.5",
     url="https://github.com/gahaalt/progress-table.git",
     author="Szymon Mikler",
     author_email="sjmikler@gmail.com",
     license="MIT",
-    description="Display progress as a table in the command line.",
+    description="Display progress as a pretty table in the command line.",
     packages=["progress_table"],
     python_requires=">=3.7",
     classifiers=[
