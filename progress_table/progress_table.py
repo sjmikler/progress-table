@@ -45,7 +45,7 @@ class ProgressTable:
     ):
         self.default_width = default_column_width
 
-        self.columns = list(columns)
+        self.columns = []
         self.num_rows = 0
 
         self.widths = defaultdict(lambda: self.default_width)
@@ -60,6 +60,9 @@ class ProgressTable:
         self.custom_format = custom_format
         self.needs_line_ending = False
         self.finished_rows = []
+
+        for column in columns:
+            self.add_column(column)
 
     def check_color(self, color):
         assert color in all_colors_styles, "Only colorama colors are allowed, e.g. colorama.Fore.GREEN!"
