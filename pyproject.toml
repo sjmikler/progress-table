@@ -1,0 +1,13 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.mypy]
+ignore_missing_imports = true
+exclude = "devel"
+
+[tool.isort]
+profile = "black"
+line_length = 110
+
+[tool.black]
+line_length = 110

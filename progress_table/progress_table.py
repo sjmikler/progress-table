@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import math
+import time
+from collections import defaultdict
+from dataclasses import dataclass
 
 from colorama import Fore, Style
-from dataclasses import dataclass
-from collections import defaultdict
-import time
+
+all_colors = [getattr(Fore, x) for x in dir(Fore) if not x.startswith("__")]
+all_styles = [getattr(Style, x) for x in dir(Style) if not x.startswith("__")]
+all_colors_styles = all_colors + all_styles
 
 
 @dataclass
@@ -57,6 +61,9 @@ class ProgressTable:
         self.needs_line_ending = False
         self.finished_rows = []
 
+    def check_color(self, color):
+        assert color in all_colors_styles, "Only colorama colors are allowed, e.g. colorama.Fore.GREEN!"
+
     def add_column(self, name, width=None, color=None):
         assert not self.header_printed, "Header is already frozen!"
         self.columns.append(name)
@@ -66,6 +73,7 @@ class ProgressTable:
             width = len(name)
 
         if color is not None:
+            self.check_color(color)
             self.colors[name] = color
 
         self.widths[name] = width
@@ -87,9 +95,7 @@ class ProgressTable:
         print("".join(content), end="")
 
     def print_top_bar(self):
-        return self.bar(
-            left=Boxes.down_right, center=Boxes.no_up, right=Boxes.down_left
-        )
+        return self.bar(left=Boxes.down_right, center=Boxes.no_up, right=Boxes.down_left)
 
     def print_bottom_bar(self):
         return self.bar(left=Boxes.up_right, center=Boxes.no_down, right=Boxes.up_left)
@@ -98,6 +104,8 @@ class ProgressTable:
         return self.bar(left=Boxes.no_left, center=Boxes.all, right=Boxes.no_right)
 
     def print_header(self, top=True):
+        assert self.columns, "Columns are required! Use .add_column method or specify them in __init__!"
+
         if top:
             self.print_top_bar()
         else:
@@ -110,6 +118,7 @@ class ProgressTable:
             value = col[:width].center(width)
 
             if self.colors[col] is not None:
+                self.check_color(self.colors[col])
                 value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
@@ -143,6 +152,7 @@ class ProgressTable:
             value = str(value)[:width].center(width)
 
             if self.colors[col] is not None:
+                self.check_color(self.colors[col])
                 value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
@@ -213,7 +223,7 @@ class ProgressTable:
                 print(end="\r")
 
                 s = sum(time_measurements)
-                iterations_per_sec = idx / s if s > 0 else 0.
+                iterations_per_sec = idx / s if s > 0 else 0.0
                 iterations_per_sec = f" [{iterations_per_sec: <.2f} it/s] "
                 self.print_progress_bar(idx, length, show_before=iterations_per_sec)
                 t_last_printed = time.time()
