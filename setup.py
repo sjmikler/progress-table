@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="cli-progress-table",
-    version="0.0.1",
+    version="0.0.2",
     # url="https://github.com/gahaalt/pytorch-symbolic.git",
     # project_urls={
     #     "Documentation": "https://pytorch-symbolic.readthedocs.io/",
@@ -30,7 +30,7 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
     ],
-    install_requires=[],
+    install_requires=["colorama"],
     long_description=long_description,
     long_description_content_type="text/markdown",
 )
