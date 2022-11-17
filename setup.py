@@ -10,10 +10,7 @@ long_description = (this_directory / "README.md").read_text()
 setup(
     name="cli-progress-table",
     version="0.0.2",
-    # url="https://github.com/gahaalt/pytorch-symbolic.git",
-    # project_urls={
-    #     "Documentation": "https://pytorch-symbolic.readthedocs.io/",
-    # },
+    url="https://github.com/gahaalt/cli-progress-table.git",
     author="Szymon Mikler",
     author_email="sjmikler@gmail.com",
     license="MIT",
