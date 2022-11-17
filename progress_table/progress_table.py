@@ -40,7 +40,7 @@ class ProgressTable:
         columns=(),
         default_column_width=8,
         progress_bar_fps=10,
-        reprint_header_rows=30,
+        reprint_header_every_n_rows=30,
         custom_format=None,
     ):
         self.default_width = default_column_width
@@ -55,7 +55,7 @@ class ProgressTable:
         self.progress_bar_fps = progress_bar_fps
         self.header_printed = False
         self.last_header_printed_at_row_count = 0
-        self.reprint_header_rows = reprint_header_rows
+        self.reprint_header_every_n_rows = reprint_header_every_n_rows
 
         self.custom_format = custom_format
         self.needs_line_ending = False
@@ -162,7 +162,7 @@ class ProgressTable:
     def _print_row(self):
         if not self.header_printed:
             self._print_header(top=True)
-        if self.num_rows - self.last_header_printed_at_row_count >= self.reprint_header_rows:
+        if self.num_rows - self.last_header_printed_at_row_count >= self.reprint_header_every_n_rows:
             self._print_header(top=False)
 
         if len(self.values) == 0:
@@ -179,14 +179,24 @@ class ProgressTable:
 
             if self.custom_format:
                 value = self.custom_format(value)
+
+            clipped = len(str(value)) > width
+            end_symbol = "…" if clipped else " "
             value = str(value)[:width].center(width)
+            value += end_symbol
 
             if self.colors[col] is not None:
                 self._check_color(self.colors[col])
                 value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
-        print(Symbols.vertical, f" {Symbols.vertical} ".join(content), Symbols.vertical, end="")
+        print(
+            Symbols.vertical,
+            " ",
+            f"{Symbols.vertical} ".join(content),
+            Symbols.vertical,
+            end="", sep=""
+        )
 
     def _print_progress_bar(self, i, n, show_before=" ", show_after=" "):
         tot_width = sum(self.widths.values()) + 3 * (len(self.widths) - 1) + 2
