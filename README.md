@@ -35,8 +35,8 @@ progress.close()
 
 # export your data
 data = progress.to_list()
-pandas_df = progress.df()
-np_array = progress.numpy()
+pandas_df = progress.to_df()
+np_array = progress.to_numpy()
 ```
 
 ```stdout

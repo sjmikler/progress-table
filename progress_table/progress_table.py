@@ -99,12 +99,12 @@ class ProgressTable:
     def to_list(self):
         return [[row[col] for col in self.columns] for row in self.finished_rows]
 
-    def numpy(self):
+    def to_numpy(self):
         import numpy as np
 
         return np.array(self.to_list())
 
-    def df(self):
+    def to_df(self):
         import pandas as pd
 
         return pd.DataFrame(self.to_list(), columns=self.columns)
