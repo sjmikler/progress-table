@@ -16,6 +16,9 @@ class Boxes:
     vertical: str = "│"
     all: str = "┼"
 
+    full: str = "■"
+    empty: str = "□"
+
     up_left: str = "┘"
     up_right: str = "└"
     down_left: str = "┐"
@@ -32,7 +35,7 @@ class ProgressTable:
         self,
         columns=(),
         default_column_width=8,
-        progress_bar_fps=5,
+        progress_bar_fps=10,
         custom_formatting=None,
     ):
         self.default_width = default_column_width
@@ -149,17 +152,19 @@ class ProgressTable:
         self.header_printed = False
         print()
 
-    def print_progress_bar(self, i, n):
-        tot_width = sum(self.widths.values()) + 3 * (len(self.widths) - 1)
-        num_hashes = math.ceil(i / n * tot_width)
+    def print_progress_bar(self, i, n, show_before=" ", show_after=" "):
+        tot_width = sum(self.widths.values()) + 3 * (len(self.widths) - 1) + 2
+        tot_width = tot_width - len(show_before) - len(show_after)
+
+        num_hashes = max(math.ceil(i / n * tot_width), 1)
         num_empty = tot_width - num_hashes
 
         print(
             Boxes.vertical,
-            " ",
-            "#" * num_hashes,
-            " " * num_empty,
-            " ",
+            show_before,
+            Boxes.full * num_hashes,
+            Boxes.empty * num_empty,
+            show_after,
             Boxes.vertical,
             end="",
             sep="",
@@ -202,14 +207,23 @@ class ProgressTable:
         assert hasattr(iterator, "__len__")
         length = len(iterator)
 
-        last_printed = -float("inf")
-        for idx, element in enumerate(iterator):
-            print(end="\r")
+        time_measurements = []
+        t_last_printed = -float("inf")
+        t_last_step = time.time()
 
-            if time.time() - last_printed > 1 / self.progress_bar_fps:
-                self.print_progress_bar(idx, length)
+        for idx, element in enumerate(iterator):
+            if time.time() - t_last_printed > 1 / self.progress_bar_fps:
+                print(end="\r")
+
+                s = sum(time_measurements)
+                iterations_per_sec = idx / s if s > 0 else 0.
+                iterations_per_sec = f" [{iterations_per_sec: <.2f} it/s] "
+                self.print_progress_bar(idx, length, show_before=iterations_per_sec)
+                t_last_printed = time.time()
 
             yield element
+            time_measurements.append(time.time() - t_last_step)
+            t_last_step = time.time()
         self.print_row()
 
     def __setitem__(self, key, value):
