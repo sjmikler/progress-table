@@ -67,7 +67,7 @@ class ProgressTable:
             self.add_column(column)
 
     def add_column(self, name, width=None, color=None):
-        assert not self.header_printed, "Header is already frozen!"
+        assert not self.header_printed, "Columns cannot be modified after printing the first row!"
         self.columns.append(name)
 
         width = width if width is not None else self.default_width
