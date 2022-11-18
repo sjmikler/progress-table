@@ -6,7 +6,7 @@ import math
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import List
+from typing import Any, Callable, Dict, List, Tuple
 
 from colorama import Fore, Style
 
@@ -39,24 +39,25 @@ class Symbols:
 class ProgressTable:
     def __init__(
         self,
-        columns=(),
-        default_column_width=8,
-        progress_bar_fps=10,
-        custom_format=None,
-        print_row_on_setitem=True,
-        reprint_header_every_n_rows=30,
+        columns: Tuple | List = (),
+        default_column_width: int = 8,
+        progress_bar_fps: int = 10,
+        custom_format: Callable[[Any], Any] | None = None,
+        print_row_on_setitem: bool = True,
+        reprint_header_every_n_rows: int = 30,
+        default_format_decimal_places: int = 4,
     ):
         self.default_width = default_column_width
 
-        self.columns = []
+        self.columns: List[str] = []
         self.num_rows = 0
 
-        self.widths = {}
-        self.values = defaultdict(str)
-        self.colors = defaultdict(lambda: None)
+        self.widths: Dict[str, int] = {}
+        self.values: Dict[str, Any] = defaultdict(str)
+        self.colors: Dict[str, str | None] = defaultdict(lambda: None)
 
-        self.aggregate = {}
-        self.aggregate_n = defaultdict(int)
+        self.aggregate: Dict[str, str | None] = {}
+        self.aggregate_n: Dict[str, int] = defaultdict(int)
 
         self.progress_bar_fps = progress_bar_fps
         self.header_printed = False
@@ -64,12 +65,24 @@ class ProgressTable:
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
         self.print_row_on_setitem = print_row_on_setitem
 
-        self.custom_format = custom_format
+        self.custom_format = custom_format or self.get_default_format_func(default_format_decimal_places)
         self.needs_line_ending = False
-        self.finished_rows = []
+        self.finished_rows: List[Dict[Any, Any]] = []
 
         for column in columns:
             self.add_column(column)
+
+    def get_default_format_func(self, decimal_places):
+        def fmt(x):
+            if isinstance(x, int):
+                return x
+            else:
+                try:
+                    return format(x, f".{decimal_places}f")
+                except Exception:
+                    return x
+
+        return fmt
 
     def add_column(self, name, width=None, color=None, aggregate=None):
         assert not self.header_printed, "Columns cannot be modified after printing the first row!"
