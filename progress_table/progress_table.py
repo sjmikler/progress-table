@@ -244,19 +244,18 @@ class ProgressTable:
         assert length is not None or hasattr(iterator, "__len__"), "Provide length of the iterator!"
         length = length or len(iterator)
 
-        time_measurements = []
         t_last_printed = -float("inf")
-        t_last_step = time.time()
+        t_beginning = time.time()
 
         for idx, element in enumerate(iterator):
             if time.time() - t_last_printed > 1 / self.progress_bar_fps:
                 print(end="\r")
-                s = sum(time_measurements)
-                iterations_per_sec = idx / s if s > 0 else 0.0
+                s = time.time() - t_beginning
+                throughput = idx / s if s > 0 else 0.0
 
                 full_prefix = [" [", prefix]
                 if show_throughput:
-                    full_prefix.append(f"{iterations_per_sec: <.2f} it/s")
+                    full_prefix.append(f"{throughput: <.2f} it/s")
                 full_prefix.append("] ")
                 full_prefix = "".join(full_prefix)
                 full_prefix = full_prefix if full_prefix != " [] " else " "
@@ -265,8 +264,6 @@ class ProgressTable:
                 t_last_printed = time.time()
 
             yield element
-            time_measurements.append(time.time() - t_last_step)
-            t_last_step = time.time()
         self._print_row()
 
     def __setitem__(self, key, value):
