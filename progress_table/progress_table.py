@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import sys
 import time
 from collections import defaultdict
 from dataclasses import dataclass
@@ -63,11 +64,13 @@ class ProgressTable:
         self.header_printed = False
         self.last_header_printed_at_row_count = 0
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
-        self.print_row_on_setitem = print_row_on_update
+        self.print_row_on_update = print_row_on_update
 
         self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
         self.needs_line_ending = False
         self.finished_rows: List[Dict[Any, Any]] = []
+        self.progress_bar_active = False
+        self.refresh_progress_bar: Callable = lambda: None
 
         for column in columns:
             self.add_column(column)
@@ -103,6 +106,9 @@ class ProgressTable:
     def next_row(self, save=True):
         self._print_row()
         self._maybe_line_ending()
+        if self.progress_bar_active:
+            self.refresh_progress_bar()
+        sys.stdout.flush()
 
         if save and len(self.values) > 0:
             self.finished_rows.append(self.values)
@@ -260,6 +266,7 @@ class ProgressTable:
         t_last_printed = -float("inf")
         t_beginning = time.time()
 
+        self.progress_bar_active = True
         for idx, element in enumerate(iterator):
             if time.time() - t_last_printed > 1 / self.progress_bar_fps:
                 print(end="\r")
@@ -272,11 +279,16 @@ class ProgressTable:
                 full_prefix.append("] ")
                 full_prefix = "".join(full_prefix)
                 full_prefix = full_prefix if full_prefix != " [] " else " "
-                self._print_progress_bar(idx, length, show_before=full_prefix)
+
+                self.refresh_progress_bar = lambda: self._print_progress_bar(
+                    idx, length, show_before=full_prefix
+                )
+                self.refresh_progress_bar()
 
                 t_last_printed = time.time()
-
             yield element
+
+        self.progress_bar_active = False
         self._print_row()
 
     def __setitem__(self, key, value):
@@ -296,5 +308,5 @@ class ProgressTable:
         else:
             self.values[key] = value
 
-        if self.print_row_on_setitem:
+        if self.print_row_on_update and not self.progress_bar_active:
             self._print_row()
