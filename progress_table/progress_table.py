@@ -42,22 +42,27 @@ class ProgressTable:
         columns=(),
         default_column_width=8,
         progress_bar_fps=10,
-        reprint_header_every_n_rows=30,
         custom_format=None,
+        print_row_on_setitem=True,
+        reprint_header_every_n_rows=30,
     ):
         self.default_width = default_column_width
 
         self.columns = []
         self.num_rows = 0
 
-        self.widths = defaultdict(lambda: self.default_width)
-        self.colors = defaultdict(lambda: None)
+        self.widths = {}
         self.values = defaultdict(str)
+        self.colors = defaultdict(lambda: None)
+
+        self.aggregate = {}
+        self.aggregate_n = defaultdict(int)
 
         self.progress_bar_fps = progress_bar_fps
         self.header_printed = False
         self.last_header_printed_at_row_count = 0
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
+        self.print_row_on_setitem = print_row_on_setitem
 
         self.custom_format = custom_format
         self.needs_line_ending = False
@@ -66,7 +71,7 @@ class ProgressTable:
         for column in columns:
             self.add_column(column)
 
-    def add_column(self, name, width=None, color=None):
+    def add_column(self, name, width=None, color=None, aggregate=None):
         assert not self.header_printed, "Columns cannot be modified after printing the first row!"
         self.columns.append(name)
 
@@ -78,9 +83,12 @@ class ProgressTable:
             self._check_color(color)
             self.colors[name] = color
 
+        assert aggregate in [None, "mean", "sum"], "Allowed aggregate types: [None, mean, sum]"
+        self.aggregate[name] = aggregate
         self.widths[name] = width
 
     def next_row(self, save=True):
+        self._print_row()
         self._maybe_line_ending()
 
         if save and len(self.values) > 0:
@@ -88,6 +96,7 @@ class ProgressTable:
             self.num_rows += 1
 
         self.values = defaultdict(str)
+        self.aggregate_n = defaultdict(int)
 
     def close(self):
         self._print_row()
@@ -169,9 +178,7 @@ class ProgressTable:
 
         if len(self.values) == 0:
             return
-        else:
-            self.needs_line_ending = True
-
+        self.needs_line_ending = True
         print(end="\r")
 
         content = []
@@ -230,33 +237,51 @@ class ProgressTable:
             self.next_row(save=False)
         self.close()
 
-    def __call__(self, iterator, length=None):
+    def __call__(self, iterator, length=None, prefix="", show_throughput=True):
         if not self.header_printed:
             self._print_header()
 
         assert length is not None or hasattr(iterator, "__len__"), "Provide length of the iterator!"
         length = length or len(iterator)
 
-        time_measurements = []
         t_last_printed = -float("inf")
-        t_last_step = time.time()
+        t_beginning = time.time()
 
         for idx, element in enumerate(iterator):
             if time.time() - t_last_printed > 1 / self.progress_bar_fps:
                 print(end="\r")
+                s = time.time() - t_beginning
+                throughput = idx / s if s > 0 else 0.0
 
-                s = sum(time_measurements)
-                iterations_per_sec = idx / s if s > 0 else 0.0
-                iterations_per_sec = f" [{iterations_per_sec: <.2f} it/s] "
-                self._print_progress_bar(idx, length, show_before=iterations_per_sec)
+                full_prefix = [" [", prefix]
+                if show_throughput:
+                    full_prefix.append(f"{throughput: <.2f} it/s")
+                full_prefix.append("] ")
+                full_prefix = "".join(full_prefix)
+                full_prefix = full_prefix if full_prefix != " [] " else " "
+                self._print_progress_bar(idx, length, show_before=full_prefix)
+
                 t_last_printed = time.time()
 
             yield element
-            time_measurements.append(time.time() - t_last_step)
-            t_last_step = time.time()
         self._print_row()
 
     def __setitem__(self, key, value):
         assert key in self.columns, f"Column {key} not in {self.columns}"
-        self.values[key] = value
-        self._print_row()
+
+        if self.aggregate[key] == "sum":
+            aggr_value = self.values[key] if self.aggregate_n[key] > 0 else 0
+            self.values[key] = aggr_value + value
+            self.aggregate_n[key] += 1
+
+        elif self.aggregate[key] == "mean":
+            n = self.aggregate_n[key]
+            aggr_value = self.values[key] if n > 0 else 0
+            self.values[key] = (aggr_value * n + value) / (n + 1)
+            self.aggregate_n[key] += 1
+
+        else:
+            self.values[key] = value
+
+        if self.print_row_on_setitem:
+            self._print_row()
