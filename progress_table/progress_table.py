@@ -195,6 +195,7 @@ class ProgressTable:
         print(Symbols.vertical, " ", f"{Symbols.vertical} ".join(content), Symbols.vertical, end="", sep="")
 
     def _print_progress_bar(self, i, n, show_before=" ", show_after=" "):
+        i = min(i, n)  # clip i to be not bigger than n
         tot_width = sum(self.widths.values()) + 3 * (len(self.widths) - 1) + 2
         tot_width = tot_width - len(show_before) - len(show_after)
 
@@ -229,12 +230,12 @@ class ProgressTable:
             self.next_row(save=False)
         self.close()
 
-    def __call__(self, iterator):
+    def __call__(self, iterator, length=None):
         if not self.header_printed:
             self._print_header()
 
-        assert hasattr(iterator, "__len__")
-        length = len(iterator)
+        assert length is not None or hasattr(iterator, "__len__"), "Provide length of the iterator!"
+        length = length or len(iterator)
 
         time_measurements = []
         t_last_printed = -float("inf")
