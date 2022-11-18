@@ -93,6 +93,7 @@ class ProgressTable:
 
         if name in self.columns:
             logging.warning(f"Column {name} already exists!")
+            self.columns.remove(name)
         self.columns.append(name)
 
         width = width if width is not None else self.default_width
