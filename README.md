@@ -23,7 +23,7 @@ for step in range(20):
     progress["step"] = step  # insert step value in the current row
 
     for _ in progress(range(10)):  # display progress bar
-        time.sleep(0.1)  # simulate artificial work
+        time.sleep(0.1)  # simulate computations
 
     x = random.randint(0, 200)
     progress["x"] = x
