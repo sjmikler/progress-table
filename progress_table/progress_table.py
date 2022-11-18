@@ -45,6 +45,7 @@ class ProgressTable:
         custom_format=None,
         print_row_on_setitem=True,
         reprint_header_every_n_rows=30,
+        default_format_decimal_places=4,
     ):
         self.default_width = default_column_width
 
@@ -64,12 +65,22 @@ class ProgressTable:
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
         self.print_row_on_setitem = print_row_on_setitem
 
-        self.custom_format = custom_format
+        self.custom_format = custom_format or self.default_format_func
+        self.default_format_decimal_places = default_format_decimal_places
         self.needs_line_ending = False
         self.finished_rows = []
 
         for column in columns:
             self.add_column(column)
+
+    def default_format_func(self, x):
+        if isinstance(x, int):
+            return x
+        else:
+            try:
+                return format(x, f".{self.default_format_decimal_places}f")
+            except Exception:
+                return x
 
     def add_column(self, name, width=None, color=None, aggregate=None):
         assert not self.header_printed, "Columns cannot be modified after printing the first row!"
