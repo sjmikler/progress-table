@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import sys
 import time
@@ -89,6 +90,9 @@ class ProgressTable:
 
     def add_column(self, name, width=None, color=None, aggregate=None):
         assert not self.header_printed, "Columns cannot be modified after printing the first row!"
+
+        if name in self.columns:
+            logging.warning(f"Column {name} already exists!")
         self.columns.append(name)
 
         width = width if width is not None else self.default_width
