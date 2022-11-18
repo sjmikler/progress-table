@@ -9,7 +9,7 @@ long_description = Path(this_directory / "README.md", encoding="utf-8").read_tex
 
 setup(
     name="progress-table",
-    version="0.0.15",
+    version="0.0.16",
     url="https://github.com/gahaalt/progress-table.git",
     author="Szymon Mikler",
     author_email="sjmikler@gmail.com",
