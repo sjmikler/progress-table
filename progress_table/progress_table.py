@@ -123,7 +123,6 @@ class ProgressTable:
         self.aggregate_n = defaultdict(int)
 
     def close(self):
-        self._print_row()
         self.next_row()
         self._print_bottom_bar()
         self.header_printed = False
