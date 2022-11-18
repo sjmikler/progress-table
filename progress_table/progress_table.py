@@ -40,12 +40,12 @@ class ProgressTable:
     def __init__(
         self,
         columns: Tuple | List = (),
-        default_column_width: int = 8,
         progress_bar_fps: int = 10,
-        custom_format: Callable[[Any], Any] | None = None,
-        print_row_on_setitem: bool = True,
-        reprint_header_every_n_rows: int = 30,
         num_decimal_places: int = 4,
+        default_column_width: int = 8,
+        print_row_on_update: bool = True,
+        reprint_header_every_n_rows: int = 30,
+        custom_format: Callable[[Any], Any] | None = None,
     ):
         self.default_width = default_column_width
 
@@ -63,7 +63,7 @@ class ProgressTable:
         self.header_printed = False
         self.last_header_printed_at_row_count = 0
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
-        self.print_row_on_setitem = print_row_on_setitem
+        self.print_row_on_setitem = print_row_on_update
 
         self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
         self.needs_line_ending = False
