@@ -5,11 +5,11 @@ from pathlib import Path
 from setuptools import setup
 
 this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md", encoding="utf-8").read_text()
+long_description = Path(this_directory / "README.md", encoding="utf-8").read_text()
 
 setup(
     name="progress-table",
-    version="0.0.14",
+    version="0.0.15",
     url="https://github.com/gahaalt/progress-table.git",
     author="Szymon Mikler",
     author_email="sjmikler@gmail.com",
