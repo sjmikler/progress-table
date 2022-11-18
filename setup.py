@@ -5,7 +5,7 @@ from pathlib import Path
 from setuptools import setup
 
 this_directory = Path(__file__).parent
-long_description = Path(this_directory / "README.md", encoding="utf-8").read_text()
+long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="progress-table",
