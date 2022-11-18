@@ -45,7 +45,7 @@ class ProgressTable:
         custom_format: Callable[[Any], Any] | None = None,
         print_row_on_setitem: bool = True,
         reprint_header_every_n_rows: int = 30,
-        default_format_decimal_places: int = 4,
+        num_decimal_places: int = 4,
     ):
         self.default_width = default_column_width
 
@@ -65,7 +65,7 @@ class ProgressTable:
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
         self.print_row_on_setitem = print_row_on_setitem
 
-        self.custom_format = custom_format or self.get_default_format_func(default_format_decimal_places)
+        self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
         self.needs_line_ending = False
         self.finished_rows: List[Dict[Any, Any]] = []
 

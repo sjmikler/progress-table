@@ -16,7 +16,7 @@ import time
 from colorama import Fore
 from progress_table import ProgressTable
 
-progress = ProgressTable(columns=["step", "x", "x squared"], default_format_decimal_places=10)
+progress = ProgressTable(columns=["step", "x", "x squared"], num_decimal_places=10)
 progress.add_column("x root", color=Fore.RED, width=12)
 
 for step in range(20):
