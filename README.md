@@ -27,8 +27,8 @@ for step in range(20):
 
     x = random.randint(0, 200)
     progress["x"] = x
-    progress["x squared"] = x ** 2
     progress["x root"] = x ** 0.5
+    progress["x squared"] = x ** 2
     progress.next_row()
 
 progress.close()
