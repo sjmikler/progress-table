@@ -81,4 +81,10 @@ pip install progress-table
 
 ## Alternatives
 
-* Progress bars: many of them are great and useful, but they do not provide pretty CLI logging
+* Progress bars: great for tracking progress, but they do not provide pretty CLI data display
+	* `tqdm`
+	* `Keras.utils.Progbar`
+
+* Libraries displaying data: great for presenting data, but they lack the tracking progress element
+	* `tabulate`
+    * `texttable`
