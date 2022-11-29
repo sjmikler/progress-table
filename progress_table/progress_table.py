@@ -42,34 +42,35 @@ class ProgressTable:
     def __init__(
         self,
         columns: Tuple | List = (),
-        progress_bar_fps: int = 10,
+        refresh_rate: int = 10,
         num_decimal_places: int = 4,
         default_column_width: int = 8,
         print_row_on_update: bool = True,
         reprint_header_every_n_rows: int = 30,
         custom_format: Callable[[Any], Any] | None = None,
     ):
+        self.refresh_rate = refresh_rate
         self.default_width = default_column_width
+        self.print_row_on_update = print_row_on_update
+        self.reprint_header_every_n_rows = reprint_header_every_n_rows
+        self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
 
-        self.columns: List[str] = []
-        self.num_rows = 0
-
+        # Helpers
         self.widths: Dict[str, int] = {}
-        self.values: Dict[str, Any] = defaultdict(str)
+        self.new_row: Dict[str, Any] = defaultdict(str)
         self.colors: Dict[str, str | None] = defaultdict(lambda: None)
-
         self.aggregate: Dict[str, str | None] = {}
         self.aggregate_n: Dict[str, int] = defaultdict(int)
 
-        self.progress_bar_fps = progress_bar_fps
-        self.header_printed = False
-        self.last_header_printed_at_row_count = 0
-        self.reprint_header_every_n_rows = reprint_header_every_n_rows
-        self.print_row_on_update = print_row_on_update
-
-        self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
-        self.needs_line_ending = False
+        self.num_rows = 0
+        self.columns: List[str] = []
         self.finished_rows: List[Dict[Any, Any]] = []
+
+        self.needs_line_ending = False
+        self.last_time_row_printed = 0
+        self.last_header_printed_at_row_count = 0
+
+        self.header_printed = False
         self.progress_bar_active = False
         self.refresh_progress_bar: Callable = lambda: None
 
@@ -115,11 +116,11 @@ class ProgressTable:
             self.refresh_progress_bar()
         sys.stdout.flush()
 
-        if save and len(self.values) > 0:
-            self.finished_rows.append(self.values)
+        if save and len(self.new_row) > 0:
+            self.finished_rows.append(self.new_row)
             self.num_rows += 1
 
-        self.values = defaultdict(str)
+        self.new_row = defaultdict(str)
         self.aggregate_n = defaultdict(int)
 
     def close(self):
@@ -199,14 +200,14 @@ class ProgressTable:
         if self.num_rows - self.last_header_printed_at_row_count >= self.reprint_header_every_n_rows:
             self._print_header(top=False)
 
-        if len(self.values) == 0:
+        if len(self.new_row) == 0:
             return
         self.needs_line_ending = True
         print(end="\r")
 
         content = []
         for col in self.columns:
-            value = self.values[col]
+            value = self.new_row[col]
             width = self.widths[col]
 
             if self.custom_format:
@@ -255,7 +256,7 @@ class ProgressTable:
         for row in data:
             assert len(row) == len(self.columns)
             for key, value in zip(self.columns, row):
-                self.values[key] = value
+                self.new_row[key] = value
             self._print_row()
             self.next_row(save=False)
         self.close()
@@ -272,7 +273,7 @@ class ProgressTable:
 
         self.progress_bar_active = True
         for idx, element in enumerate(iterator):
-            if time.time() - t_last_printed > 1 / self.progress_bar_fps:
+            if time.time() - t_last_printed > 1 / self.refresh_rate:
                 print(end="\r")
                 s = time.time() - t_beginning
                 throughput = idx / s if s > 0 else 0.0
@@ -299,18 +300,26 @@ class ProgressTable:
         assert key in self.columns, f"Column {key} not in {self.columns}"
 
         if self.aggregate[key] == "sum":
-            aggr_value = self.values[key] if self.aggregate_n[key] > 0 else 0
-            self.values[key] = aggr_value + value
+            aggr_value = self.new_row[key] if self.aggregate_n[key] > 0 else 0
+            self.new_row[key] = aggr_value + value
             self.aggregate_n[key] += 1
 
         elif self.aggregate[key] == "mean":
             n = self.aggregate_n[key]
-            aggr_value = self.values[key] if n > 0 else 0
-            self.values[key] = (aggr_value * n + value) / (n + 1)
+            aggr_value = self.new_row[key] if n > 0 else 0
+            self.new_row[key] = (aggr_value * n + value) / (n + 1)
             self.aggregate_n[key] += 1
 
         else:
-            self.values[key] = value
+            self.new_row[key] = value
 
-        if self.print_row_on_update and not self.progress_bar_active:
+        t0 = time.time()
+        td = t0 - self.last_time_row_printed
+        if self.print_row_on_update and not self.progress_bar_active and td > 1 / self.refresh_rate:
             self._print_row()
+            self.last_time_row_printed = t0
+
+    def __getitem__(self, key):
+        assert key in self.columns, f"Column {key} not in {self.columns}"
+
+        return self.new_row[key]
