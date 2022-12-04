@@ -296,19 +296,19 @@ class ProgressTable:
         self.progress_bar_active = False
         self._print_row()
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value, weight=1):
         assert key in self.columns, f"Column {key} not in {self.columns}"
 
         if self.aggregate[key] == "sum":
             aggr_value = self.new_row[key] if self.aggregate_n[key] > 0 else 0
-            self.new_row[key] = aggr_value + value
-            self.aggregate_n[key] += 1
+            self.new_row[key] = aggr_value + value * weight
+            self.aggregate_n[key] += weight
 
         elif self.aggregate[key] == "mean":
             n = self.aggregate_n[key]
             aggr_value = self.new_row[key] if n > 0 else 0
-            self.new_row[key] = (aggr_value * n + value) / (n + 1)
-            self.aggregate_n[key] += 1
+            self.new_row[key] = (aggr_value * n + value * weight) / (n + weight)
+            self.aggregate_n[key] += weight
 
         else:
             self.new_row[key] = value
