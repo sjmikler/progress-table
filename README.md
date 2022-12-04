@@ -8,11 +8,6 @@ Produces pretty tables on the fly during your experiment, allowing you to quickl
 
 ![example](https://github.com/gahaalt/progress-table/blob/main/progress_table_example.png?raw=true)
 
-## Links
-
-* [See on GitHub](https://github.com/gahaalt/progress-table)
-* [See on PyPI](https://pypi.org/project/progress-table)
-
 ## Example
 
 ```python
@@ -78,6 +73,11 @@ Install Progress Table easily with pip:
 ```
 pip install progress-table
 ```
+
+## Links
+
+* [See on GitHub](https://github.com/gahaalt/progress-table)
+* [See on PyPI](https://pypi.org/project/progress-table)
 
 ## Alternatives
 
