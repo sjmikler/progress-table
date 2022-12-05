@@ -102,6 +102,7 @@ class ProgressTable:
             width = len(name)
 
         if color is not None:
+            color = self._maybe_convert_to_colorama(color)
             self._check_color(color)
             self.colors[name] = color
 
@@ -164,6 +165,14 @@ class ProgressTable:
 
     def _print_center_bar(self):
         return self._bar(left=Symbols.no_left, center=Symbols.all, right=Symbols.no_right)
+
+    def _maybe_convert_to_colorama(self, color):
+        if isinstance(color, str):
+            if hasattr(Fore, color.upper()):
+                return getattr(Fore, color.upper())
+            if hasattr(Style, color.upper()):
+                return getattr(Style, color.upper())
+        return color
 
     def _check_color(self, color):
         assert color in all_colors_styles, "Only colorama colors are allowed, e.g. colorama.Fore.GREEN!"

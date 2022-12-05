@@ -13,11 +13,10 @@ Produces pretty tables on the fly during your experiment, allowing you to quickl
 ```python
 import random
 import time
-from colorama import Fore
 from progress_table import ProgressTable
 
 progress = ProgressTable(columns=["step", "x", "x squared"], num_decimal_places=10)
-progress.add_column("x root", color=Fore.RED, width=12)
+progress.add_column("x root", color="red", width=12)
 
 for step in range(20):
     progress["step"] = step  # insert step value in the current row
