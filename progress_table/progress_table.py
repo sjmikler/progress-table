@@ -343,9 +343,13 @@ class ProgressTable:
 
         t0 = time.time()
         td = t0 - self.last_time_row_printed
-        if self.print_row_on_update and not self.progress_bar_active and td > 1 / self.refresh_rate:
-            self._print_row()
+        if self.print_row_on_update and td > 1 / self.refresh_rate:
             self.last_time_row_printed = t0
+
+            if not self.progress_bar_active:
+                self._print_row()
+            elif self.embedded_progress_bar:
+                self.refresh_progress_bar()
 
     def __getitem__(self, key):
         assert key in self.columns, f"Column {key} not in {self.columns}"
