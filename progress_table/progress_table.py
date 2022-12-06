@@ -215,16 +215,20 @@ class ProgressTable:
                 value = self.custom_format(value)
 
             clipped = len(str(value)) > width
-            end_symbol = Symbols.dots if clipped else " "
-            value = str(value)[:width].center(width)
-            value += end_symbol
+            value = "".join(
+                [
+                    " ",  # space at the beginning of the row
+                    str(value)[:width].center(width),
+                    Symbols.dots if clipped else " ",
+                ]
+            )
 
             if self.colors[col] is not None:
                 self._check_color(self.colors[col])
                 value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
-        return "".join(["\r", Symbols.vertical, " ", f"{Symbols.vertical} ".join(content), Symbols.vertical])
+        return "".join(["\r", Symbols.vertical, f"{Symbols.vertical}".join(content), Symbols.vertical])
 
     def _print_row(self):
         if not self.header_printed:
