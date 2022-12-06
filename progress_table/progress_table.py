@@ -263,10 +263,11 @@ class ProgressTable:
             for idx, letter in enumerate(row):
                 if idx / len(row) <= i / n:
                     if letter == " ":
-                        letter = "ˌ"
+                        letter = "_"
                 new_row.append(letter)
             row = "".join(new_row)
             print(row, end="\r")
+        sys.stdout.flush()
 
     def _maybe_line_ending(self):
         if self.needs_line_ending:
