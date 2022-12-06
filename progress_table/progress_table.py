@@ -297,8 +297,13 @@ class ProgressTable:
         t_beginning = time.time()
 
         self.progress_bar_active = True
+
         for idx, element in enumerate(iterator):
             if time.time() - t_last_printed > 1 / self.refresh_rate:
+
+                # Reenable here, in case of nested progress bars
+                self.progress_bar_active = True
+
                 print(end="\r")
                 s = time.time() - t_beginning
                 throughput = idx / s if s > 0 else 0.0
