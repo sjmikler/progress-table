@@ -48,12 +48,14 @@ class ProgressTable:
         print_row_on_update: bool = True,
         reprint_header_every_n_rows: int = 30,
         custom_format: Callable[[Any], Any] | None = None,
+        embedded_progress_bar: bool = False,
     ):
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
         self.print_row_on_update = print_row_on_update
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
         self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
+        self.embedded_progress_bar = embedded_progress_bar
 
         # Helpers
         self.widths: Dict[str, int] = {}
@@ -94,8 +96,8 @@ class ProgressTable:
 
         if name in self.columns:
             logging.warning(f"Column {name} already exists!")
-            self.columns.remove(name)
-        self.columns.append(name)
+        else:
+            self.columns.append(name)
 
         width = width if width is not None else self.default_width
         if width < len(name):
@@ -203,17 +205,7 @@ class ProgressTable:
         self._print_center_bar()
         print()
 
-    def _print_row(self):
-        if not self.header_printed:
-            self._print_header(top=True)
-        if self.num_rows - self.last_header_printed_at_row_count >= self.reprint_header_every_n_rows:
-            self._print_header(top=False)
-
-        if len(self.new_row) == 0:
-            return
-        self.needs_line_ending = True
-        print(end="\r")
-
+    def _get_row(self):
         content = []
         for col in self.columns:
             value = self.new_row[col]
@@ -232,26 +224,49 @@ class ProgressTable:
                 value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
-        print(Symbols.vertical, " ", f"{Symbols.vertical} ".join(content), Symbols.vertical, end="", sep="")
+        return "".join(["\r", Symbols.vertical, " ", f"{Symbols.vertical} ".join(content), Symbols.vertical])
 
-    def _print_progress_bar(self, i, n, show_before=" ", show_after=" "):
+    def _print_row(self):
+        if not self.header_printed:
+            self._print_header(top=True)
+        if self.num_rows - self.last_header_printed_at_row_count >= self.reprint_header_every_n_rows:
+            self._print_header(top=False)
+
+        if len(self.new_row) == 0:
+            return
+        self.needs_line_ending = True
+        print(self._get_row(), end="")
+
+    def _print_progress_bar(self, i, n, show_before=" ", show_after=" ", embedded=False):
         i = min(i, n)  # clip i to be not bigger than n
-        tot_width = sum(self.widths.values()) + 3 * (len(self.widths) - 1) + 2
-        tot_width = tot_width - len(show_before) - len(show_after)
 
-        num_hashes = math.ceil(i / n * tot_width)
-        num_empty = tot_width - num_hashes
+        if not embedded:
+            tot_width = sum(self.widths.values()) + 3 * (len(self.widths) - 1) + 2
+            tot_width = tot_width - len(show_before) - len(show_after)
 
-        print(
-            Symbols.vertical,
-            show_before,
-            Symbols.full * num_hashes,
-            Symbols.empty * num_empty,
-            show_after,
-            Symbols.vertical,
-            end="\r",
-            sep="",
-        )
+            num_hashes = math.ceil(i / n * tot_width)
+            num_empty = tot_width - num_hashes
+
+            print(
+                Symbols.vertical,
+                show_before,
+                Symbols.full * num_hashes,
+                Symbols.empty * num_empty,
+                show_after,
+                Symbols.vertical,
+                end="\r",
+                sep="",
+            )
+        else:
+            row = self._get_row()
+            new_row = []
+            for idx, letter in enumerate(row):
+                if idx / len(row) <= i / n:
+                    if letter == " ":
+                        letter = "ˌ"
+                new_row.append(letter)
+            row = "".join(new_row)
+            print(row, end="\r")
 
     def _maybe_line_ending(self):
         if self.needs_line_ending:
@@ -295,7 +310,10 @@ class ProgressTable:
                 full_prefix = full_prefix if full_prefix != " [] " else " "
 
                 self.refresh_progress_bar = lambda: self._print_progress_bar(
-                    idx, length, show_before=full_prefix
+                    idx,
+                    length,
+                    show_before=full_prefix,
+                    embedded=self.embedded_progress_bar,
                 )
                 self.refresh_progress_bar()
 
