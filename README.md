@@ -56,11 +56,9 @@ for step in range(10):
     x = random.randint(0, 200)
 
     # There are two equivalent ways to add new values
-
     # First:
     progress["step"] = step
     progress["x"] = x
-
     # Second:
     progress.update("x root", x ** 0.5)
     progress.update("x squared", x ** 2)
