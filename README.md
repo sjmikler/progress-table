@@ -6,7 +6,16 @@ Lightweight utility to display the progress of your process as a pretty table in
 
 Designed to monitor machine learning experiments, but can be used for anything.
 Allows you to quickly see what is going on.
-Increases readability and cuteness of your CLI logging.
+Increases readability and cuteness of your command line logging.
+
+## Features
+
+* Displaying pretty table in the terminal
+* Progress bar embedded into the table
+* Exporting data as lists, numpy arrays or pandas dataframes
+* Built-in basic data aggregation: `sum` and `mean`
+
+## Goal
 
 Change this:
 
