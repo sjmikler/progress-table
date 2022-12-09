@@ -7,6 +7,7 @@ Designed to monitor machine learning experiments, but can be used for anything.
 Produces pretty tables on the fly during your experiment, allowing you to quickly see what is going on.
 
 ![example](https://github.com/gahaalt/progress-table/blob/main/progress_table_example.png?raw=true)
+![example](main-gif.gif)
 
 ## Example
 
