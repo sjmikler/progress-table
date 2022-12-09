@@ -1,13 +1,16 @@
 # Progress Table
 
 Lightweight utility to display progress as a pretty table in the command line.
+![example](https://github.com/gahaalt/progress-table/blob/main/media/progress_table_example.png?raw=true)
 
 Designed to monitor machine learning experiments, but can be used for anything.
-
 Produces pretty tables on the fly during your experiment, allowing you to quickly see what is going on.
 
-![example](https://github.com/gahaalt/progress-table/blob/main/progress_table_example.png?raw=true)
-![example](main-gif.gif)
+Change this:
+![example](https://github.com/gahaalt/progress-table/blob/main/media/before.gif?raw=true)
+
+Into this:
+![example](https://github.com/gahaalt/progress-table/blob/main/media/after.gif?raw=true)
 
 ## Example
 
@@ -87,4 +90,4 @@ pip install progress-table
 
 * Libraries displaying data: great for presenting data, but they lack the tracking progress element
 	* `tabulate`
-    * `texttable`
+	* `texttable`
