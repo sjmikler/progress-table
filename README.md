@@ -1,10 +1,12 @@
 # Progress Table
 
-Lightweight utility to display progress as a pretty table in the command line.
+Lightweight utility to display the progress of your process as a pretty table in the command line.
+
 ![example](https://github.com/gahaalt/progress-table/blob/main/media/progress_table_example.png?raw=true)
 
 Designed to monitor machine learning experiments, but can be used for anything.
-Produces pretty tables on the fly during your experiment, allowing you to quickly see what is going on.
+Allows you to quickly see what is going on.
+Increases readability and cuteness of your CLI logging.
 
 Change this:
 
@@ -21,24 +23,34 @@ import random
 import time
 from progress_table import ProgressTable
 
-progress = ProgressTable(columns=["step", "x", "x squared"], num_decimal_places=10)
+# At the beginning, define all the columns
+progress = ProgressTable(columns=["step", "x"], num_decimal_places=6)
+progress.add_column("x squared", aggregate="sum")
 progress.add_column("x root", color="red", width=12)
 
 for step in range(20):
-    progress["step"] = step  # insert step value in the current row
+    progress["step"] = step
 
-    for _ in progress(range(10)):  # display progress bar
-        time.sleep(0.1)  # simulate artificial work
+    # Display a progress bar by wrapping the iterator
+    for _ in progress(range(10)):
+        time.sleep(0.1)
 
     x = random.randint(0, 200)
-    progress["x"] = x
-    progress["x root"] = x ** 0.5
-    progress["x squared"] = x ** 2
+
+    # There are ways to add new values
+    progress["x"] = x  # OR
+    progress.update("x root", x ** 0.5)
+
+    # You can use weights for aggregated values
+    progress.update("x squared", x ** 2, weight=1)
+
+    # Go to next row when you're ready
     progress.next_row()
 
+# Close the table when it's ready
 progress.close()
 
-# export your data
+# Export your data
 data = progress.to_list()
 pandas_df = progress.to_df()
 np_array = progress.to_numpy()
