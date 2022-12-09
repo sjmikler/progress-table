@@ -65,7 +65,6 @@ for step in range(10):
 
     # Display the progress bar by wrapping the iterator
     for _ in progress(range(10)):
-
         # You can use weights for aggregated values
         progress.update("random average", random.random(), weight=1)
         time.sleep(0.1)
