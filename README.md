@@ -36,7 +36,7 @@ import time
 from progress_table import ProgressTable
 
 # Define the columns at the beginning
-progress = ProgressTable(
+table = ProgressTable(
     columns=["step", "x", "x squared"],
 
     # Default values:
@@ -48,37 +48,37 @@ progress = ProgressTable(
     custom_format=None,
     embedded_progress_bar=False,
 )
-progress.add_column("x", width=3)
-progress.add_column("x root", color="red")
-progress.add_column("random average", color=["bright", "red"], aggregate="mean")
+table.add_column("x", width=3)
+table.add_column("x root", color="red")
+table.add_column("random average", color=["bright", "red"], aggregate="mean")
 
 for step in range(10):
     x = random.randint(0, 200)
 
     # There are two equivalent ways to add new values
     # First:
-    progress["step"] = step
-    progress["x"] = x
+    table["step"] = step
+    table["x"] = x
     # Second:
-    progress.update("x root", x ** 0.5)
-    progress.update("x squared", x ** 2)
+    table.update("x root", x ** 0.5)
+    table.update("x squared", x ** 2)
 
     # Display the progress bar by wrapping the iterator
-    for _ in progress(range(10)):
+    for _ in table(range(10)):
         # You can use weights for aggregated values
-        progress.update("random average", random.random(), weight=1)
+        table.update("random average", random.random(), weight=1)
         time.sleep(0.1)
 
     # Go to the next row when you're ready
-    progress.next_row()
+    table.next_row()
 
 # Close the table when it's ready
-progress.close()
+table.close()
 
 # Export your data
-data = progress.to_list()
-pandas_df = progress.to_df()
-np_array = progress.to_numpy()
+data = table.to_list()
+pandas_df = table.to_df()
+np_array = table.to_numpy()
 ```
 
 ```stdout
