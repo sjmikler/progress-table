@@ -50,7 +50,7 @@ progress = ProgressTable(
 )
 progress.add_column("x", width=3)
 progress.add_column("x root", color="red")
-progress.add_column("random average", color="bright", aggregate="mean")
+progress.add_column("random average", color=["bright", "red"], aggregate="mean")
 
 for step in range(10):
     x = random.randint(0, 200)
