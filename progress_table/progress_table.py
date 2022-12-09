@@ -18,7 +18,7 @@ ALL_STYLES = [getattr(Style, x) for x in dir(Style) if not x.startswith("__")]
 ALL_COLOR_STYLES = ALL_COLORS + ALL_STYLES
 
 ITERATOR_LENGTH_UNKNOWN_WARNED_ONCE = False
-ITERATOR_LENGTH_CACHE = {}
+ITERATOR_LENGTH_CACHE: Dict[int, int] = {}
 
 
 @dataclass
@@ -342,7 +342,7 @@ class ProgressTable:
 
         if length is None and not hasattr(iterator, "__len__"):
             if not ITERATOR_LENGTH_UNKNOWN_WARNED_ONCE:
-                logging.warning(f"Iterator length is unknown!")
+                logging.warning("Iterator length is unknown!")
                 ITERATOR_LENGTH_UNKNOWN_WARNED_ONCE = True
 
             # We have a back-up mechanism in case of unknown-length iterators.
