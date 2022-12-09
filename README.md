@@ -1,5 +1,8 @@
 # Progress Table
 
+[![PyPi version](https://img.shields.io/badge/dynamic/json?label=latest&query=info.version&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
+[![PyPI license](https://img.shields.io/badge/dynamic/json?label=license&query=info.license&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
+
 Lightweight utility to display the progress of your process as a pretty table in the command line.
 
 ![example](https://github.com/gahaalt/progress-table/blob/main/media/progress_table_example.png?raw=true)
@@ -32,28 +35,44 @@ import random
 import time
 from progress_table import ProgressTable
 
-# At the beginning, define all the columns
-progress = ProgressTable(columns=["step", "x"], num_decimal_places=6)
-progress.add_column("x squared", aggregate="sum")
-progress.add_column("x root", color="red", width=12)
+# Define the columns at the beginning
+progress = ProgressTable(
+    columns=["step", "x", "x squared"],
 
-for step in range(20):
-    progress["step"] = step
+    # Default values:
+    refresh_rate=10,
+    num_decimal_places=4,
+    default_column_width=8,
+    print_row_on_update=True,
+    reprint_header_every_n_rows=30,
+    custom_format=None,
+    embedded_progress_bar=False,
+)
+progress.add_column("x", width=3)
+progress.add_column("x root", color="red")
+progress.add_column("random average", color="bright", aggregate="mean")
 
-    # Display a progress bar by wrapping the iterator
-    for _ in progress(range(10)):
-        time.sleep(0.1)
-
+for step in range(10):
     x = random.randint(0, 200)
 
-    # There are ways to add new values
-    progress["x"] = x  # OR
+    # There are two equivalent ways to add new values
+
+    # First:
+    progress["step"] = step
+    progress["x"] = x
+
+    # Second:
     progress.update("x root", x ** 0.5)
+    progress.update("x squared", x ** 2)
 
-    # You can use weights for aggregated values
-    progress.update("x squared", x ** 2, weight=1)
+    # Display the progress bar by wrapping the iterator
+    for _ in progress(range(10)):
 
-    # Go to next row when you're ready
+        # You can use weights for aggregated values
+        progress.update("random average", random.random(), weight=1)
+        time.sleep(0.1)
+
+    # Go to the next row when you're ready
     progress.next_row()
 
 # Close the table when it's ready
@@ -66,30 +85,20 @@ np_array = progress.to_numpy()
 ```
 
 ```stdout
-┌──────────┬──────────┬───────────┬──────────────┐
-│   step   │    x     │ x squared │    x root    │
-├──────────┼──────────┼───────────┼──────────────┤
-│    0     │    39    │    1521   │ 6.2449979984 │
-│    1     │    86    │    7396   │ 9.2736184955 │
-│    2     │    10    │    100    │ 3.1622776602 │
-│    3     │    34    │    1156   │ 5.8309518948 │
-│    4     │   178    │   31684   │ 13.341664064…│
-│    5     │   141    │   19881   │ 11.874342087…│
-│    6     │    66    │    4356   │ 8.1240384046 │
-│    7     │    41    │    1681   │ 6.4031242374 │
-│    8     │   109    │   11881   │ 10.440306508…│
-│    9     │    95    │    9025   │ 9.7467943448 │
-│    10    │   137    │   18769   │ 11.704699910…│
-│    11    │   166    │   27556   │ 12.884098726…│
-│    12    │   105    │   11025   │ 10.246950766…│
-│    13    │    63    │    3969   │ 7.9372539332 │
-│    14    │    75    │    5625   │ 8.6602540378 │
-│    15    │    40    │    1600   │ 6.3245553203 │
-│    16    │   192    │   36864   │ 13.856406460…│
-│    17    │    15    │    225    │ 3.8729833462 │
-│    18    │    42    │    1764   │ 6.4807406984 │
-│    19    │    58    │    3364   │ 7.6157731059 │
-└──────────┴──────────┴───────────┴──────────────┘
+┌──────────┬─────┬───────────┬──────────┬────────────────┐
+│   step   │  x  │ x squared │  x root  │ random average │
+├──────────┼─────┼───────────┼──────────┼────────────────┤
+│    0     │  50 │    2500   │  7.0711  │     0.2796     │
+│    1     │ 186 │   34596   │ 13.6382  │     0.3897     │
+│    2     │  70 │    4900   │  8.3666  │     0.5524     │
+│    3     │ 170 │   28900   │ 13.0384  │     0.5030     │
+│    4     │  71 │    5041   │  8.4261  │     0.5756     │
+│    5     │  17 │    289    │  4.1231  │     0.3962     │
+│    6     │  77 │    5929   │  8.7750  │     0.6333     │
+│    7     │ 138 │   19044   │ 11.7473  │     0.6287     │
+│    8     │ 131 │   17161   │ 11.4455  │     0.3324     │
+│    9     │ 154 │   23716   │ 12.4097  │     0.4751     │
+└──────────┴─────┴───────────┴──────────┴────────────────┘
 ```
 
 ## Installation
