@@ -30,8 +30,8 @@ Into this:
 
 ## Example
 
-> Click here for examples of PyTorch and Keras integration:
-> [integration.md](https://github.com/gahaalt/progress-table/blob/main/integration.md).
+> Click here for examples of integration with PyTorch and Keras:
+> [integrations.md](https://github.com/gahaalt/progress-table/blob/main/integrations.md).
 
 ```python
 import random

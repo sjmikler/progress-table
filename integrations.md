@@ -1,3 +1,5 @@
+# Integrations
+
 Progress Table is not tied up to any specific deep learning framework.
 Thanks to it, it's lightweight and easy to use.
 
@@ -5,9 +7,11 @@ You can easily integrate it with your code. Below you will find examples of how 
 
 # PyTorch
 
-This is an example of a simple training loop in PyTorch.
+This is an example of a simple custom training loop in PyTorch.
 
-Manual logging can look like his:
+### Without Progress Table
+
+Manual logging is often overlooked and done in haste. It can look like this:
 
 ```python
 ...
@@ -42,9 +46,11 @@ print('Epoch [{}/{}], Step [FINISHED], Loss: {:.4f}, Accuracy: {:.4f}'.format(
 ))
 ```
 
-When using Progress Table, you get rich and clean output.
+### With Progress Table
 
-Moreover, your code is short, clear and you get a progress bar!
+When using Progress Table, you get rich and clean logging.
+
+Moreover, your code is short, clean and you get a progress bar extra!
 
 ```python
 ...
@@ -68,9 +74,9 @@ table.close()
 
 # Keras
 
-In case of PyTorch or TensorFlow, we often use custom training loops.
-In those cases, you can integrate Progress Table as shown above.
-What about libraries like Keras, where the progress bar is built-in the `.fit` method?
+In case of PyTorch or TensorFlow, we often use custom training loops, 
+where you can integrate Progress Table as shown above.
+What about libraries like Keras, where the progress bar is built-in the `model.fit` method?
 There isn't any Keras specific integration in Progress Table,
 but you yourself can create a callback that'll replace the built-in progress bar.
 Here's an example:
