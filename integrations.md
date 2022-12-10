@@ -80,6 +80,7 @@ What about libraries like Keras, where the progress bar is built-in the `model.f
 There isn't any Keras specific integration in Progress Table,
 but you yourself can create a callback that'll replace the progress bar from Keras
 with a progress table.
+
 Here's an example:
 
 ```python
