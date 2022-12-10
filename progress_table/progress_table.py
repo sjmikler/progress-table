@@ -33,7 +33,7 @@ class ProgressTable:
         reprint_header_every_n_rows: int = 30,
         custom_format: Callable[[Any], Any] | None = None,
         embedded_progress_bar: bool = False,
-        table_style="round",
+        table_style="normal",
     ):
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
