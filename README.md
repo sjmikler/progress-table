@@ -30,6 +30,9 @@ Into this:
 
 ## Example
 
+> Click here for examples of PyTorch and Keras integration:
+> [integration.md](https://github.com/gahaalt/progress-table/blob/main/integration.md).
+
 ```python
 import random
 import time
