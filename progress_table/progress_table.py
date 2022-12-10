@@ -6,12 +6,13 @@ import logging
 import math
 import sys
 import time
-from builtins import staticmethod
+from builtins import KeyError, staticmethod
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Tuple
 
 from colorama import Fore, Style
+
+from . import symbols
 
 ALL_COLORS = [getattr(Fore, x) for x in dir(Fore) if not x.startswith("__")]
 ALL_STYLES = [getattr(Style, x) for x in dir(Style) if not x.startswith("__")]
@@ -19,27 +20,6 @@ ALL_COLOR_STYLES = ALL_COLORS + ALL_STYLES
 
 ITERATOR_LENGTH_UNKNOWN_WARNED_ONCE = False
 ITERATOR_LENGTH_CACHE: Dict[int, int] = {}
-
-
-@dataclass
-class Symbols:
-    full: str = "■"
-    empty: str = "□"
-    dots: str = "…"
-
-    horizontal: str = "─"
-    vertical: str = "│"
-    all: str = "┼"
-
-    up_left: str = "┘"
-    up_right: str = "└"
-    down_left: str = "┐"
-    down_right: str = "┌"
-
-    no_left: str = "├"
-    no_right: str = "┤"
-    no_up: str = "┬"
-    no_down: str = "┴"
 
 
 class ProgressTable:
@@ -53,6 +33,7 @@ class ProgressTable:
         reprint_header_every_n_rows: int = 30,
         custom_format: Callable[[Any], Any] | None = None,
         embedded_progress_bar: bool = False,
+        style="round",
     ):
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
@@ -62,23 +43,39 @@ class ProgressTable:
         self.embedded_progress_bar = embedded_progress_bar
 
         # Helpers
-        self.widths: Dict[str, int] = {}
-        self.new_row: Dict[str, Any] = defaultdict(str)
-        self.colors: Dict[str, str | None] = defaultdict(lambda: None)
-        self.aggregate: Dict[str, str | None] = {}
-        self.aggregate_n: Dict[str, int] = defaultdict(int)
+        self._widths: Dict[str, int] = {}
+        self._new_row: Dict[str, Any] = defaultdict(str)
+        self._colors: Dict[str, str | None] = defaultdict(lambda: None)
+        self._aggregate: Dict[str, str | None] = {}
+        self._aggregate_n: Dict[str, int] = defaultdict(int)
 
         self.num_rows = 0
         self.columns: List[str] = []
         self.finished_rows: List[Dict[Any, Any]] = []
 
-        self.needs_line_ending = False
-        self.last_time_row_printed = 0
-        self.last_header_printed_at_row_count = 0
+        self._needs_line_ending = False
+        self._last_time_row_printed = 0
+        self._last_header_printed_at_row_count = 0
 
         self.header_printed = False
         self.progress_bar_active = False
-        self.refresh_progress_bar: Callable = lambda: None
+        self._refresh_progress_bar: Callable = lambda: None
+
+        self._symbols: symbols.Symbols
+
+        if style == "normal":
+            self._symbols = symbols.SymbolsUnicode()
+        if style == "round":
+            self._symbols = symbols.SymbolsUnicodeRound()
+        elif style == "double":
+            self._symbols = symbols.SymbolsUnicodeDouble()
+        elif style == "bold":
+            self._symbols = symbols.SymbolsUnicodeBold()
+        elif style == "basic":
+            self._symbols = symbols.SymbolsBasic()
+        else:
+            allowed_styles = ["normal", "round", "double", "bold", "basic"]
+            raise KeyError(f"Style '{style}' not in {allowed_styles}!")
 
         for column in columns:
             self.add_column(column)
@@ -113,12 +110,12 @@ class ProgressTable:
             for str_color in color:
                 byte_color = self._maybe_convert_to_colorama(str_color)
                 self._check_color(byte_color, str_color)
-                self.colors.setdefault(name, "")
-                self.colors[name] += byte_color
+                self._colors.setdefault(name, "")
+                self._colors[name] += byte_color
 
         assert aggregate in [None, "mean", "sum"], "Allowed aggregate types: [None, 'mean', 'sum']"
-        self.aggregate[name] = aggregate
-        self.widths[name] = width
+        self._aggregate[name] = aggregate
+        self._widths[name] = width
 
     def add_columns(self, iterable, **kwds):
         for column in iterable:
@@ -128,15 +125,15 @@ class ProgressTable:
         self._print_row()
         self._maybe_line_ending()
         if self.progress_bar_active:
-            self.refresh_progress_bar()
+            self._refresh_progress_bar()
         sys.stdout.flush()
 
-        if save and len(self.new_row) > 0:
-            self.finished_rows.append(self.new_row)
+        if save and len(self._new_row) > 0:
+            self.finished_rows.append(self._new_row)
             self.num_rows += 1
 
-        self.new_row = defaultdict(str)
-        self.aggregate_n = defaultdict(int)
+        self._new_row = defaultdict(str)
+        self._aggregate_n = defaultdict(int)
 
     def close(self):
         self.next_row()
@@ -165,7 +162,7 @@ class ProgressTable:
     def _bar(self, left: str, center: str, right: str):
         content_list: List[str] = []
         for col in self.columns:
-            content_list.append(Symbols.horizontal * (self.widths[col] + 2))
+            content_list.append(self._symbols.horizontal * (self._widths[col] + 2))
 
         center = center.join(content_list)
         content = ["\r", left, center, right]
@@ -180,7 +177,7 @@ class ProgressTable:
         assert len(center) == len(self.columns) - 1
 
         for col in self.columns:
-            content_list.append(Symbols.horizontal * (self.widths[col] + 2))
+            content_list.append(self._symbols.horizontal * (self._widths[col] + 2))
             if center:
                 content_list.append(center.pop(0))
 
@@ -195,19 +192,25 @@ class ProgressTable:
         added_cols = new_n_cols - previous_n_cols
 
         symbols = [
-            *([Symbols.all] * previous_n_cols),
-            *([Symbols.no_up] * (added_cols - 1)),
+            *([self._symbols.all] * previous_n_cols),
+            *([self._symbols.no_up] * (added_cols - 1)),
         ]
-        return self._bar_custom_center(left=Symbols.no_left, center=symbols, right=Symbols.down_left)
+        return self._bar_custom_center(
+            left=self._symbols.no_left, center=symbols, right=self._symbols.down_left
+        )
 
     def _print_top_bar(self):
-        return self._bar(left=Symbols.down_right, center=Symbols.no_up, right=Symbols.down_left)
+        return self._bar(
+            left=self._symbols.down_right, center=self._symbols.no_up, right=self._symbols.down_left
+        )
 
     def _print_bottom_bar(self):
-        return self._bar(left=Symbols.up_right, center=Symbols.no_down, right=Symbols.up_left)
+        return self._bar(
+            left=self._symbols.up_right, center=self._symbols.no_down, right=self._symbols.up_left
+        )
 
     def _print_center_bar(self):
-        return self._bar(left=Symbols.no_left, center=Symbols.all, right=Symbols.no_right)
+        return self._bar(left=self._symbols.no_left, center=self._symbols.all, right=self._symbols.no_right)
 
     @staticmethod
     def _maybe_convert_to_colorama(color):
@@ -235,16 +238,16 @@ class ProgressTable:
 
         content = []
         for col in self.columns:
-            width = self.widths[col]
+            width = self._widths[col]
             value = col[:width].center(width)
 
-            if self.colors[col] is not None:
-                value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
+            if self._colors[col] is not None:
+                value = f"{self._colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
-        print(Symbols.vertical, f" {Symbols.vertical} ".join(content), Symbols.vertical)
+        print(self._symbols.vertical, f" {self._symbols.vertical} ".join(content), self._symbols.vertical)
 
-        self.last_header_printed_at_row_count = self.num_rows
+        self._last_header_printed_at_row_count = self.num_rows
         self.header_printed = True
         self._print_center_bar()
         print()
@@ -252,8 +255,8 @@ class ProgressTable:
     def _get_row(self):
         content = []
         for col in self.columns:
-            value = self.new_row[col]
-            width = self.widths[col]
+            value = self._new_row[col]
+            width = self._widths[col]
 
             if self.custom_format:
                 value = self.custom_format(value)
@@ -263,44 +266,46 @@ class ProgressTable:
                 [
                     " ",  # space at the beginning of the row
                     str(value)[:width].center(width),
-                    Symbols.dots if clipped else " ",
+                    self._symbols.dots if clipped else " ",
                 ]
             )
 
-            if self.colors[col] is not None:
-                value = f"{self.colors[col]}{value}{Style.RESET_ALL}"
+            if self._colors[col] is not None:
+                value = f"{self._colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
-        return "".join(["\r", Symbols.vertical, f"{Symbols.vertical}".join(content), Symbols.vertical])
+        return "".join(
+            ["\r", self._symbols.vertical, f"{self._symbols.vertical}".join(content), self._symbols.vertical]
+        )
 
     def _print_row(self):
         if not self.header_printed:
             self._print_header(top=True)
-        if self.num_rows - self.last_header_printed_at_row_count >= self.reprint_header_every_n_rows:
+        if self.num_rows - self._last_header_printed_at_row_count >= self.reprint_header_every_n_rows:
             self._print_header(top=False)
 
-        if len(self.new_row) == 0:
+        if len(self._new_row) == 0:
             return
-        self.needs_line_ending = True
+        self._needs_line_ending = True
         print(self._get_row(), end="")
 
     def _print_progress_bar(self, i, n, show_before=" ", show_after=" ", embedded=False):
         i = min(i, n)  # clip i to be not bigger than n
 
         if not embedded:
-            tot_width = sum(self.widths.values()) + 3 * (len(self.widths) - 1) + 2
+            tot_width = sum(self._widths.values()) + 3 * (len(self._widths) - 1) + 2
             tot_width = tot_width - len(show_before) - len(show_after)
 
             num_hashes = math.ceil(i / n * tot_width)
             num_empty = tot_width - num_hashes
 
             print(
-                Symbols.vertical,
+                self._symbols.vertical,
                 show_before,
-                Symbols.full * num_hashes,
-                Symbols.empty * num_empty,
+                self._symbols.pbar_filled * num_hashes,
+                self._symbols.pbar_empty * num_empty,
                 show_after,
-                Symbols.vertical,
+                self._symbols.vertical,
                 end="\r",
                 sep="",
             )
@@ -310,16 +315,16 @@ class ProgressTable:
             for idx, letter in enumerate(row):
                 if idx / len(row) <= i / n:
                     if letter == " ":
-                        letter = "_"
+                        letter = self._symbols.embedded_pbar_filled
                 new_row.append(letter)
             row = "".join(new_row)
             print(row, end="\r")
         sys.stdout.flush()
 
     def _maybe_line_ending(self):
-        if self.needs_line_ending:
+        if self._needs_line_ending:
             print()
-            self.needs_line_ending = False
+            self._needs_line_ending = False
 
     def _display_custom(self, data):
         if self.header_printed:
@@ -328,7 +333,7 @@ class ProgressTable:
         for row in data:
             assert len(row) == len(self.columns)
             for key, value in zip(self.columns, row):
-                self.new_row[key] = value
+                self._new_row[key] = value
             self._print_row()
             self.next_row(save=False)
         self.close()
@@ -381,13 +386,13 @@ class ProgressTable:
                 full_prefix = "".join(full_prefix)
                 full_prefix = full_prefix if full_prefix != " [] " else " "
 
-                self.refresh_progress_bar = lambda: self._print_progress_bar(
+                self._refresh_progress_bar = lambda: self._print_progress_bar(
                     idx,
                     length,
                     show_before=full_prefix,
                     embedded=self.embedded_progress_bar,
                 )
-                self.refresh_progress_bar()
+                self._refresh_progress_bar()
 
                 t_last_printed = time.time()
             yield element
@@ -405,29 +410,29 @@ class ProgressTable:
         """Update value in the current row."""
         assert key in self.columns, f"Column '{key}' not in {self.columns}"
 
-        if self.aggregate[key] == "sum":
-            aggr_value = self.new_row[key] if self.aggregate_n[key] > 0 else 0
-            self.new_row[key] = aggr_value + value * weight
-            self.aggregate_n[key] += weight
+        if self._aggregate[key] == "sum":
+            aggr_value = self._new_row[key] if self._aggregate_n[key] > 0 else 0
+            self._new_row[key] = aggr_value + value * weight
+            self._aggregate_n[key] += weight
 
-        elif self.aggregate[key] == "mean":
-            n = self.aggregate_n[key]
-            aggr_value = self.new_row[key] if n > 0 else 0
-            self.new_row[key] = (aggr_value * n + value * weight) / (n + weight)
-            self.aggregate_n[key] += weight
+        elif self._aggregate[key] == "mean":
+            n = self._aggregate_n[key]
+            aggr_value = self._new_row[key] if n > 0 else 0
+            self._new_row[key] = (aggr_value * n + value * weight) / (n + weight)
+            self._aggregate_n[key] += weight
 
         else:
-            self.new_row[key] = value
+            self._new_row[key] = value
 
         t0 = time.time()
-        td = t0 - self.last_time_row_printed
+        td = t0 - self._last_time_row_printed
         if self.print_row_on_update and td > 1 / self.refresh_rate:
-            self.last_time_row_printed = t0
+            self._last_time_row_printed = t0
 
             if not self.progress_bar_active:
                 self._print_row()
             elif self.embedded_progress_bar:
-                self.refresh_progress_bar()
+                self._refresh_progress_bar()
 
     def __setitem__(self, key, value):
         self.update(key, value, weight=1)
@@ -435,4 +440,4 @@ class ProgressTable:
     def __getitem__(self, key):
         assert key in self.columns, f"Column '{key}' not in {self.columns}"
 
-        return self.new_row[key]
+        return self._new_row[key]
