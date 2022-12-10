@@ -35,6 +35,7 @@ Into this:
 
 ```python
 import random
+import sys
 import time
 
 from progress_table import ProgressTable
@@ -52,6 +53,7 @@ table = ProgressTable(
     custom_format=None,
     embedded_progress_bar=False,
     table_style="normal",
+    file=sys.stdout,
 )
 table.add_column("x", width=3)
 table.add_column("x root", color="red")

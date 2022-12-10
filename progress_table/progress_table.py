@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 import math
 import sys
@@ -34,6 +35,7 @@ class ProgressTable:
         custom_format: Callable[[Any], Any] | None = None,
         embedded_progress_bar: bool = False,
         table_style="normal",
+        file=sys.stdout,
     ):
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
@@ -41,6 +43,9 @@ class ProgressTable:
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
         self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
         self.embedded_progress_bar = embedded_progress_bar
+
+        self.file = file
+        self._print = functools.partial(print, file=self.file)
 
         # Helpers
         self._widths: Dict[str, int] = {}
@@ -65,7 +70,7 @@ class ProgressTable:
 
         if table_style == "normal":
             self._symbols = symbols.SymbolsUnicode()
-        if table_style == "round":
+        elif table_style == "round":
             self._symbols = symbols.SymbolsUnicodeRound()
         elif table_style == "double":
             self._symbols = symbols.SymbolsUnicodeDouble()
@@ -139,7 +144,7 @@ class ProgressTable:
         self.next_row()
         self._print_bottom_bar()
         self.header_printed = False
-        print()
+        self._print()
 
     def to_list(self):
         return [[row[col] for col in self.columns] for row in self.finished_rows]
@@ -166,7 +171,7 @@ class ProgressTable:
 
         center = center.join(content_list)
         content = ["\r", left, center, right]
-        print("".join(content), end="")
+        self._print("".join(content), end="")
 
     def _bar_custom_center(self, left: str, center: List[str] | str, right: str):
         """UNUSED"""
@@ -183,7 +188,7 @@ class ProgressTable:
 
         center = "".join(content_list)
         content = ["\r", left, center, right]
-        print("".join(content), end="")
+        self._print("".join(content), end="")
 
     def _print_transition_bar(self, previous_n_cols, new_n_cols):
         """UNUSED"""
@@ -234,7 +239,7 @@ class ProgressTable:
             self._print_top_bar()
         else:
             self._print_center_bar()
-        print()
+        self._print()
 
         content = []
         for col in self.columns:
@@ -245,12 +250,14 @@ class ProgressTable:
                 value = f"{self._colors[col]}{value}{Style.RESET_ALL}"
 
             content.append(value)
-        print(self._symbols.vertical, f" {self._symbols.vertical} ".join(content), self._symbols.vertical)
+        self._print(
+            self._symbols.vertical, f" {self._symbols.vertical} ".join(content), self._symbols.vertical
+        )
 
         self._last_header_printed_at_row_count = self.num_rows
         self.header_printed = True
         self._print_center_bar()
-        print()
+        self._print()
 
     def _get_row(self):
         content = []
@@ -287,7 +294,7 @@ class ProgressTable:
         if len(self._new_row) == 0:
             return
         self._needs_line_ending = True
-        print(self._get_row(), end="")
+        self._print(self._get_row(), end="")
 
     def _print_progress_bar(self, i, n, show_before=" ", show_after=" ", embedded=False):
         i = min(i, n)  # clip i to be not bigger than n
@@ -299,7 +306,7 @@ class ProgressTable:
             num_hashes = math.ceil(i / n * tot_width)
             num_empty = tot_width - num_hashes
 
-            print(
+            self._print(
                 self._symbols.vertical,
                 show_before,
                 self._symbols.pbar_filled * num_hashes,
@@ -318,12 +325,12 @@ class ProgressTable:
                         letter = self._symbols.embedded_pbar_filled
                 new_row.append(letter)
             row = "".join(new_row)
-            print(row, end="\r")
+            self._print(row, end="\r")
         sys.stdout.flush()
 
     def _maybe_line_ending(self):
         if self._needs_line_ending:
-            print()
+            self._print()
             self._needs_line_ending = False
 
     def _display_custom(self, data):
@@ -375,7 +382,7 @@ class ProgressTable:
                 # Reenable here, in case of nested progress bars
                 self.progress_bar_active = True
 
-                print(end="\r")
+                self._print(end="\r")
                 s = time.time() - t_beginning
                 throughput = idx / s if s > 0 else 0.0
 
