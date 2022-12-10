@@ -50,7 +50,7 @@ print('Epoch [{}/{}], Step [FINISHED], Loss: {:.4f}, Accuracy: {:.4f}'.format(
 
 When using Progress Table, you get rich and clean logging.
 
-Moreover, your code is short, clean and you get a progress bar extra!
+Moreover, your code is shorter, simpler and you get a progress bar extra!
 
 ```python
 ...
