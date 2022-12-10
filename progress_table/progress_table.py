@@ -33,7 +33,7 @@ class ProgressTable:
         reprint_header_every_n_rows: int = 30,
         custom_format: Callable[[Any], Any] | None = None,
         embedded_progress_bar: bool = False,
-        style="round",
+        table_style="round",
     ):
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
@@ -63,19 +63,19 @@ class ProgressTable:
 
         self._symbols: symbols.Symbols
 
-        if style == "normal":
+        if table_style == "normal":
             self._symbols = symbols.SymbolsUnicode()
-        if style == "round":
+        if table_style == "round":
             self._symbols = symbols.SymbolsUnicodeRound()
-        elif style == "double":
+        elif table_style == "double":
             self._symbols = symbols.SymbolsUnicodeDouble()
-        elif style == "bold":
+        elif table_style == "bold":
             self._symbols = symbols.SymbolsUnicodeBold()
-        elif style == "basic":
+        elif table_style == "basic":
             self._symbols = symbols.SymbolsBasic()
         else:
             allowed_styles = ["normal", "round", "double", "bold", "basic"]
-            raise KeyError(f"Style '{style}' not in {allowed_styles}!")
+            raise KeyError(f"Style '{table_style}' not in {allowed_styles}!")
 
         for column in columns:
             self.add_column(column)

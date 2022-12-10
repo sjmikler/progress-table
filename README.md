@@ -50,6 +50,7 @@ table = ProgressTable(
     reprint_header_every_n_rows=30,
     custom_format=None,
     embedded_progress_bar=False,
+    table_style="round",
 )
 table.add_column("x", width=3)
 table.add_column("x root", color="red")
