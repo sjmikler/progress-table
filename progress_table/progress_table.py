@@ -25,20 +25,22 @@ ITERATOR_LENGTH_CACHE: Dict[int, int] = {}
 
 class ProgressTable:
     def __init__(
-        self,
-        columns: Tuple | List = (),
-        refresh_rate: int = 10,
-        num_decimal_places: int = 4,
-        default_column_width: int = 8,
-        print_row_on_update: bool = True,
-        reprint_header_every_n_rows: int = 30,
-        custom_format: Callable[[Any], Any] | None = None,
-        embedded_progress_bar: bool = False,
-        table_style="normal",
-        file=sys.stdout,
+            self,
+            columns: Tuple | List = (),
+            refresh_rate: int = 10,
+            num_decimal_places: int = 4,
+            default_column_width: int = 8,
+            default_column_alignment: str = "center",
+            print_row_on_update: bool = True,
+            reprint_header_every_n_rows: int = 30,
+            custom_format: Callable[[Any], Any] | None = None,
+            embedded_progress_bar: bool = False,
+            table_style="normal",
+            file=sys.stdout,
     ):
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
+        self.default_alignment = default_column_alignment
         self.print_row_on_update = print_row_on_update
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
         self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
@@ -49,9 +51,10 @@ class ProgressTable:
 
         # Helpers
         self._widths: Dict[str, int] = {}
-        self._new_row: Dict[str, Any] = defaultdict(str)
-        self._colors: Dict[str, str | None] = defaultdict(lambda: None)
+        self._colors: Dict[str, str] = {}
+        self._alignment: Dict[str, str] = {}
         self._aggregate: Dict[str, str | None] = {}
+        self._new_row: Dict[str, Any] = defaultdict(str)
         self._aggregate_n: Dict[str, int] = defaultdict(int)
 
         self.num_rows = 0
@@ -85,7 +88,8 @@ class ProgressTable:
         for column in columns:
             self.add_column(column)
 
-    def get_default_format_func(self, decimal_places):
+    @staticmethod
+    def get_default_format_func(decimal_places):
         def fmt(x):
             if isinstance(x, int):
                 return x
@@ -97,7 +101,34 @@ class ProgressTable:
 
         return fmt
 
-    def add_column(self, name, *, width=None, color=None, aggregate=None):
+    def apply_cell_formatting(self, str_value: str, column: str):
+        width = self._widths[column]
+
+        alignment = self._alignment[column]
+        if alignment == "center":
+            str_value = str_value.center(width)
+        elif alignment == "left":
+            str_value = str_value.ljust(width)
+        elif alignment == "right":
+            str_value = str_value.rjust(width)
+        else:
+            allowed_alignments = ["center", "left", "right"]
+            raise KeyError(f"Alignment '{alignment}' not in {allowed_alignments}!")
+
+        clipped = len(str_value) > width
+        str_value = "".join(
+            [
+                " ",  # space at the beginning of the row
+                str_value[:width].center(width),
+                self._symbols.dots if clipped else " ",
+            ]
+        )
+
+        if self._colors[column] is not None:
+            str_value = f"{self._colors[column]}{str_value}{Style.RESET_ALL}"
+        return str_value
+
+    def add_column(self, name, *, width=None, alignment=None, color=None, aggregate=None):
         assert not self.header_printed, "Columns cannot be modified after displaying the first row!"
 
         if name in self.columns:
@@ -109,14 +140,17 @@ class ProgressTable:
         if width < len(name):
             width = len(name)
 
+        self._colors.setdefault(name, "")
         if color is not None:
             if isinstance(color, str):
                 color = [color]
             for str_color in color:
                 byte_color = self._maybe_convert_to_colorama(str_color)
                 self._check_color(byte_color, str_color)
-                self._colors.setdefault(name, "")
                 self._colors[name] += byte_color
+
+        alignment = alignment if alignment is not None else self.default_alignment
+        self._alignment[name] = alignment
 
         assert aggregate in [None, "mean", "sum"], "Allowed aggregate types: [None, 'mean', 'sum']"
         self._aggregate[name] = aggregate
@@ -242,17 +276,13 @@ class ProgressTable:
         self._print()
 
         content = []
-        for col in self.columns:
-            width = self._widths[col]
-            value = col[:width].center(width)
-
-            if self._colors[col] is not None:
-                value = f"{self._colors[col]}{value}{Style.RESET_ALL}"
-
+        for column in self.columns:
+            value = self.apply_cell_formatting(column, column)
             content.append(value)
-        self._print(
-            self._symbols.vertical, f" {self._symbols.vertical} ".join(content), self._symbols.vertical
+        s = "".join(
+            ["\r", self._symbols.vertical, self._symbols.vertical.join(content), self._symbols.vertical]
         )
+        self._print(s)
 
         self._last_header_printed_at_row_count = self.num_rows
         self.header_printed = True
@@ -261,28 +291,13 @@ class ProgressTable:
 
     def _get_row(self):
         content = []
-        for col in self.columns:
-            value = self._new_row[col]
-            width = self._widths[col]
-
-            if self.custom_format:
-                value = self.custom_format(value)
-
-            clipped = len(str(value)) > width
-            value = "".join(
-                [
-                    " ",  # space at the beginning of the row
-                    str(value)[:width].center(width),
-                    self._symbols.dots if clipped else " ",
-                ]
-            )
-
-            if self._colors[col] is not None:
-                value = f"{self._colors[col]}{value}{Style.RESET_ALL}"
-
+        for column in self.columns:
+            value = self._new_row[column]
+            value = self.custom_format(value)
+            value = self.apply_cell_formatting(str_value=str(value), column=column)
             content.append(value)
         return "".join(
-            ["\r", self._symbols.vertical, f"{self._symbols.vertical}".join(content), self._symbols.vertical]
+            ["\r", self._symbols.vertical, self._symbols.vertical.join(content), self._symbols.vertical]
         )
 
     def _print_row(self):
