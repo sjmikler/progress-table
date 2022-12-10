@@ -5,7 +5,7 @@
 
 Lightweight utility to display the progress of your process as a pretty table in the command line.
 
-![example](https://github.com/gahaalt/progress-table/blob/main/media/progress-table-example.png?raw=true)
+![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-table-example.png?raw=true)
 
 Designed to monitor machine learning experiments, but can be used for anything.
 Allows you to quickly see what is going on.
@@ -22,11 +22,11 @@ Increases readability and cuteness of your command line logging.
 
 Change this:
 
-![example](https://github.com/gahaalt/progress-table/blob/main/media/progress-before3.gif?raw=true)
+![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-before3.gif?raw=true)
 
 Into this:
 
-![example](https://github.com/gahaalt/progress-table/blob/main/media/progress-after4.gif?raw=true)
+![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-after4.gif?raw=true)
 
 ## Example
 
