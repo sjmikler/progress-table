@@ -26,7 +26,7 @@ Change this:
 
 Into this:
 
-![example](https://github.com/gahaalt/progress-table/blob/main/media/progress-after3.gif?raw=true)
+![example](https://github.com/gahaalt/progress-table/blob/main/media/progress-after4.gif?raw=true)
 
 ## Example
 
