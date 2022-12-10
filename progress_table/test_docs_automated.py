@@ -29,7 +29,7 @@ def scan_for_code_blobs(text):
 
         # For `py` code blocks, we append them to previous existing block
         # But `python` block starts a new scope and finishes the previous block
-        # It usually needs to include imports
+        # They usually need to include imports
         if mode == "py" and new_blobs:
             new_blobs[-1] = new_blobs[-1] + "\n" + blob
         else:
