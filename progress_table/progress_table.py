@@ -25,18 +25,18 @@ ITERATOR_LENGTH_CACHE: Dict[int, int] = {}
 
 class ProgressTable:
     def __init__(
-            self,
-            columns: Tuple | List = (),
-            refresh_rate: int = 10,
-            num_decimal_places: int = 4,
-            default_column_width: int = 8,
-            default_column_alignment: str = "center",
-            print_row_on_update: bool = True,
-            reprint_header_every_n_rows: int = 30,
-            custom_format: Callable[[Any], Any] | None = None,
-            embedded_progress_bar: bool = False,
-            table_style="normal",
-            file=sys.stdout,
+        self,
+        columns: Tuple | List = (),
+        refresh_rate: int = 10,
+        num_decimal_places: int = 4,
+        default_column_width: int = 8,
+        default_column_alignment: str = "center",
+        print_row_on_update: bool = True,
+        reprint_header_every_n_rows: int = 30,
+        custom_format: Callable[[Any], Any] | None = None,
+        embedded_progress_bar: bool = False,
+        table_style="normal",
+        file=sys.stdout,
     ):
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
