@@ -18,7 +18,7 @@ Increases readability and cuteness of your command line logging.
 * Exporting data as lists, numpy arrays or pandas dataframes
 * Built-in basic data aggregation: `sum` and `mean`
 
-## Goal
+## Purpose
 
 Change this:
 
