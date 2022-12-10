@@ -22,11 +22,11 @@ Increases readability and cuteness of your command line logging.
 
 Change this:
 
-![example](https://github.com/gahaalt/progress-table/blob/main/media/progress-before2.gif?raw=true)
+![example](https://github.com/gahaalt/progress-table/blob/main/media/progress-before3.gif?raw=true)
 
 Into this:
 
-![example](https://github.com/gahaalt/progress-table/blob/main/media/progress-after.gif?raw=true)
+![example](https://github.com/gahaalt/progress-table/blob/main/media/progress-after3.gif?raw=true)
 
 ## Example
 
