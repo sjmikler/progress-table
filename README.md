@@ -89,7 +89,7 @@ pandas_df = table.to_df()
 np_array = table.to_numpy()
 ```
 
-![example](https://github.com/gahaalt/progress-table/blob/main/images/example-output2.gif?raw=true)
+![example](https://github.com/gahaalt/progress-table/blob/main/images/example-output3.gif?raw=true)
 
 ## Installation
 
