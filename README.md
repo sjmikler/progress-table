@@ -42,43 +42,43 @@ from progress_table import ProgressTable
 
 # Define the columns at the beginning
 table = ProgressTable(
-    columns=["step", "x", "x squared"],
+  columns=["step", "x", "x squared"],
 
-    # Default arguments:
-    refresh_rate=10,
-    num_decimal_places=4,
-    default_column_width=8,
-    default_column_alignment="center",
-    print_row_on_update=True,
-    reprint_header_every_n_rows=30,
-    custom_format=None,
-    embedded_progress_bar=False,
-    table_style="normal",
-    file=sys.stdout,
+  # Default arguments:
+  refresh_rate=10,
+  num_decimal_places=4,
+  default_column_width=8,
+  default_column_alignment="center",
+  print_row_on_update=True,
+  reprint_header_every_n_rows=30,
+  custom_format=None,
+  embedded_progress_bar=False,
+  table_style="normal",
+  file=sys.stdout,
 )
 table.add_column("x", width=3)
 table.add_column("x root", color="red")
 table.add_column("random average", color=["bright", "red"], aggregate="mean")
 
 for step in range(10):
-    x = random.randint(0, 200)
+  x = random.randint(0, 200)
 
-    # There are two equivalent ways to add new values
-    # First:
-    table["step"] = step
-    table["x"] = x
-    # Second:
-    table.update("x root", x ** 0.5)
-    table.update("x squared", x ** 2)
+  # There are two equivalent ways to add new values
+  # First:
+  table["step"] = step
+  table["x"] = x
+  # Second:
+  table.update("x root", x ** 0.5)
+  table.update("x squared", x ** 2)
 
-    # Display the progress bar by wrapping the iterator
-    for _ in table(range(10)):
-        # You can use weights for aggregated values
-        table.update("random average", random.random(), weight=1)
-        time.sleep(0.1)
+  # Display the progress bar by wrapping the iterator
+  for _ in table(range(10)):
+    # You can use weights for aggregated values
+    table.update("random average", random.random(), weight=1)
+    time.sleep(0.1)
 
-    # Go to the next row when you're ready
-    table.next_row()
+  # Go to the next row when you're ready
+  table.next_row()
 
 # Close the table when it's ready
 table.close()
@@ -89,22 +89,7 @@ pandas_df = table.to_df()
 np_array = table.to_numpy()
 ```
 
-```stdout
-┌──────────┬─────┬───────────┬──────────┬────────────────┐
-│   step   │  x  │ x squared │  x root  │ random average │
-├──────────┼─────┼───────────┼──────────┼────────────────┤
-│    0     │  50 │    2500   │  7.0711  │     0.2796     │
-│    1     │ 186 │   34596   │ 13.6382  │     0.3897     │
-│    2     │  70 │    4900   │  8.3666  │     0.5524     │
-│    3     │ 170 │   28900   │ 13.0384  │     0.5030     │
-│    4     │  71 │    5041   │  8.4261  │     0.5756     │
-│    5     │  17 │    289    │  4.1231  │     0.3962     │
-│    6     │  77 │    5929   │  8.7750  │     0.6333     │
-│    7     │ 138 │   19044   │ 11.7473  │     0.6287     │
-│    8     │ 131 │   17161   │ 11.4455  │     0.3324     │
-│    9     │ 154 │   23716   │ 12.4097  │     0.4751     │
-└──────────┴─────┴───────────┴──────────┴────────────────┘
-```
+![example](https://github.com/gahaalt/progress-table/blob/main/images/exampe-outputs.gif?raw=true)
 
 ## Installation
 
@@ -122,9 +107,9 @@ pip install progress-table
 ## Alternatives
 
 * Progress bars: great for tracking progress, but they do not provide pretty CLI data display
-	* `tqdm`
-	* `Keras.utils.Progbar`
+    * `tqdm`
+    * `Keras.utils.Progbar`
 
 * Libraries displaying data: great for presenting data, but they lack the tracking progress element
-	* `tabulate`
-	* `texttable`
+    * `tabulate`
+    * `texttable`
