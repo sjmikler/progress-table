@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import functools
+import inspect
 import logging
 import math
 import sys
 import time
-import inspect
 from builtins import KeyError, staticmethod
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Tuple
@@ -353,7 +353,7 @@ class ProgressTable:
         if color_str is None:
             color_str = color
         assert (
-                color in ALL_COLORS_STYLES
+            color in ALL_COLORS_STYLES
         ), f"Only colorama colors are allowed, not '{color_str}'! Available: {ALL_COLORS_STYLES_NAMES}"
 
     def _print_header(self, top=True):
