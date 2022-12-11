@@ -44,10 +44,10 @@ from progress_table import ProgressTable
 table = ProgressTable(
     columns=["step", "x", "x squared"],
 
-    # Default values:
+    # Default arguments:
     refresh_rate=10,
     num_decimal_places=4,
-    default_column_width=2,
+    default_column_width=8,
     default_column_alignment="center",
     print_row_on_update=True,
     reprint_header_every_n_rows=30,
