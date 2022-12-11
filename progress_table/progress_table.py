@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import functools
 import inspect
 import logging
 import math
@@ -40,7 +39,7 @@ class ProgressTable:
         reprint_header_every_n_rows: int = 30,
         custom_format: Callable[[Any], Any] | None = None,
         embedded_progress_bar: bool = False,
-        table_style="normal",
+        table_style: str = "normal",
         file=sys.stdout,
     ):
         """Progress Table instance.
@@ -77,7 +76,8 @@ class ProgressTable:
                                    row, preventing the user from seeing values that are being updated
                                    until the progress bar finishes.
             table_style: Change the borders of the table. Cause KeyError to see all the available styles.
-            file: Redirect the output to another stream. Defaults to sys.stdout.
+            file: Redirect the output to another stream. There can be multiple streams at once passed as
+                  a list or a tuple. Defaults to sys.stdout.
         """
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
@@ -87,8 +87,9 @@ class ProgressTable:
         self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
         self.embedded_progress_bar = embedded_progress_bar
 
-        self.file = file
-        self._print = functools.partial(print, file=self.file)
+        if not isinstance(file, list) and not isinstance(file, tuple):
+            file = (file,)
+        self.files = file
 
         # Helpers
         self._widths: Dict[str, int] = {}
@@ -451,6 +452,10 @@ class ProgressTable:
             self._print_row()
             self.next_row(save=False)
         self.close()
+
+    def _print(self, *args, **kwds):
+        for file in self.files:
+            print(*args, **kwds, file=file)
 
     def __call__(self, iterator, length=None, prefix="", show_throughput=True):
         """Display progress bar over the iterator. Try to figure out the iterator length."""
