@@ -205,7 +205,7 @@ class ProgressTable:
         self._print()
 
     def to_list(self):
-        """Convert to Python nested lists."""
+        """Convert to Python nested list."""
         return [[row[col] for col in self.columns] for row in self.finished_rows]
 
     def to_numpy(self):
