@@ -170,7 +170,13 @@ class ProgressTable:
         alignment = alignment if alignment is not None else self.default_alignment
         self._alignment[name] = alignment
 
-        assert aggregate in [None, "mean", "sum"], "Allowed aggregate types: [None, 'mean', 'sum']"
+        assert aggregate in [
+            None,
+            "mean",
+            "sum",
+            "max",
+            "min",
+        ], "Allowed aggregate types: [None, 'mean', 'sum', 'max', 'min']"
         self._aggregate[name] = aggregate
 
         width = width if width is not None else self.default_width
@@ -241,6 +247,18 @@ class ProgressTable:
             aggr_value = self._new_row[key] if n > 0 else 0
             self._new_row[key] = (aggr_value * n + value * weight) / (n + weight)
             self._aggregate_n[key] += weight
+
+        elif self._aggregate[key] == "max":
+            n = self._aggregate_n[key]
+            aggr_value = self._new_row[key] if n > 0 else -float("inf")
+            self._new_row[key] = max(aggr_value, value)
+            self._aggregate_n[key] += 1
+
+        elif self._aggregate[key] == "min":
+            n = self._aggregate_n[key]
+            aggr_value = self._new_row[key] if n > 0 else float("inf")
+            self._new_row[key] = min(aggr_value, value)
+            self._aggregate_n[key] += 1
 
         else:
             self._new_row[key] = value
