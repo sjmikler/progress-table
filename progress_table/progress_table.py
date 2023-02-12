@@ -475,12 +475,17 @@ class ProgressTable:
         for file in self.files:
             print(*args, **kwds, file=file)
 
-    def __call__(self, iterator, length=None, prefix="", show_throughput=True):
+    def __call__(self, iterator, *range_args, length=None, prefix="", show_throughput=True):
         """Display progress bar over the iterator. Try to figure out the iterator length."""
         global ITERATOR_LENGTH_UNKNOWN_WARNED_ONCE, ITERATOR_LENGTH_CACHE
 
         if not self.header_printed:
             self._print_header()
+
+        if isinstance(iterator, int):
+            iterator = range(iterator, *range_args)
+        else:
+            assert len(range_args) == 0, "Unnamed args are not allowed here!"
 
         if length is None and not hasattr(iterator, "__len__"):
             if not ITERATOR_LENGTH_UNKNOWN_WARNED_ONCE:
