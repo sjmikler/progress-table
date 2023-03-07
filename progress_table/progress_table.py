@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import logging
 import math
+import shutil
 import sys
 import time
 from builtins import KeyError, staticmethod
@@ -424,9 +425,13 @@ class ProgressTable:
 
     def _print_progress_bar(self, i, n, show_before=" ", show_after=" ", embedded=False):
         i = min(i, n)  # clip i to be not bigger than n
+        terminal_width = shutil.get_terminal_size((80, 20)).columns
 
         if not embedded:
             tot_width = sum(self._widths.values()) + 3 * (len(self._widths) - 1) + 2
+            if tot_width >= terminal_width - 1:
+                tot_width = terminal_width - 2
+
             tot_width = tot_width - len(show_before) - len(show_after)
 
             num_hashes = math.ceil(i / n * tot_width)
