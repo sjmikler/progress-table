@@ -424,8 +424,8 @@ class ProgressTable:
         self._print(self._get_row(), end="")
 
     def _print_progress_bar(self, i, n, show_before=" ", show_after=" ", embedded=False):
-        i = min(i, n)  # clip i to be not bigger than n
-        terminal_width = shutil.get_terminal_size((80, 20)).columns
+        i = min(i, n)  # clip the iteration number to be not bigger than the total number of iterations
+        terminal_width = shutil.get_terminal_size(fallback=(float("inf"), -1)).columns
 
         if not embedded:
             tot_width = sum(self._widths.values()) + 3 * (len(self._widths) - 1) + 2
@@ -433,7 +433,6 @@ class ProgressTable:
                 tot_width = terminal_width - 2
 
             tot_width = tot_width - len(show_before) - len(show_after)
-
             num_hashes = math.ceil(i / n * tot_width)
             num_empty = tot_width - num_hashes
 
@@ -518,7 +517,6 @@ class ProgressTable:
         idx = 0
         for idx, element in enumerate(iterator):
             if time.time() - t_last_printed > 1 / self.refresh_rate:
-
                 # Reenable here, in case of nested progress bars
                 self.progress_bar_active = True
 
