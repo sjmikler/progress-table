@@ -190,7 +190,7 @@ class ProgressTable:
         for column in iterable:
             self.add_column(column, **kwds)
 
-    def next_row(self, save=True):
+    def next_row(self, save=True, split=False, header=False):
         """End the current row."""
         self._print_row()
         self._maybe_line_ending()
@@ -204,6 +204,13 @@ class ProgressTable:
 
         self._new_row = defaultdict(str)
         self._aggregate_n = defaultdict(int)
+
+        if split:
+            self._print_center_bar()
+            self._print()
+
+        if header:
+            self._print_header(top=False)
 
     def close(self):
         """End the table and close it."""
@@ -342,19 +349,13 @@ class ProgressTable:
             *([self._symbols.all] * previous_n_cols),
             *([self._symbols.no_up] * (added_cols - 1)),
         ]
-        return self._bar_custom_center(
-            left=self._symbols.no_left, center=symbols, right=self._symbols.down_left
-        )
+        return self._bar_custom_center(left=self._symbols.no_left, center=symbols, right=self._symbols.down_left)
 
     def _print_top_bar(self):
-        return self._bar(
-            left=self._symbols.down_right, center=self._symbols.no_up, right=self._symbols.down_left
-        )
+        return self._bar(left=self._symbols.down_right, center=self._symbols.no_up, right=self._symbols.down_left)
 
     def _print_bottom_bar(self):
-        return self._bar(
-            left=self._symbols.up_right, center=self._symbols.no_down, right=self._symbols.up_left
-        )
+        return self._bar(left=self._symbols.up_right, center=self._symbols.no_down, right=self._symbols.up_left)
 
     def _print_center_bar(self):
         return self._bar(left=self._symbols.no_left, center=self._symbols.all, right=self._symbols.no_right)
@@ -389,9 +390,7 @@ class ProgressTable:
         for column in self.columns:
             value = self._apply_cell_formatting(column, column)
             content.append(value)
-        s = "".join(
-            ["\r", self._symbols.vertical, self._symbols.vertical.join(content), self._symbols.vertical]
-        )
+        s = "".join(["\r", self._symbols.vertical, self._symbols.vertical.join(content), self._symbols.vertical])
         self._print(s)
 
         self._last_header_printed_at_row_count = self.num_rows
@@ -406,9 +405,7 @@ class ProgressTable:
             value = self.custom_format(value)
             value = self._apply_cell_formatting(str_value=str(value), column=column)
             content.append(value)
-        return "".join(
-            ["\r", self._symbols.vertical, self._symbols.vertical.join(content), self._symbols.vertical]
-        )
+        return "".join(["\r", self._symbols.vertical, self._symbols.vertical.join(content), self._symbols.vertical])
 
     def _print_row(self):
         if not self.header_printed:
@@ -425,7 +422,7 @@ class ProgressTable:
 
     def _print_progress_bar(self, i, n, show_before=" ", show_after=" ", embedded=False):
         i = min(i, n)  # clip the iteration number to be not bigger than the total number of iterations
-        terminal_width = shutil.get_terminal_size(fallback=(float("inf"), -1)).columns
+        terminal_width = shutil.get_terminal_size(fallback=(0, 0)).columns or float("inf")
 
         if not embedded:
             tot_width = sum(self._widths.values()) + 3 * (len(self._widths) - 1) + 2
