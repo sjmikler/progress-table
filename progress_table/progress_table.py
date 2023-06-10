@@ -111,6 +111,7 @@ class ProgressTable:
         self.header_printed = False
         self.progress_bar_active = False
         self._refresh_progress_bar: Callable = lambda: None
+        self._needs_splitter = False
 
         allowed_styles = [getattr(symbols, class_name) for class_name in dir(symbols)]
         allowed_styles = [x for x in allowed_styles if inspect.isclass(x) and issubclass(x, symbols.Symbols)]
@@ -206,14 +207,15 @@ class ProgressTable:
         self._aggregate_n = defaultdict(int)
 
         if split:
-            self._print_center_bar()
-            self._print()
+            self._needs_splitter = True
 
         if header:
             self._print_header(top=False)
 
     def close(self):
         """End the table and close it."""
+        self._needs_splitter = False
+
         self.next_row()
         self._print_bottom_bar()
         self.header_printed = False
@@ -398,6 +400,13 @@ class ProgressTable:
         self._print_center_bar()
         self._print()
 
+        self._needs_splitter = False
+
+    def _print_splitter(self):
+        self._print_center_bar()
+        self._print()
+        self._needs_splitter = False
+
     def _get_row(self):
         content = []
         for column in self.columns:
@@ -414,6 +423,9 @@ class ProgressTable:
         if self.reprint_header_every_n_rows != 0:
             if self.num_rows - self._last_header_printed_at_row_count >= self.reprint_header_every_n_rows:
                 self._print_header(top=False)
+
+        if self._needs_splitter:
+            self._print_splitter()
 
         if len(self._new_row) == 0:
             return
