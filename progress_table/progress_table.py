@@ -113,6 +113,8 @@ class ProgressTable:
         self._refresh_progress_bar: Callable = lambda: None
         self._needs_splitter = False
 
+        self._last_row_content = None
+
         allowed_styles = [getattr(symbols, class_name) for class_name in dir(symbols)]
         allowed_styles = [x for x in allowed_styles if inspect.isclass(x) and issubclass(x, symbols.Symbols)]
         style_name_to_style = {x.name: x for x in allowed_styles if hasattr(x, "name")}
@@ -382,6 +384,8 @@ class ProgressTable:
     def _print_header(self, top=True):
         assert self.columns, "Columns are required! Use .add_column method or specify them in __init__!"
 
+        self._needs_splitter = False
+
         if top:
             self._print_top_bar()
         else:
@@ -399,13 +403,15 @@ class ProgressTable:
         self.header_printed = True
         self._print_center_bar()
         self._print()
-
-        self._needs_splitter = False
+        self._last_row_content = "header"
 
     def _print_splitter(self):
-        self._print_center_bar()
-        self._print()
-        self._needs_splitter = False
+        if self._last_row_content == "row":
+            self._print_center_bar()
+            self._print()
+
+            self._needs_splitter = False
+            self._last_row_content = "splitter"
 
     def _get_row(self):
         content = []
@@ -470,7 +476,9 @@ class ProgressTable:
     def _maybe_line_ending(self):
         if self._needs_line_ending:
             self._print()
+            self._needs_splitter = False
             self._needs_line_ending = False
+            self._last_row_content = "row"
 
     def _display_custom(self, data):
         if self.header_printed:
@@ -483,6 +491,7 @@ class ProgressTable:
             self._print_row()
             self.next_row(save=False)
         self.close()
+        self._last_row_content = "close"
 
     def _print(self, *args, **kwds):
         for file in self.files:
