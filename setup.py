@@ -27,7 +27,7 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
     ],
-    install_requires=["colorama"],
+    install_requires=["colorama", "pandas"],
     long_description=long_description,
     long_description_content_type="text/markdown",
 )
