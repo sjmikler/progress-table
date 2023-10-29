@@ -36,6 +36,8 @@ class ProgressTable:
         num_decimal_places: int = 4,
         default_column_width: int = 8,
         default_column_alignment: str = "center",
+        default_show_throughput: bool = True,
+        default_show_progress: bool = False,
         print_row_on_update: bool = True,
         reprint_header_every_n_rows: int = 30,
         custom_format: Callable[[Any], Any] | None = None,
@@ -83,6 +85,8 @@ class ProgressTable:
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
         self.default_alignment = default_column_alignment
+        self.default_show_throughput = default_show_throughput
+        self.default_show_progress = default_show_progress
         self.print_row_on_update = print_row_on_update
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
         self.custom_format = custom_format or self.get_default_format_func(num_decimal_places)
@@ -497,12 +501,17 @@ class ProgressTable:
         for file in self.files:
             print(*args, **kwds, file=file)
 
-    def __call__(self, iterator, *range_args, length=None, prefix="", show_throughput=True):
+    def __call__(self, iterator, *range_args, length=None, prefix="", show_throughput=None, show_progress=None):
         """Display progress bar over the iterator. Try to figure out the iterator length."""
         global ITERATOR_LENGTH_UNKNOWN_WARNED_ONCE, ITERATOR_LENGTH_CACHE
 
         if not self.header_printed:
             self._print_header()
+
+        if show_throughput is None:
+            show_throughput = self.default_show_throughput
+        if show_progress is None:
+            show_progress = self.default_show_progress
 
         if isinstance(iterator, int):
             iterator = range(iterator, *range_args)
@@ -543,8 +552,15 @@ class ProgressTable:
                 throughput = idx / s if s > 0 else 0.0
 
                 full_prefix = [" [", prefix]
+
+                inside_brackets = []
                 if show_throughput:
-                    full_prefix.append(f"{throughput: <.2f} it/s")
+                    inside_brackets.append(f"{throughput: <.2f} it/s")
+                if show_progress:
+                    inside_brackets.append(f"{idx}/{length}")
+                inside_brackets = ", ".join(inside_brackets)
+                full_prefix.append(inside_brackets)
+
                 full_prefix.append("] ")
                 full_prefix = "".join(full_prefix)
                 full_prefix = full_prefix if full_prefix != " [] " else " "
