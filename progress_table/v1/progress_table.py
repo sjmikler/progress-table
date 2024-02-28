@@ -9,7 +9,7 @@ import shutil
 import sys
 import time
 import typing
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Type, Union
+from typing import Any, Callable, Dict, Iterable, List, Sized, Tuple, Type, Union
 
 from colorama import Fore, Style
 
@@ -27,7 +27,9 @@ COLORAMA_TRANSLATE = {
     "bold": "bright",
 }
 
-ColorFormat = Union[str, Tuple, List, None]
+NoneType = type(None)
+ColorFormat = Union[str, Tuple, List, NoneType]
+ColorFormatTuple = (str, Tuple, List, NoneType)
 
 ################
 ## V2 version ##
@@ -105,7 +107,7 @@ def maybe_convert_to_colorama_str(color: str) -> str:
         if hasattr(Style, color.upper()):
             return getattr(Style, color.upper())
 
-    assert color in ALL_COLOR_STYLE, f"Color {color.encode('ascii')} incorrect! Available: {' '.join(ALL_COLOR_STYLE_NAME)}"
+    assert color in ALL_COLOR_STYLE, f"Color {color!r} incorrect! Available: {' '.join(ALL_COLOR_STYLE_NAME)}"
     return color
 
 
@@ -206,8 +208,8 @@ class ProgressTableV1:
         else:
             self.table_style = table_style
 
-        assert isinstance(default_row_color, ColorFormat), "Row color has to be a color format!"
-        assert isinstance(default_column_color, ColorFormat), "Column color has to be a color format!"
+        assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"
+        assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"
 
         # Default values for column and
         self.column_width = default_column_width
@@ -339,7 +341,7 @@ class ProgressTableV1:
         logging.info("Closing table (reordering columns)")
         self.close()
 
-        assert isinstance(column_names, List | Tuple)
+        assert isinstance(column_names, (List, Tuple))
         assert all([x in self.column_names for x in column_names]), f"Columns {column_names} not in {self.column_names}"
         self.column_names = list(column_names)
         self.column_widths = {k: self.column_widths[k] for k in column_names}
@@ -419,7 +421,7 @@ class ProgressTableV1:
     @typing.no_type_check
     def prepare_row_color_dict(self, colors: ColorFormat | Dict[str, ColorFormat] = None):
         colors = colors or self.row_color or {}
-        if isinstance(colors, ColorFormat):
+        if isinstance(colors, ColorFormatTuple):
             colors = {column: colors for column in self.column_names}
 
         colors = {column: colors.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
@@ -556,7 +558,7 @@ class ProgressTableV1:
         else:
             assert len(range_args) == 0, "Unnamed args are not allowed here!"
 
-        iterator_length = len(iterator) if hasattr(iterator, "__len__") else None
+        iterator_length = len(iterator) if isinstance(iterator, Sized) else None
         t_last_printed = -float("inf")
         t_beginning = time.time()
 
