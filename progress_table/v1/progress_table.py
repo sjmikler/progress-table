@@ -439,16 +439,16 @@ class ProgressTableV1:
         self._print(row_str, end="\r")
 
     @typing.no_type_check
-    def _prepare_row_color_dict(self, colors: ColorFormat | Dict[str, ColorFormat] = None):
-        colors = colors or self.row_color or {}
-        if isinstance(colors, ColorFormatTuple):
-            colors = {column: colors for column in self.column_names}
+    def _prepare_row_color_dict(self, color: ColorFormat | Dict[str, ColorFormat] = None):
+        color = color or self.row_color or {}
+        if isinstance(color, ColorFormatTuple):
+            color = {column: color for column in self.column_names}
 
-        colors = {column: colors.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
-        colors = {column: maybe_convert_to_colorama(color) for column, color in colors.items()}
-        self.row_colors = colors
+        color = {column: color.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
+        color = {column: maybe_convert_to_colorama(color) for column, color in color.items()}
+        self.row_colors = color
 
-    def next_row(self, colors: ColorFormat | Dict[str, ColorFormat] = None, split=False, header=False):
+    def next_row(self, color: ColorFormat | Dict[str, ColorFormat] = None, split=False, header=False):
         """End the current row."""
         if header or self._request_header or self.previous_header_counter >= self.reprint_header_every_n_rows:
             self._print_header()
@@ -456,7 +456,7 @@ class ProgressTableV1:
         if split or self._request_splitter:
             self._print_splitter()
 
-        self._prepare_row_color_dict(colors)
+        self._prepare_row_color_dict(color)
         self._display_new_row()
         self._prepare_row_color_dict()
         self._print()  # Insert a newline

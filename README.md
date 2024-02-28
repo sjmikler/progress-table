@@ -12,7 +12,8 @@ Allows you to quickly see what is going on.
 Increases readability and cuteness of your command line logging.
 
 > Note: version 1.0 introduced new features and changes of default behaviour.
-> The old version is still available by importing `progress_table.ProgressTableV0`.
+>
+> The old version is still available as `progress_table.ProgressTableV0`.
 
 ## Features
 
