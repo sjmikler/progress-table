@@ -14,6 +14,14 @@ Increases readability and cuteness of your command line logging.
 > Note: version 1.0 introduced new features and changes of default behaviour.
 >
 > The old version is still available as `progress_table.ProgressTableV0`.
+>
+> Changes include:
+> * Custom table styles are supported
+> * Color customization on row level is supported
+> * Adding columns automatically, without calling `add_column`
+> * Continuous progress bar when iterator length is unknown
+> * Pandas and numpy are only optional dependencies
+> * Minor robustness changes
 
 ## Features
 
