@@ -9,7 +9,7 @@ import shutil
 import sys
 import time
 import typing
-from typing import Any, Callable, Iterable, Type
+from typing import Any, Callable, Dict, Iterable, List, Tuple, Type
 
 from colorama import Fore, Style
 
@@ -27,7 +27,7 @@ COLORAMA_TRANSLATE = {
     "bold": "bright",
 }
 
-ColorFormat = str | tuple | list | None
+ColorFormat = str | Tuple | List | None
 
 
 ################
@@ -141,7 +141,7 @@ class ProgressTable:
 
     def __init__(
         self,
-        columns: tuple | list = (),
+        columns: Tuple | List = (),
         refresh_rate: int = 10,
         num_decimal_places: int = 4,
         default_column_width: int | None = None,
@@ -340,7 +340,7 @@ class ProgressTable:
         logging.info("Closing table (reordering columns)")
         self.close()
 
-        assert isinstance(column_names, list | tuple)
+        assert isinstance(column_names, List | Tuple)
         assert all([x in self.column_names for x in column_names]), f"Columns {column_names} not in {self.column_names}"
         self.column_names = list(column_names)
         self.column_widths = {k: self.column_widths[k] for k in column_names}
@@ -418,7 +418,7 @@ class ProgressTable:
         self.print(row_str, end="\r")
 
     @typing.no_type_check
-    def prepare_row_color_dict(self, colors: ColorFormat | dict[str, ColorFormat] = None):
+    def prepare_row_color_dict(self, colors: ColorFormat | Dict[str, ColorFormat] = None):
         colors = colors or self.row_color or {}
         if isinstance(colors, ColorFormat):
             colors = {column: colors for column in self.column_names}
@@ -427,7 +427,7 @@ class ProgressTable:
         colors = {column: maybe_convert_to_colorama(color) for column, color in colors.items()}
         self.row_colors = colors
 
-    def next_row(self, colors: ColorFormat | dict[str, ColorFormat] = None, split=False, header=False):
+    def next_row(self, colors: ColorFormat | Dict[str, ColorFormat] = None, split=False, header=False):
         if header or self.request_header or self.previous_header_counter >= self.reprint_header_every_n_rows:
             self.print_header()
             split = False
