@@ -3,11 +3,11 @@ pythonpath = ["."]
 
 [tool.mypy]
 ignore_missing_imports = true
-exclude = "devel"
+exclude = ["devel", "build", "dist"]
 
 [tool.isort]
 profile = "black"
-line_length = 120
+line_length = 140
 
 [tool.black]
-line_length = 120
+line_length = 140

@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text(encoding="UTF-8")
 
 setup(
     name="progress-table",
-    version="0.1.27",
+    version="1.0.0",
     url="https://github.com/gahaalt/progress-table.git",
     author="Szymon Mikler",
     author_email="sjmikler@gmail.com",
@@ -27,7 +27,7 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
     ],
-    install_requires=["colorama", "pandas"],
+    install_requires=["colorama"],
     long_description=long_description,
     long_description_content_type="text/markdown",
 )
