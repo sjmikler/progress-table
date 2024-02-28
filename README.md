@@ -1,3 +1,15 @@
+> Note: version 1.0 introduced new features and changes of default behaviour.
+>
+> The old version is still available as `progress_table.ProgressTableV0`.
+>
+> New features include:
+> * Custom table styles are supported
+> * Color customization on row level is supported
+> * Adding columns automatically, without calling `add_column`
+> * Continuous progress bar when iterator length is unknown
+> * Pandas and numpy are only optional dependencies
+> * Other minor changes
+
 # Progress Table
 
 [![PyPi version](https://img.shields.io/badge/dynamic/json?label=latest&query=info.version&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
@@ -10,18 +22,6 @@ Lightweight utility to display the progress of your process as a pretty table in
 Designed to monitor machine learning experiments, but can be used for anything.
 Allows you to quickly see what is going on.
 Increases readability and cuteness of your command line logging.
-
-> Note: version 1.0 introduced new features and changes of default behaviour.
->
-> The old version is still available as `progress_table.ProgressTableV0`.
->
-> Changes include:
-> * Custom table styles are supported
-> * Color customization on row level is supported
-> * Adding columns automatically, without calling `add_column`
-> * Continuous progress bar when iterator length is unknown
-> * Pandas and numpy are only optional dependencies
-> * Minor robustness changes
 
 ## Features
 
