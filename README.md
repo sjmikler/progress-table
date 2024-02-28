@@ -41,13 +41,13 @@ import random
 import sys
 import time
 
-from progress_table import ProgressTableV1
+from progress_table import ProgressTable
 
 # Create table object:
-table = ProgressTableV1()
+table = ProgressTable()
 
 # Or customize its settings:
-table = ProgressTableV1(
+table = ProgressTable(
     columns=["step"],
     refresh_rate=10,
     num_decimal_places=4,
