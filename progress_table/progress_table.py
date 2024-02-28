@@ -9,7 +9,7 @@ import shutil
 import sys
 import time
 import typing
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Type
+from typing import Any, Callable, Dict, Iterable, List, Tuple, Type, Union
 
 from colorama import Fore, Style
 
@@ -27,8 +27,7 @@ COLORAMA_TRANSLATE = {
     "bold": "bright",
 }
 
-ColorFormat = str | Tuple | List | None
-
+ColorFormat = Union[str, Tuple, List, None]
 
 ################
 ## V2 version ##
