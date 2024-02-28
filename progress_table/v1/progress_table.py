@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, Iterable, List, Tuple, Type, Union
 
 from colorama import Fore, Style
 
-from progress_table import styles
+from . import styles
 
 ALL_COLOR_NAME = [x for x in dir(Fore) if not x.startswith("__")]
 ALL_STYLE_NAME = [x for x in dir(Style) if not x.startswith("__")]
@@ -131,7 +131,7 @@ def get_default_format_func(decimal_places):
     return fmt
 
 
-class ProgressTable:
+class ProgressTableV1:
     DEFAULT_COLUMN_WIDTH = 8
     DEFAULT_COLUMN_COLOR = None
     DEFAULT_COLUMN_ALIGNMENT = "center"
@@ -163,7 +163,7 @@ class ProgressTable:
         Use `next_row` method to display the current row and reset the values for the next row.
 
         Example:
-            >>> table = ProgressTable()
+            >>> table = ProgressTableV1()
             >>> table.add_column("b", width=10)
             >>> table["a"] = 1
             >>> table["b"] = "xyz"
@@ -597,38 +597,3 @@ class ProgressTable:
                 t_last_printed = time.time()
             yield element
         self.progress_bar_active = False
-
-
-if __name__ == "__main__":
-    table = ProgressTable(
-        table_style="round",
-        default_column_color="black",
-        reprint_header_every_n_rows=30,
-        print_row_on_update=True,
-        embedded_progress_bar=True,
-        pbar_show_progress=False,
-        pbar_show_throughput=True,
-    )
-
-    it = range(100)
-
-    for step in table(it):
-        table["a"] = 1
-        time.sleep(0.1)
-        table["b"] = step
-        time.sleep(0.1)
-        table["c"] = 2 * step
-        time.sleep(0.1)
-
-        c = None
-        if step % 4 == 0:
-            c = {"a": "red bold", "b": "green", "c": "blue"}
-
-        if step % 3 == 0:
-            table["resultsadasssssssas"] = "bad"
-        else:
-            table["resultsadasssssssas"] = "good"
-        table.next_row(colors=c)
-        time.sleep(0.1)
-
-    table.close()

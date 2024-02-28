@@ -28,7 +28,7 @@ ITERATOR_LENGTH_UNKNOWN_WARNED_ONCE = False
 ITERATOR_LENGTH_CACHE: Dict[int, int] = {}
 
 
-class ProgressTable:
+class ProgressTableV0:
     def __init__(
         self,
         columns: Tuple | List = (),

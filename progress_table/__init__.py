@@ -1,6 +1,8 @@
 #  Copyright (c) 2022 Szymon Mikler
 
-from .compat.progress_table import ProgressTable as ProgressTableV1
-from .progress_table import ProgressTable
+from progress_table.v0.progress_table import ProgressTableV0
+from progress_table.v1.progress_table import ProgressTableV1
 
-__all__ = ["ProgressTableV1", "ProgressTable"]
+ProgressTable = ProgressTableV1
+
+__all__ = ["ProgressTable", "ProgressTableV0", "ProgressTableV1"]

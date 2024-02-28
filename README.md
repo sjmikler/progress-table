@@ -11,6 +11,9 @@ Designed to monitor machine learning experiments, but can be used for anything.
 Allows you to quickly see what is going on.
 Increases readability and cuteness of your command line logging.
 
+> Note: version 1.0 introduced new features and changes of default behaviour.
+> The old version is still available by importing `progress_table.ProgressTableV0`.
+
 ## Features
 
 * Displaying pretty table in the terminal
@@ -38,28 +41,28 @@ import random
 import sys
 import time
 
-from progress_table import ProgressTable
+from progress_table import ProgressTableV1
 
 # Create table object:
-table = ProgressTable()
+table = ProgressTableV1()
 
 # Or customize its settings:
-table = ProgressTable(
+table = ProgressTableV1(
     columns=["step"],
-    refresh_rate = 10,
-    num_decimal_places = 4,
-    default_column_width = None,
-    default_column_color = None,
-    default_column_alignment = None,
-    default_column_aggregate = None,
-    default_row_color = None,
-    embedded_progress_bar = True,
-    pbar_show_throughput = True,
-    pbar_show_progress = False,
-    print_row_on_update = True,
-    reprint_header_every_n_rows = 30,
-    custom_format = None,
-    table_style = "round",
+    refresh_rate=10,
+    num_decimal_places=4,
+    default_column_width=None,
+    default_column_color=None,
+    default_column_alignment=None,
+    default_column_aggregate=None,
+    default_row_color=None,
+    embedded_progress_bar=True,
+    pbar_show_throughput=True,
+    pbar_show_progress=False,
+    print_row_on_update=True,
+    reprint_header_every_n_rows=30,
+    custom_format=None,
+    table_style="round",
     file=sys.stdout,
 )
 
@@ -92,8 +95,8 @@ table.close()
 
 # Export your data
 data = table.to_list()
-pandas_df = table.to_df() # Requires pandas to be installed
-np_array = table.to_numpy() # Requires numpy to be installed
+pandas_df = table.to_df()  # Requires pandas to be installed
+np_array = table.to_numpy()  # Requires numpy to be installed
 ```
 
 ![example](https://github.com/gahaalt/progress-table/blob/main/images/example-output4.gif?raw=true)
