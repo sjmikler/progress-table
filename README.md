@@ -121,6 +121,7 @@ pip install progress-table
 
 * Progress bars: great for tracking progress, but they don't provide ways to display data in clear and compact way
     * `tqdm`
+    * `rich.progress`
     * `keras.utils.Progbar`
 
 * Libraries displaying data: great for presenting tabular data, but they lack the progress tracking aspect
