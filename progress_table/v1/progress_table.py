@@ -606,12 +606,14 @@ class ProgressTableV1:
                 else:
                     infobar = ""
 
-                _refresh_progress_bar_fn = lambda: self._print_row_with_progress_bar(
-                    idx,
-                    iterator_length,
-                    infobar=infobar,
-                    level=level,
-                )
+                def _refresh_progress_bar_fn():
+                    return self._print_row_with_progress_bar(
+                        idx,
+                        iterator_length,
+                        infobar=infobar,
+                        level=level,
+                    )
+
                 if self._is_table_opened:
                     _refresh_progress_bar_fn()
                 self._active_pbars[level] = _refresh_progress_bar_fn
