@@ -152,7 +152,7 @@ class ProgressTableV1:
         default_column_alignment: str | None = None,
         default_column_aggregate: str | None = None,
         default_row_color: ColorFormat = None,
-        embedded_progress_bar: bool = True,
+        embedded_progress_bar: bool = False,
         pbar_show_throughput: bool = True,
         pbar_show_progress: bool = False,
         print_row_on_update: bool = True,
