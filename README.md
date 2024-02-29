@@ -15,20 +15,14 @@
 [![PyPi version](https://img.shields.io/badge/dynamic/json?label=latest&query=info.version&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
 [![PyPI license](https://img.shields.io/badge/dynamic/json?label=license&query=info.license&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
 
-Lightweight utility to display the progress of your process as a pretty table in the command line.
+Lightweight utility to display the progress of your process as a pretty table in the command line. 
+Alternative to TQDM whenever you want to track metrics produced by your process.
 
 ![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-table-example.png?raw=true)
 
-Designed to monitor machine learning experiments, but can be used for anything.
-Allows you to quickly see what is going on.
-Increases readability and cuteness of your command line logging.
-
-## Features
-
-* Displaying pretty table in the terminal
-* Progress bar embedded into the table
-* Exporting data as lists, numpy arrays or pandas dataframes
-* Built-in basic data aggregation: `sum` and `mean`
+Designed to monitor machine learning experiments, but can be used for any metrics-producing process.
+Allows you to quickly see what's going on with your process.
+Increases readability and simplifies your command line logging.
 
 ## Purpose
 
@@ -42,7 +36,7 @@ Into this:
 
 ## Example
 
-> Click here for examples of integration with PyTorch and Keras:
+> Click here for examples of integration with deep learning libraries:
 > [integrations.md](https://github.com/gahaalt/progress-table/blob/main/integrations.md).
 
 ```python
@@ -125,10 +119,11 @@ pip install progress-table
 
 ## Alternatives
 
-* Progress bars: great for tracking progress, but they do not provide pretty CLI data display
+* Progress bars: great for tracking progress, but they don't provide ways to display data in clear and compact way
     * `tqdm`
-    * `Keras.utils.Progbar`
+    * `keras.utils.Progbar`
 
-* Libraries displaying data: great for presenting data, but they lack the tracking progress element
+* Libraries displaying data: great for presenting tabular data, but they lack the progress tracking aspect
+    * `rich.table`
     * `tabulate`
     * `texttable`
