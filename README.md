@@ -1,13 +1,14 @@
-> Note: version 1.0 introduced new features and changes of default behaviour.
+> Note: versions 1.X introduced new features and changes of default behaviour.
 >
 > The old version is still available as `progress_table.ProgressTableV0`.
 >
 > New features include:
-> * Custom table styles are supported
-> * Color customization on row level is supported
+> * Nested progress bar support
+> * Custom table styles support
+> * Color customization on row level support
 > * Adding columns automatically, without calling `add_column`
 > * Continuous progress bar when iterator length is unknown
-> * Pandas and numpy are only optional dependencies
+> * Pandas and numpy being only optional dependencies
 > * Other minor changes
 
 # Progress Table
@@ -15,7 +16,7 @@
 [![PyPi version](https://img.shields.io/badge/dynamic/json?label=latest&query=info.version&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
 [![PyPI license](https://img.shields.io/badge/dynamic/json?label=license&query=info.license&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
 
-Lightweight utility to display the progress of your process as a pretty table in the command line. 
+Lightweight utility to display the progress of your process as a pretty table in the command line.
 Alternative to TQDM whenever you want to track metrics produced by your process.
 
 ![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-table-example.png?raw=true)
