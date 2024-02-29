@@ -31,6 +31,9 @@ NoneType = type(None)
 ColorFormat = Union[str, Tuple, List, NoneType]
 ColorFormatTuple = (str, Tuple, List, NoneType)
 
+CURSOR_UP = "\033[A"
+MAX_ACITVE_PBARS = 5
+
 ################
 ## V2 version ##
 ################
@@ -240,7 +243,7 @@ class ProgressTableV1:
         # Various flags for table flow
         self._request_header = True
         self._request_splitter = False
-        self._progress_bar_active = False
+        self._active_pbars = {}
 
         self.custom_format = custom_format or get_default_format_func(num_decimal_places)
         self.embedded_progress_bar: bool = embedded_progress_bar
@@ -323,13 +326,11 @@ class ProgressTableV1:
 
         t0 = time.time()
         td = t0 - self._last_time_row_printed
-        if self._is_table_opened and self.print_row_on_update and td > 1 / self.refresh_rate:
-            self._last_time_row_printed = t0
+        if self._is_table_opened:
+            if self.print_row_on_update and td > 1 / self.refresh_rate:
+                self._last_time_row_printed = t0
 
-            if not self._progress_bar_active:
-                self._display_new_row()
-            elif self.embedded_progress_bar:
-                self._refresh_progress_bar()
+            self._display_new_row_or_pbar()
 
     def update_from_dict(self, dictionary):
         """Update multiple values in the current row."""
@@ -436,7 +437,13 @@ class ProgressTableV1:
 
     def _display_new_row(self):
         row_str = self._get_row_str()
-        self._print(row_str, end="\r")
+        self._print(row_str, end="")
+
+    def _display_new_row_or_pbar(self):
+        if self._active_pbars.get(0, None) is not None:
+            self._active_pbars[0]()
+        else:
+            self._display_new_row()
 
     @typing.no_type_check
     def _prepare_row_color_dict(self, color: ColorFormat | Dict[str, ColorFormat] = None):
@@ -458,16 +465,23 @@ class ProgressTableV1:
 
         self._prepare_row_color_dict(color)
         self._display_new_row()
+        self._print(flush=True)  # Insert a newline
         self._prepare_row_color_dict()
-        self._print()  # Insert a newline
         self.previous_header_counter += 1
 
         # Reset the new row
         self.finished_rows.append(self._new_row)
         self._new_row = {}
 
-        if self._progress_bar_active:
-            self._refresh_progress_bar()
+        # Clear up the new row
+        self._refresh_active_pbars()
+        self._display_new_row_or_pbar()
+
+    def add_row(self, *values, **kwds):
+        """Mimicking rich.table behavior for adding rows in one call."""
+        for key, value in zip(self.column_names, values):
+            self.update(key, value)
+        self.next_row(**kwds)
 
     def _apply_cell_formatting(self, str_value: str, column_name: str):
         width = self.column_widths[column_name]
@@ -518,11 +532,13 @@ class ProgressTableV1:
         self.previous_header_counter = 0
         self._print_bar_mid()
 
-    def _print_row_with_progress_bar(self, step, total, infobar, embedded):
+    def _print_row_with_progress_bar(self, step, total, infobar, level=1):
+        embedded = level == 0
         terminal_width = shutil.get_terminal_size(fallback=(0, 0)).columns or float("inf")
         if total is not None:
             step = min(step, total)  # clip the step number to be not bigger than the total number of iterations
 
+        self._print(end="\n" * level)
         if not embedded:
             tot_width = sum(self.column_widths.values()) + 3 * (len(self.column_widths) - 1) + 2
             if tot_width >= terminal_width - 1:
@@ -542,7 +558,7 @@ class ProgressTableV1:
                 self.table_style.pbar_filled * num_filled,
                 self.table_style.pbar_empty * num_empty,
                 self.table_style.vertical,
-                end="\r",
+                end="",
                 sep="",
             )
         else:
@@ -552,16 +568,22 @@ class ProgressTableV1:
                 step = step % total
 
             new_row = []
-            for idx, letter in enumerate(row):
+            for letter_idx, letter in enumerate(row):
                 if letter == " ":
-                    if idx / len(row) <= (step / total) % 1:
+                    if letter_idx / len(row) <= (step / total) % 1:
                         letter = self.table_style.embedded_pbar_filled
-                    elif (idx - 1) / len(row) <= (step / total) % 1:
+                    elif (letter_idx - 1) / len(row) <= (step / total) % 1:
                         letter = self.table_style.embedded_pbar_head
                 new_row.append(letter)
             row = "".join(new_row)
-            self._print(row, end="\r")
+            self._print(row, end="")
+        self._print(end=CURSOR_UP * level)
         sys.stdout.flush()
+
+    def _refresh_active_pbars(self):
+        for pbar in self._active_pbars.values():
+            if pbar:
+                pbar()
 
     def __call__(self, iterator: int | Iterable, *range_args):
         """Display progress bar over the iterator."""
@@ -574,14 +596,14 @@ class ProgressTableV1:
         t_last_printed = -float("inf")
         t_beginning = time.time()
 
-        self._progress_bar_active = True
+        level = len(self._active_pbars) + 1 - self.embedded_progress_bar
+        self._active_pbars[level] = None
+        if len(self._active_pbars) > MAX_ACITVE_PBARS:
+            raise ValueError("Too many levels of progress bars!")
 
         idx = 0
         for idx, element in enumerate(iterator):
             if time.time() - t_last_printed > 1 / self.refresh_rate:
-                # Reenable here, in case of nested progress bars
-                self._progress_bar_active = True
-
                 self._print(end="\r")
                 s = time.time() - t_beginning
                 throughput = idx / s if s > 0 else 0.0
@@ -600,14 +622,17 @@ class ProgressTableV1:
                 else:
                     infobar = ""
 
-                self._refresh_progress_bar = lambda: self._print_row_with_progress_bar(
+                _refresh_progress_bar_fn = lambda: self._print_row_with_progress_bar(
                     idx,
                     iterator_length,
                     infobar=infobar,
-                    embedded=self.embedded_progress_bar,
+                    level=level,
                 )
                 if self._is_table_opened:
-                    self._refresh_progress_bar()
+                    _refresh_progress_bar_fn()
+                self._active_pbars[level] = _refresh_progress_bar_fn
+
                 t_last_printed = time.time()
             yield element
-        self._progress_bar_active = False
+        # Deactive progress bar
+        self._active_pbars.pop(level)
