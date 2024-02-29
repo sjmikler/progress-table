@@ -39,21 +39,6 @@ MAX_ACITVE_PBARS = 5
 ################
 
 
-def remove_colorama(string):
-    symbols = []
-    i = 0
-    while i < len(string):
-        if string[i] == "\x1b":
-            start_i = i
-            while string[i] != "m":
-                i += 1
-            i += 1
-        else:
-            symbols.append(string[i])
-            i += 1
-    return "".join(symbols)
-
-
 def aggregate_dont(new_value, old_value, n):
     return new_value
 
@@ -242,7 +227,7 @@ class ProgressTableV1:
         # Various flags for table flow
         self._request_header = True
         self._request_splitter = False
-        self._active_pbars = {}
+        self._active_pbars: dict[int, Union[Callable, None]] = {}
 
         self.custom_format = custom_format or get_default_format_func(num_decimal_places)
         self.embedded_progress_bar: bool = embedded_progress_bar
@@ -424,17 +409,17 @@ class ProgressTableV1:
     def _print_bar_mid(self):
         return self._print_bar(self.table_style.no_left, self.table_style.all, self.table_style.no_right)
 
-    def _get_row_str(self):
+    def _get_row_str(self, coloring: bool):
         content = []
         for column in self.column_names:
             value = self._new_row.get(column, "")
             value = self.custom_format(value)
-            value = self._apply_cell_formatting(str_value=str(value), column_name=column)
+            value = self._apply_cell_formatting(str_value=str(value), column_name=column, coloring=coloring)
             content.append(value)
         return "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
 
     def _display_new_row(self):
-        row_str = self._get_row_str()
+        row_str = self._get_row_str(coloring=True)
         self._print(row_str, end="")
 
     def _display_new_row_or_pbar(self):
@@ -481,7 +466,7 @@ class ProgressTableV1:
             self.update(key, value)
         self.next_row(**kwds)
 
-    def _apply_cell_formatting(self, str_value: str, column_name: str):
+    def _apply_cell_formatting(self, str_value: str, column_name: str, coloring: bool):
         width = self.column_widths[column_name]
         alignment = self.column_alignments[column_name]
 
@@ -503,8 +488,9 @@ class ProgressTableV1:
                 self.table_style.cell_overflow if clipped else " ",
             ]
         )
-        reset = Style.RESET_ALL if (self.column_colors[column_name] or self.row_colors[column_name]) else ""
-        str_value = f"{self.column_colors[column_name]}{self.row_colors[column_name]}{str_value}{reset}"
+        if coloring:
+            reset = Style.RESET_ALL if (self.column_colors[column_name] or self.row_colors[column_name]) else ""
+            str_value = f"{self.column_colors[column_name]}{self.row_colors[column_name]}{str_value}{reset}"
         return str_value
 
     def _print_splitter(self):
@@ -519,7 +505,7 @@ class ProgressTableV1:
 
         content = []
         for column in self.column_names:
-            value = self._apply_cell_formatting(column, column)
+            value = self._apply_cell_formatting(column, column, coloring=True)
             content.append(value)
         s = "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
         self._print(s)
@@ -560,8 +546,7 @@ class ProgressTableV1:
                 sep="",
             )
         else:
-            row = self._get_row_str()
-            row = remove_colorama(row)
+            row = self._get_row_str(coloring=False)
             if total is None:  # When total is unknown
                 total = len(row)
                 step = step % total
