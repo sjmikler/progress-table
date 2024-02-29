@@ -39,7 +39,7 @@ MAX_ACITVE_PBARS = 5
 ################
 
 
-def breakup_unicode_string(string):
+def remove_colorama(string):
     symbols = []
     i = 0
     while i < len(string):
@@ -48,11 +48,10 @@ def breakup_unicode_string(string):
             while string[i] != "m":
                 i += 1
             i += 1
-            symbols.append(string[start_i:i])
         else:
             symbols.append(string[i])
             i += 1
-    return symbols
+    return "".join(symbols)
 
 
 def aggregate_dont(new_value, old_value, n):
@@ -329,8 +328,7 @@ class ProgressTableV1:
         if self._is_table_opened:
             if self.print_row_on_update and td > 1 / self.refresh_rate:
                 self._last_time_row_printed = t0
-
-            self._display_new_row_or_pbar()
+                self._display_new_row_or_pbar()
 
     def update_from_dict(self, dictionary):
         """Update multiple values in the current row."""
@@ -458,7 +456,7 @@ class ProgressTableV1:
     def next_row(self, color: ColorFormat | Dict[str, ColorFormat] = None, split=False, header=False):
         """End the current row."""
         if header or self._request_header or self.previous_header_counter >= self.reprint_header_every_n_rows:
-            self._print_header()
+            self.print_header()
             split = False
         if split or self._request_splitter:
             self._print_splitter()
@@ -513,7 +511,7 @@ class ProgressTableV1:
         self._print_bar_mid()
         self._request_splitter = False
 
-    def _print_header(self):
+    def print_header(self):
         if self._is_table_opened:
             self._print_bar_mid()
         else:
@@ -563,18 +561,19 @@ class ProgressTableV1:
             )
         else:
             row = self._get_row_str()
+            row = remove_colorama(row)
             if total is None:  # When total is unknown
                 total = len(row)
                 step = step % total
 
             new_row = []
-            for letter_idx, letter in enumerate(row):
-                if letter == " ":
+            for letter_idx, letters in enumerate(row):
+                if letters[0] == " ":
                     if letter_idx / len(row) <= (step / total) % 1:
-                        letter = self.table_style.embedded_pbar_filled
+                        letters = self.table_style.embedded_pbar_filled
                     elif (letter_idx - 1) / len(row) <= (step / total) % 1:
-                        letter = self.table_style.embedded_pbar_head
-                new_row.append(letter)
+                        letters = self.table_style.embedded_pbar_head
+                new_row.extend(letters)
             row = "".join(new_row)
             self._print(row, end="")
         self._print(end=CURSOR_UP * level)
