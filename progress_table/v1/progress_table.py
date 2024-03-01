@@ -32,7 +32,7 @@ ColorFormat = Union[str, Tuple, List, NoneType]
 ColorFormatTuple = (str, Tuple, List, NoneType)
 
 CURSOR_UP = "\033[A"
-MAX_ACITVE_PBARS = 5
+MAX_ACITVE_PBARS = 10
 
 ################
 ## V2 version ##
@@ -130,14 +130,14 @@ class ProgressTableV1:
     def __init__(
         self,
         columns: Tuple | List = (),
-        refresh_rate: int = 10,
+        refresh_rate: int = 20,
         num_decimal_places: int = 4,
         default_column_width: int | None = None,
         default_column_color: ColorFormat = None,
         default_column_alignment: str | None = None,
         default_column_aggregate: str | None = None,
         default_row_color: ColorFormat = None,
-        embedded_progress_bar: bool = False,
+        embedded_progress_bar: bool = True,
         pbar_show_throughput: bool = True,
         pbar_show_progress: bool = False,
         print_row_on_update: bool = True,
@@ -227,7 +227,7 @@ class ProgressTableV1:
         # Various flags for table flow
         self._request_header = True
         self._request_splitter = False
-        self._active_pbars: dict[int, Union[Callable, None]] = {}
+        self._active_pbars: dict[int, TableProgressBar] = {}
 
         self.custom_format = custom_format or get_default_format_func(num_decimal_places)
         self.embedded_progress_bar: bool = embedded_progress_bar
@@ -420,11 +420,11 @@ class ProgressTableV1:
 
     def _display_new_row(self):
         row_str = self._get_row_str(coloring=True)
-        self._print(row_str, end="")
+        self._print(row_str, end="\r")
 
     def _display_new_row_or_pbar(self):
         if self._active_pbars.get(0, None) is not None:
-            self._active_pbars[0]()
+            self._active_pbars[0].display()  # Level 0 pbar is embedded into the row, if it exists we want to display it instead of a row
         else:
             self._display_new_row()
 
@@ -448,7 +448,7 @@ class ProgressTableV1:
 
         self._prepare_row_color_dict(color)
         self._display_new_row()
-        self._print(flush=True)  # Insert a newline
+        self._print()  # Insert a newline
         self._prepare_row_color_dict()
         self.previous_header_counter += 1
 
@@ -516,109 +516,139 @@ class ProgressTableV1:
         self.previous_header_counter = 0
         self._print_bar_mid()
 
-    def _print_row_with_progress_bar(self, step, total, infobar, level=1):
-        embedded = level == 0
-        terminal_width = shutil.get_terminal_size(fallback=(0, 0)).columns or float("inf")
-        if total is not None:
-            step = min(step, total)  # clip the step number to be not bigger than the total number of iterations
+    def _refresh_active_pbars(self):
+        for pbar in self._active_pbars.values():
+            if pbar:
+                pbar.display()
 
-        self._print(end="\n" * level)
-        if not embedded:
-            tot_width = sum(self.column_widths.values()) + 3 * (len(self.column_widths) - 1) + 2
+    def pbar(self, iterable: Iterable | int | None = None, *range_args, refresh_rate=None, show_throughput=None, show_progress=None):
+        """Create iterable progress bar object."""
+        if isinstance(iterable, int):
+            iterable = range(iterable, *range_args)
+
+        level = len(self._active_pbars) + 1 - self.embedded_progress_bar
+        total = len(iterable) if isinstance(iterable, Sized) else None
+
+        pbar = TableProgressBar(
+            iterable=iterable,
+            table=self,
+            total=total,
+            level=level,
+            refresh_rate=refresh_rate or self.refresh_rate,
+            show_throughput=show_throughput or self.pbar_show_throughput,
+            show_progress=show_progress or self.pbar_show_progress,
+        )
+        self._active_pbars[level] = pbar
+
+        if len(self._active_pbars) > MAX_ACITVE_PBARS:
+            raise ValueError("Too many active pbars, remember to .close() old pbars!")
+        return pbar
+
+    def __call__(self, *args, **kwds):
+        """Creates iterable progress bar object using .pbar method and returns it."""
+        return self.pbar(*args, **kwds)
+
+
+class TableProgressBar:
+    def __init__(self, iterable, *, table, total, level, refresh_rate, show_throughput, show_progress):
+        self.iterable: Iterable | None = iterable
+
+        self.step: int = 0
+        self.total: int | None = total
+        self.level: int = level
+        self.table: ProgressTableV1 = table
+        self.creation_time: float = time.perf_counter()
+        self.last_refresh_time: float = -float("inf")
+
+        self.refresh_rate: int = refresh_rate
+        self.show_progress: bool = show_progress
+        self.show_throughput: bool = show_throughput
+        self.is_active: bool = True
+
+    def display(self):
+        assert self.is_active, "Progress bar was closed!"
+
+        is_embedded = self.level == 0
+        terminal_width = shutil.get_terminal_size(fallback=(0, 0)).columns or float("inf")
+
+        total = self.total
+        step = min(self.step, total) if total else self.step
+
+        self.last_refresh_time = time.perf_counter()
+        time_passed = self.last_refresh_time - self.creation_time
+        throughput = self.step / time_passed if time_passed > 0 else 0.0
+
+        inside_infobar = []
+        if self.show_throughput:
+            inside_infobar.append(f"{throughput: <.2f} it/s")
+        if self.show_progress:
+            if self.total:
+                inside_infobar.append(f"{self.step}/{self.total}")
+            else:
+                inside_infobar.append(f"{self.step}")
+        infobar = "[" + ", ".join(inside_infobar) + "] " if inside_infobar else ""
+
+        pbar = ["\n" * self.level]
+        if not is_embedded:
+            tot_width = sum(self.table.column_widths.values()) + 3 * (len(self.table.column_widths) - 1) + 2
             if tot_width >= terminal_width - 1:
                 tot_width = terminal_width - 2
 
             tot_width = tot_width - len(infobar)
-            if total is None:
+            if not self.total:
                 total = tot_width
-                step = step % total
+                step = self.step % total
 
             num_filled = math.ceil(step / total * tot_width)
             num_empty = tot_width - num_filled
 
-            self._print(
-                self.table_style.vertical,
-                infobar,
-                self.table_style.pbar_filled * num_filled,
-                self.table_style.pbar_empty * num_empty,
-                self.table_style.vertical,
-                end="",
-                sep="",
+            pbar.extend(
+                [
+                    self.table.table_style.vertical,
+                    infobar,
+                    self.table.table_style.pbar_filled * num_filled,
+                    self.table.table_style.pbar_empty * num_empty,
+                    self.table.table_style.vertical,
+                ]
             )
         else:
-            row = self._get_row_str(coloring=False)
-            if total is None:  # When total is unknown
+            row = self.table._get_row_str(coloring=False)
+            pbar.extend(row[:2] + infobar)
+            row = row[2 + len(infobar) :]
+
+            if not self.total:  # When total is unknown
                 total = len(row)
-                step = step % total
+                step = self.step % total
 
             new_row = []
-            for letter_idx, letters in enumerate(row):
-                if letters[0] == " ":
+            for letter_idx, letter in enumerate(row):
+                if letter == " ":
                     if letter_idx / len(row) <= (step / total) % 1:
-                        letters = self.table_style.embedded_pbar_filled
+                        letter = self.table.table_style.embedded_pbar_filled
                     elif (letter_idx - 1) / len(row) <= (step / total) % 1:
-                        letters = self.table_style.embedded_pbar_head
-                new_row.extend(letters)
-            row = "".join(new_row)
-            self._print(row, end="")
-        self._print(end=CURSOR_UP * level)
-        sys.stdout.flush()
+                        letter = self.table.table_style.embedded_pbar_head
+                new_row.append(letter)
+            pbar.extend(new_row)
+        pbar.append(CURSOR_UP * self.level)
+        self.table._print("".join(pbar), end="\r")
 
-    def _refresh_active_pbars(self):
-        for pbar in self._active_pbars.values():
-            if pbar:
-                pbar()
+    def _update(self, n):
+        self.step += n
 
-    def __call__(self, iterator: int | Iterable, *range_args):
-        """Display progress bar over the iterator."""
-        if isinstance(iterator, int):
-            iterator = range(iterator, *range_args)
-        else:
-            assert len(range_args) == 0, "Unnamed args are not allowed here!"
+    def update(self, n=1):
+        self._update(n)
+        time_passed = time.perf_counter() - self.last_refresh_time
+        if self.table._is_table_opened and time_passed >= 1 / self.refresh_rate:
+            self.display()
 
-        iterator_length = len(iterator) if isinstance(iterator, Sized) else None
-        t_last_printed = -float("inf")
-        t_beginning = time.time()
-
-        level = len(self._active_pbars) + 1 - self.embedded_progress_bar
-        self._active_pbars[level] = None
-        if len(self._active_pbars) > MAX_ACITVE_PBARS:
-            raise ValueError("Too many levels of progress bars!")
-
-        idx = 0
-        for idx, element in enumerate(iterator):
-            if time.time() - t_last_printed > 1 / self.refresh_rate:
-                self._print(end="\r")
-                s = time.time() - t_beginning
-                throughput = idx / s if s > 0 else 0.0
-
-                inside_infobar = []
-                if self.pbar_show_throughput:
-                    inside_infobar.append(f"{throughput: <.2f} it/s")
-                if self.pbar_show_progress:
-                    if iterator_length:
-                        inside_infobar.append(f"{idx}/{iterator_length}")
-                    else:
-                        inside_infobar.append(f"{idx}")
-
-                if inside_infobar:
-                    infobar = "[" + ", ".join(inside_infobar) + "] "
-                else:
-                    infobar = ""
-
-                def _refresh_progress_bar_fn():
-                    return self._print_row_with_progress_bar(
-                        idx,
-                        iterator_length,
-                        infobar=infobar,
-                        level=level,
-                    )
-
-                if self._is_table_opened:
-                    _refresh_progress_bar_fn()
-                self._active_pbars[level] = _refresh_progress_bar_fn
-
-                t_last_printed = time.time()
+    def __iter__(self):
+        assert self.iterable is not None, "No iterable provided!"
+        self.update(0)
+        for element in self.iterable:
             yield element
-        # Deactive progress bar
-        self._active_pbars.pop(level)
+            self.update()
+        self.close()
+
+    def close(self):
+        self.table._active_pbars.pop(self.level)
+        self.is_active = False
