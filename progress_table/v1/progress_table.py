@@ -297,7 +297,7 @@ class ProgressTableV1:
         if key not in self.column_names:
             if self._is_table_opened:
                 logging.info("Closing table (new column added to opened table)")
-                self.close()
+                self.close(close_pbars=False)
 
             self.add_column(key)
 
@@ -334,7 +334,7 @@ class ProgressTableV1:
             return
 
         logging.info("Closing table (reordering columns)")
-        self.close()
+        self.close(close_pbars=False)
 
         assert isinstance(column_names, (List, Tuple))
         assert all([x in self.column_names for x in column_names]), f"Columns {column_names} not in {self.column_names}"
@@ -344,12 +344,26 @@ class ProgressTableV1:
         self.column_alignments = {k: self.column_alignments[k] for k in column_names}
         self.column_aggregates = {k: self.column_aggregates[k] for k in column_names}
 
-    def close(self):
+    def _clear_line(self):
+        row_str = self._get_row_str(coloring=False)
+        self._print(len(row_str) * " ", end="\r")
+
+    def write(self, *args, **kwds):
+        """Write a message gracefully when the table is opened.
+
+        Table will be closed, the message will be printed and the table will be opened again.
+        """
+        self.close(close_pbars=False, close_row=False)
+        self._clear_line()
+        self._print(*args, **kwds)
+        self.print_header()
+
+    def close(self, close_pbars=True, close_row=True):
         """End the table and close it."""
-        if self._new_row:
+        if close_row and self._new_row:
             self.next_row()
 
-        if self._active_pbars:
+        if close_pbars and self._active_pbars:
             for pbar in list(self._active_pbars.values()):
                 pbar.close()
 
