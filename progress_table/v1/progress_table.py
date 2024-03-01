@@ -642,12 +642,14 @@ class TableProgressBar:
             self.display()
 
     def __iter__(self):
-        assert self.iterable is not None, "No iterable provided!"
-        self.update(0)
-        for element in self.iterable:
-            yield element
-            self.update()
-        self.close()
+        try:
+            assert self.iterable is not None, "No iterable provided!"
+            self.update(0)
+            for element in self.iterable:
+                yield element
+                self.update()
+        finally:
+            self.close()
 
     def close(self):
         self.table._active_pbars.pop(self.level)
