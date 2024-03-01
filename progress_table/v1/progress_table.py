@@ -31,6 +31,7 @@ NoneType = type(None)
 ColorFormat = Union[str, Tuple, List, NoneType]
 ColorFormatTuple = (str, Tuple, List, NoneType)
 
+EPS = 1e-9
 CURSOR_UP = "\033[A"
 MAX_ACITVE_PBARS = 10
 
@@ -646,9 +647,9 @@ class TableProgressBar:
             new_row = []
             for letter_idx, letter in enumerate(row):
                 if letter == " ":
-                    if letter_idx / len(row) <= ((step - 1) / total) % 1:
+                    if letter_idx / len(row) <= (step / total) % (1 + EPS):
                         letter = self.table.table_style.embedded_pbar_filled
-                    elif (letter_idx - 1) / len(row) <= ((step - 1) / total) % 1:
+                    elif (letter_idx - 1) / len(row) <= (step / total) % (1 + EPS):
                         letter = self.table.table_style.embedded_pbar_head
                 new_row.append(letter)
             pbar.extend(new_row)
