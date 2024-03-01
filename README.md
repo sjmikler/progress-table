@@ -70,7 +70,7 @@ table = ProgressTable(
     file=sys.stdout,
 )
 
-# You can define the columns at the beginning
+# You (optionally) define the columns at the beginning
 table.add_column("x", width=3)
 table.add_column("x root", color="red")
 table.add_column("random average", color=["bright", "red"], aggregate="mean")
