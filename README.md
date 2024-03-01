@@ -53,7 +53,7 @@ table = ProgressTable()
 # Or customize its settings:
 table = ProgressTable(
     columns=["step"],
-    refresh_rate=10,
+    refresh_rate=20,
     num_decimal_places=4,
     default_column_width=None,
     default_column_color=None,
