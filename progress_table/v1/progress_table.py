@@ -145,7 +145,7 @@ class ProgressTableV1:
         reprint_header_every_n_rows: int = 30,
         custom_format: Callable[[Any], Any] | None = None,
         table_style: str | Type[styles.StyleNormal] = "round",
-        file=sys.stdout,
+        file=None,
     ):
         """Progress Table instance.
 
@@ -188,7 +188,8 @@ class ProgressTableV1:
                                    row, preventing the user from seeing values that are being updated
                                    until the progress bar finishes.
             table_style: Change the borders of the table. Cause KeyError to see all the available styles.
-            file: Redirect the output to another stream. There can be multiple streams at once passed as list or tuple. Defaults to stdout.
+            file: Redirect the output to another stream. There can be multiple streams at once passed as list or tuple.
+                  Defaults to None, which is interpreted as stdout.
         """
         if isinstance(table_style, str):
             assert table_style in styles.PREDEFINED_STYLES, f"Style {table_style} unknown! Available: {' '.join(styles.PREDEFINED_STYLES)}"
@@ -408,7 +409,7 @@ class ProgressTableV1:
 
     def _print(self, *args, **kwds):
         for file in self.files:
-            print(*args, **kwds, file=file)
+            print(*args, **kwds, file=file or sys.stdout)
 
     def _print_bar(self, left: str, center: str, right: str):
         content_list: list[str] = []
