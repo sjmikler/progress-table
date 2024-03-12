@@ -2,20 +2,20 @@
 
 from pathlib import Path
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding="UTF-8")
 
 setup(
     name="progress-table",
-    version="1.2.0",
+    version="1.2.1",
     url="https://github.com/gahaalt/progress-table.git",
     author="Szymon Mikler",
     author_email="sjmikler@gmail.com",
     license="MIT",
     description="Display progress as a pretty table in the command line.",
-    packages=["progress_table"],
+    packages=find_packages(),
     python_requires=">=3.7",
     classifiers=[
         "License :: OSI Approved :: MIT License",
