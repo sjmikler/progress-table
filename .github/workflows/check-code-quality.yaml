@@ -5,9 +5,9 @@ name: check code quality with python 3.10
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
 
 permissions:
   contents: read
