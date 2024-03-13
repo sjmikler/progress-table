@@ -29,7 +29,7 @@ setup(
     author_email="sjmikler@gmail.com",
     license="MIT",
     description="Display progress as a pretty table in the command line.",
-    packages=find_packages(),
+    packages=["progress_table"],
     python_requires=">=3.7",
     classifiers=[
         "License :: OSI Approved :: MIT License",
