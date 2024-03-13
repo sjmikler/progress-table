@@ -26,9 +26,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .
-          cd ..
-          pip show progress-table
-          rm -r progress-table/*
           pip install pytest numpy pandas
 
       - name: Test with pytest
