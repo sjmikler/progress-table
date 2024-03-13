@@ -31,7 +31,6 @@ jobs:
           cd ..
           pip install progress-table
           pip show progress-table
-          rm -r progress-table
       - name: Test basic imports
         run: |
           python -c "import progress_table"
