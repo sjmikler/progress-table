@@ -1,0 +1,33 @@
+# This workflow will install Progress Table and test whether basic importing works correctly
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: install from pypi and run basic tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11" ]
+
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install the library and test basic imports
+        run: |
+          pip install progress-table
+          pip show progress-table
+          
+          python -c "import progress_table"
+          python -c "from progress_table import ProgressTable"
+          python -c "from progress_table import ProgressTable; table = ProgressTable()"
+

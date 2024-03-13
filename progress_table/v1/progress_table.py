@@ -197,8 +197,8 @@ class ProgressTableV1:
         else:
             self.table_style = table_style
 
-        assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"
-        assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"
+        assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"  # type: ignore
+        assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"  # type: ignore
 
         # Default values for column and
         self.column_width = default_column_width
