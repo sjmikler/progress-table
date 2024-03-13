@@ -29,7 +29,8 @@ jobs:
       - name: Install the library
         run: |
           pip install .
-          ls
+          cd ..
+          rm -r progress-table
       - name: Test basic imports
         run: |
           python -c "import progress_table"
