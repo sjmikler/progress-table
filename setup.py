@@ -4,12 +4,26 @@ from pathlib import Path
 
 from setuptools import setup, find_packages
 
-this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text(encoding="UTF-8")
+
+def package_relative_path(path):
+    return Path(__file__).parent / path
+
+
+def get_version():
+    text = package_relative_path("progress_table/__init__.py").read_text(encoding="UTF-8")
+    for line in text.split("\n"):
+        if line.startswith("__version__"):
+            delim = '"' if '"' in line else "'"
+            return line.split(delim)[1]
+    else:
+        raise RuntimeError("Unable to find version string.")
+
+
+long_description = package_relative_path("README.md").read_text(encoding="UTF-8")
 
 setup(
     name="progress-table",
-    version="1.2.3",
+    version=get_version(),
     url="https://github.com/gahaalt/progress-table.git",
     author="Szymon Mikler",
     author_email="sjmikler@gmail.com",
