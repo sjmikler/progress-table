@@ -30,7 +30,7 @@ jobs:
         run: |
           pip install .
           cd ..
-          rm -r progress-table
+          ls
       - name: Test basic imports
         run: |
           python -c "import progress_table"
