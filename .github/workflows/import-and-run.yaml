@@ -26,13 +26,13 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install the library
+      - name: Install the library and test basic imports
         run: |
           cd ..
           pip install progress-table
           pip show progress-table
-      - name: Test basic imports
-        run: |
+          rm -r progress-table
+          
           python -c "import progress_table"
           python -c "from progress_table import ProgressTable"
           python -c "from progress_table import ProgressTable; table = ProgressTable()"
