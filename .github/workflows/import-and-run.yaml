@@ -28,10 +28,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install the library
         run: |
-          pip install .
           cd ..
-          ls -l
-          rm -r progress-table
+          pip install progress-table
       - name: Test basic imports
         run: |
           python -c "import progress_table"
