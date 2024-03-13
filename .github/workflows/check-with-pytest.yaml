@@ -25,8 +25,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
+          pip install .
           cd ..
-          pip install progress-table
           pip show progress-table
           rm -r progress-table/*
           pip install pytest numpy pandas
