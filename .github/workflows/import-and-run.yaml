@@ -31,7 +31,7 @@ jobs:
           cd ..
           pip install progress-table
           pip show progress-table
-          rm -r progress-table
+          rm -r progress-table/*
           
           python -c "import progress_table"
           python -c "from progress_table import ProgressTable"
