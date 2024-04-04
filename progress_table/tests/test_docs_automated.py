@@ -1,4 +1,4 @@
-#  Copyright (c) 2022 Szymon Mikler
+#  Copyright (c) 2022-2024 Szymon Mikler
 
 import logging
 import os
