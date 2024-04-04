@@ -1,8 +1,8 @@
-#  Copyright (c) 2022 Szymon Mikler
+#  Copyright (c) 2022-2024 Szymon Mikler
 
 from pathlib import Path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 
 def package_relative_path(path):
