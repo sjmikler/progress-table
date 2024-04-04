@@ -1,4 +1,4 @@
-#  Copyright (c) 2022 Szymon Mikler
+#  Copyright (c) 2022-2024 Szymon Mikler
 
 __version__ = "1.2.5"
 

@@ -1,3 +1,5 @@
+#  Copyright (c) 2024 Szymon Mikler
+
 from dataclasses import dataclass
 
 

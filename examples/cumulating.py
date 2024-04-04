@@ -1,3 +1,5 @@
+#  Copyright (c) 2024 Szymon Mikler
+
 import random
 import time
 

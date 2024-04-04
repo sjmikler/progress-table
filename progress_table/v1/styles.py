@@ -1,3 +1,5 @@
+#  Copyright (c) 2024 Szymon Mikler
+
 class StyleNormal:
     name = "normal"
     pbar_filled = "■"

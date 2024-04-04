@@ -1,3 +1,5 @@
+#  Copyright (c) 2024 Szymon Mikler
+
 import time
 
 from progress_table import ProgressTable
