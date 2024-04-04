@@ -1,9 +1,9 @@
 #  Copyright (c) 2022-2024 Szymon Mikler
 
+import hashlib
 import random
 import shutil
 from io import StringIO
-import hashlib
 
 from progress_table import ProgressTableV1
 
