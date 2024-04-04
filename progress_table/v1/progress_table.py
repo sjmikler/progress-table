@@ -659,13 +659,17 @@ class TableProgressBar:
                 total = len(row)
                 step = self._step % total
 
-            new_row = []
+            new_row = [Style.BRIGHT]
             for letter_idx, letter in enumerate(row):
-                if letter == " ":
-                    if letter_idx / len(row) <= (step / total) % (1 + EPS):
-                        letter = self.table.table_style.embedded_pbar_filled
-                    elif (letter_idx - 1) / len(row) <= (step / total) % (1 + EPS):
-                        letter = self.table.table_style.embedded_pbar_head
+                is_bar = letter_idx / len(row) <= (step / total) % (1 + EPS)
+                is_head = (letter_idx - 1) / len(row) <= (step / total) % (1 + EPS)
+                if letter == " " and is_bar:
+                    letter = self.table.table_style.embedded_pbar_filled
+                if letter == " " and is_head:
+                    letter = self.table.table_style.embedded_pbar_head
+
+                if not is_bar and not is_head:
+                    new_row.append(Style.RESET_ALL)
                 new_row.append(letter)
             pbar.extend(new_row)
         pbar.append(CURSOR_UP * self.level)
