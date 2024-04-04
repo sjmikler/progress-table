@@ -1,4 +1,4 @@
-#  Copyright (c) 2024 Szymon Mikler
+#  Copyright (c) 2022-2024 Szymon Mikler
 
 import time
 
