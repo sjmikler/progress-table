@@ -19,12 +19,17 @@ def fibonacci_timed(n):
     return result, time1 - time0
 
 
-table = ProgressTable()
+def main():
+    table = ProgressTable()
 
-for n in table(36):
-    result, td = fibonacci_timed(n)
-    table["n"] = n
-    table["time (s)"] = td
-    table["value"] = result
-    table.next_row()
-table.close()
+    for n in table(36):
+        result, td = fibonacci_timed(n)
+        table["n"] = n
+        table["time (s)"] = td
+        table["value"] = result
+        table.next_row()
+    table.close()
+
+
+if __name__ == "__main__":
+    main()
