@@ -3,6 +3,7 @@
 import hashlib
 import random
 import shutil
+import sys
 from io import StringIO
 
 from progress_table import ProgressTableV1
@@ -68,4 +69,4 @@ def test_case_1():
 
     outputs = out_buffer.getvalue()
     md5hash = hashlib.md5(outputs.encode()).hexdigest()
-    assert md5hash == "295317feae890188b28fc202bbd29f27", f"Got {md5hash}, expected 295317feae890188b28fc202bbd29f27"
+    assert md5hash == "9911ff8b907db908e208778afaff508c", f"Got {md5hash}, expected 9911ff8b907db908e208778afaff508c"

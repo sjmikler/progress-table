@@ -476,7 +476,7 @@ class ProgressTableV1:
             self._print_splitter()
 
         # Reset aggregated values!
-        self._new_row_cumulated_weight: dict[str, int] = {}
+        self._new_row_cumulated_weight = {}
 
         self._prepare_row_color_dict(color)
         self._display_new_row()
