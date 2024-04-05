@@ -21,7 +21,7 @@ def fibonacci_timed(n):
 
 table = ProgressTable()
 
-for n in table(40):
+for n in table(36):
     result, td = fibonacci_timed(n)
     table["n"] = n
     table["time (s)"] = td
