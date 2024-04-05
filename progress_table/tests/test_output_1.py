@@ -3,7 +3,6 @@
 import hashlib
 import random
 import shutil
-import sys
 from io import StringIO
 
 from progress_table import ProgressTableV1
