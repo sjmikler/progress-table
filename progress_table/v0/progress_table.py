@@ -27,6 +27,8 @@ ALL_COLORS_STYLES = ALL_COLORS + ALL_STYLES
 ITERATOR_LENGTH_UNKNOWN_WARNED_ONCE = False
 ITERATOR_LENGTH_CACHE: Dict[int, int] = {}
 
+DEPRECATION_PRINTED = False
+
 
 class ProgressTableV0:
     def __init__(
@@ -82,6 +84,12 @@ class ProgressTableV0:
             file: Redirect the output to another stream. There can be multiple streams at once passed as
                   a list or a tuple. Defaults to sys.stdout.
         """
+        global DEPRECATION_PRINTED
+
+        if not DEPRECATION_PRINTED:
+            logging.warning("ProgressTableV0 is deprecated, use ProgressTableV1 instead")
+            DEPRECATION_PRINTED = True
+
         self.refresh_rate = refresh_rate
         self.default_width = default_column_width
         self.default_alignment = default_column_alignment

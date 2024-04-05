@@ -219,7 +219,7 @@ class ProgressTableV1:
         self.finished_rows: list[dict[str, Any]] = []
 
         self._new_row: dict[str, Any] = {}
-        self.new_row_cumulated_weight: dict[str, int] = {}
+        self._new_row_cumulated_weight: dict[str, int] = {}
         self.files = (file,) if not isinstance(file, (list, tuple)) else file
 
         self.previous_header_counter = 0
@@ -288,27 +288,35 @@ class ProgressTableV1:
         # Initialize color for the column in the new row
         self._prepare_row_color_dict()
 
-    def add_columns(self, iterable, **kwds):
+    def add_columns(self, *columns, **kwds):
         """Add multiple columns to the table."""
-        for column in iterable:
+        for column in columns:
             self.add_column(column, **kwds)
 
-    def update(self, key, value, *, weight=1):
-        """Update value in the current row."""
+    def update(self, key, value, *, weight=1, **column_kwds):
+        """Update value in the current row. This is extends capabilities of __setitem__.
+
+        Args:
+            key: Name of the column.
+            value: Value to be set.
+            weight: Weight of the value. This is used for aggregation.
+            column_kwds: Additional arguments for the column. They will be only used for column creation.
+                         If column already exists, they will have no effect.
+        """
         if key not in self.column_names:
             if self._is_table_opened:
                 logging.info("Closing table (new column added to opened table)")
-                self.close(close_pbars=False)
+                self.close(close_pbars=False, close_row=False)
 
-            self.add_column(key)
+            self.add_column(key, **column_kwds)
 
         # Set default values for new rows
         self._new_row.setdefault(key, 0)
-        self.new_row_cumulated_weight.setdefault(key, 0)
+        self._new_row_cumulated_weight.setdefault(key, 0)
 
         fn = self.column_aggregates[key]
-        self._new_row[key] = fn(value, self._new_row[key], self.new_row_cumulated_weight[key])
-        self.new_row_cumulated_weight[key] += weight
+        self._new_row[key] = fn(value, self._new_row[key], self._new_row_cumulated_weight[key])
+        self._new_row_cumulated_weight[key] += weight
 
         t0 = time.time()
         td = t0 - self._last_time_row_printed
@@ -335,7 +343,7 @@ class ProgressTableV1:
             return
 
         logging.info("Closing table (reordering columns)")
-        self.close(close_pbars=False)
+        self.close(close_pbars=False, close_row=False)
 
         assert isinstance(column_names, (List, Tuple))
         assert all([x in self.column_names for x in column_names]), f"Columns {column_names} not in {self.column_names}"
@@ -444,7 +452,8 @@ class ProgressTableV1:
 
     def _display_new_row_or_pbar(self):
         if self._active_pbars.get(0, None) is not None:
-            self._active_pbars[0].display()  # Level 0 pbar is embedded into the row, if it exists we want to display it instead of a row
+            # Level 0 pbar is embedded into the row, if it exists we want to display it instead of a row
+            self._active_pbars[0].display()
         else:
             self._display_new_row()
 
@@ -465,6 +474,9 @@ class ProgressTableV1:
             split = False
         if split or self._request_splitter:
             self._print_splitter()
+
+        # Reset aggregated values!
+        self._new_row_cumulated_weight = {}
 
         self._prepare_row_color_dict(color)
         self._display_new_row()
@@ -548,6 +560,7 @@ class ProgressTableV1:
         level=None,
         total=None,
         refresh_rate=None,
+        description="",
         show_throughput=None,
         show_progress=None,
     ):
@@ -559,6 +572,7 @@ class ProgressTableV1:
             level: Level of the progress bar. If not provided, it will be set automatically.
             total: Total number of iterations. If not provided, it will be calculated from the length of the iterable.
             refresh_rate: The maximal number of times per second the progress bar will be refreshed.
+            description: Custom description of the progress bar that will be shown as prefix.
             show_throughput: If True, the throughput will be displayed.
             show_progress: If True, the progress will be displayed.
         """
@@ -574,6 +588,7 @@ class ProgressTableV1:
             total=total,
             level=level,
             refresh_rate=refresh_rate if refresh_rate is not None else self.refresh_rate,
+            description=description,
             show_throughput=show_throughput if show_throughput is not None else self.pbar_show_throughput,
             show_progress=show_progress if show_progress is not None else self.pbar_show_progress,
         )
@@ -589,7 +604,7 @@ class ProgressTableV1:
 
 
 class TableProgressBar:
-    def __init__(self, iterable, *, table, total, level, refresh_rate, show_throughput, show_progress):
+    def __init__(self, iterable, *, table, total, level, refresh_rate, description, show_throughput, show_progress):
         self.iterable: Iterable | None = iterable
 
         self._step: int = 0
@@ -600,6 +615,7 @@ class TableProgressBar:
         self.level: int = level
         self.table: ProgressTableV1 = table
         self.refresh_rate: int = refresh_rate
+        self.description: str = description
         self.show_progress: bool = show_progress
         self.show_throughput: bool = show_throughput
         self._is_active: bool = True
@@ -618,13 +634,15 @@ class TableProgressBar:
         throughput = self._step / time_passed if time_passed > 0 else 0.0
 
         inside_infobar = []
-        if self.show_throughput:
-            inside_infobar.append(f"{throughput: <.2f} it/s")
+        if self.description:
+            inside_infobar.append(self.description)
         if self.show_progress:
             if self._total:
                 inside_infobar.append(f"{self._step}/{self._total}")
             else:
                 inside_infobar.append(f"{self._step}")
+        if self.show_throughput:
+            inside_infobar.append(f"{throughput: <.2f} it/s")
         infobar = "[" + ", ".join(inside_infobar) + "] " if inside_infobar else ""
 
         pbar = ["\n" * self.level]
