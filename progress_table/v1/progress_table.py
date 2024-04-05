@@ -219,7 +219,7 @@ class ProgressTableV1:
         self.finished_rows: list[dict[str, Any]] = []
 
         self._new_row: dict[str, Any] = {}
-        self.new_row_cumulated_weight: dict[str, int] = {}
+        self._new_row_cumulated_weight: dict[str, int] = {}
         self.files = (file,) if not isinstance(file, (list, tuple)) else file
 
         self.previous_header_counter = 0
@@ -304,11 +304,11 @@ class ProgressTableV1:
 
         # Set default values for new rows
         self._new_row.setdefault(key, 0)
-        self.new_row_cumulated_weight.setdefault(key, 0)
+        self._new_row_cumulated_weight.setdefault(key, 0)
 
         fn = self.column_aggregates[key]
-        self._new_row[key] = fn(value, self._new_row[key], self.new_row_cumulated_weight[key])
-        self.new_row_cumulated_weight[key] += weight
+        self._new_row[key] = fn(value, self._new_row[key], self._new_row_cumulated_weight[key])
+        self._new_row_cumulated_weight[key] += weight
 
         t0 = time.time()
         td = t0 - self._last_time_row_printed
@@ -465,6 +465,9 @@ class ProgressTableV1:
             split = False
         if split or self._request_splitter:
             self._print_splitter()
+
+        # Reset aggregated values!
+        self._new_row_cumulated_weight: dict[str, int] = {}
 
         self._prepare_row_color_dict(color)
         self._display_new_row()
