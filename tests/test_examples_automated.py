@@ -6,7 +6,10 @@ import random
 import sys
 from glob import glob
 from io import StringIO
-from concurrent.futures import ProcessPoolExecutor
+
+
+def set_seed():
+    random.seed(42)
 
 
 EXPECTED_OUTPUTS = {
@@ -17,25 +20,6 @@ EXPECTED_OUTPUTS = {
 }
 
 
-def set_seed():
-    random.seed(42)
-
-
-def capture_example_stdout(main_fn):
-    override_kwds = dict(
-        refresh_rate=1000000000,
-        pbar_show_throughput=False,
-    )
-
-    set_seed()
-    io = StringIO()
-    sys.stdout = io
-    main_fn(**override_kwds)
-    sys.stdout = sys.__stdout__
-    outputs = io.getvalue()
-    return outputs
-
-
 def test_all_examples():
     # Testing whether examples run exactly as intended
 
@@ -44,20 +28,26 @@ def test_all_examples():
     # * refresh rate
     # * throughput display
 
+    override_kwds = dict(
+        refresh_rate=1000000000,
+        pbar_show_throughput=False,
+    )
+
     outputs = {}
-    threads = {}
-    executor = ProcessPoolExecutor()
 
     for module in glob("examples/*"):
         module = module.replace(".py", "").replace("/", ".")
         print(f"Running example: {module}")
         main_fn = importlib.import_module(module).main
 
-        thread = executor.submit(capture_example_stdout, main_fn)
-        threads[module] = thread
+        # We will replace stdout with custom StringIO and check whether example stdout is as expected
+        out_buffer = StringIO()
+        sys.stdout = out_buffer
+        set_seed()
+        main_fn(**override_kwds)
+        out_str = out_buffer.getvalue()
+        sys.stdout = sys.__stdout__
 
-    for module in threads:
-        out_str = threads[module].result()
         md5hash = hashlib.md5(out_str.encode()).hexdigest()
         outputs[module] = md5hash
 
@@ -71,6 +61,3 @@ def test_all_examples():
 
     if err_msg:
         assert False, f"Errors in example outputs\n{err_msg}"
-
-
-test_all_examples()
