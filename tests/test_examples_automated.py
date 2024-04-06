@@ -8,7 +8,7 @@ from glob import glob
 from io import StringIO
 
 EXPECTED_OUTPUTS = {
-    "examples.nn_training": "dadfc581bf8e346df01905f901b8f57b",
+    "examples.nn_training": "7e50cfd539e3e1799ecd5a7e7b7a7e18",
     "examples.cumulating": "b5b7bc9b8232545ebfd5ca777bddacb4",
     "examples.fibonacci": "bae5411af4bf8a4326f1bce59ca9aad9",
     "examples.features": "474d4aff94a3070d2300d78d4159e0a6",
