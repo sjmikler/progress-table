@@ -6,8 +6,8 @@ import time
 from progress_table import ProgressTable
 
 
-def main():
-    table = ProgressTable()
+def main(**overrides):
+    table = ProgressTable(**overrides)
 
     total = 0
     target = 1000

@@ -6,15 +6,20 @@ import time
 from progress_table import ProgressTable
 
 
-def main():
-    table = ProgressTable()
+def main(**overrides):
+    default = dict(
+        pbar_show_progress=True,
+        pbar_show_throughput=False,
+    )
+    default = {**default, **overrides}
+    table = ProgressTable(**default)
 
     num_epochs = 10
     num_train_samples = 200
     num_valid_samples = 20
 
-    for epoch in table(num_epochs, show_throughput=False):
-        for step in table(num_train_samples, description="train epoch", show_progress=False):
+    for epoch in table(num_epochs):
+        for step in table(num_train_samples, description="train epoch"):
             table["epoch"] = epoch
 
             loss_value = random.random()
@@ -25,10 +30,10 @@ def main():
             table.update("train loss", loss_value, aggregate="mean", color="blue")
             table.update("train accuracy", accuracy, aggregate="mean", color="blue bold")
 
-        for step in table(num_valid_samples, description="valid epoch"):
-            time.sleep(0.1)
-
         if epoch % 5 == 0 or epoch == num_epochs - 1:
+            for step in table(num_valid_samples, description="valid epoch"):
+                time.sleep(0.1)
+
             loss_value = random.random()
             accuracy = random.random() ** 0.5
             table["valid loss"] = loss_value

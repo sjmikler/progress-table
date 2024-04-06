@@ -1,27 +1,15 @@
-#  Copyright (c) 2022-2024 Szymon Mikler
+#  Copyright (c) 2024 Szymon Mikler
 
-import hashlib
 import random
-import shutil
-from io import StringIO
+import sys
+import time
 
-from progress_table import ProgressTableV1
-
-
-def set_seed():
-    random.seed(42)
+from progress_table import ProgressTable
 
 
-def test_case_1():
-    set_seed()
-    shutil.get_terminal_size()
-    out_buffer = StringIO()
-
-    # Define the columns at the beginning
-    table = ProgressTableV1(
+def main(**overrides):
+    table = ProgressTable(
         columns=["step", "x", "x squared"],
-        # Default arguments:
-        refresh_rate=1000000000,
         num_decimal_places=4,
         default_column_width=8,
         default_column_alignment="center",
@@ -29,15 +17,15 @@ def test_case_1():
         reprint_header_every_n_rows=10,
         custom_format=None,
         embedded_progress_bar=True,
-        pbar_show_throughput=False,
         pbar_show_progress=True,
-        file=out_buffer,
+        file=sys.stdout,
+        **overrides,
     )
     table.add_column("x", width=3)
     table.add_column("x root", color="red")
     table.add_column("random average", color=["bright", "red"], aggregate="mean")
 
-    for _ in range(10):
+    for _ in range(2):
         for step in range(10):
             x = random.randint(0, 200)
 
@@ -52,6 +40,8 @@ def test_case_1():
             for _ in table(100):
                 # You can use weights for aggregated values
                 table.update("random average", random.random(), weight=1)
+                time.sleep(0.001)
+            time.sleep(0.01)
 
             table.update("x root", x**0.5)
 
@@ -66,6 +56,6 @@ def test_case_1():
     # Close the table when it's ready
     table.close()
 
-    outputs = out_buffer.getvalue()
-    md5hash = hashlib.md5(outputs.encode()).hexdigest()
-    assert md5hash == "9911ff8b907db908e208778afaff508c", f"Got {md5hash}, expected 9911ff8b907db908e208778afaff508c"
+
+if __name__ == "__main__":
+    main()
