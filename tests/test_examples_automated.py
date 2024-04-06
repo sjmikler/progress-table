@@ -7,11 +7,6 @@ import sys
 from glob import glob
 from io import StringIO
 
-
-def set_seed():
-    random.seed(42)
-
-
 EXPECTED_OUTPUTS = {
     "examples.nn_training": "dadfc581bf8e346df01905f901b8f57b",
     "examples.cumulating": "b5b7bc9b8232545ebfd5ca777bddacb4",
@@ -20,33 +15,38 @@ EXPECTED_OUTPUTS = {
 }
 
 
-def test_all_examples():
-    # Testing whether examples run exactly as intended
+def set_seed():
+    random.seed(42)
 
+
+def capture_example_stdout(main_fn):
     # To eliminate run to run variation of the example outputs we need to be independent from the execution speed
     # This includes removing the influence of:
     # * refresh rate
     # * throughput display
-
     override_kwds = dict(
         refresh_rate=1000000000,
         pbar_show_throughput=False,
     )
 
-    outputs = {}
+    # We will replace stdout with custom StringIO and check whether example stdout is as expected
+    out_buffer = StringIO()
+    sys.stdout = out_buffer
+    set_seed()
+    main_fn(**override_kwds)
+    sys.stdout = sys.__stdout__
+    return out_buffer.getvalue()
 
+
+def test_all_examples():
+    # Testing whether examples run exactly as intended
+
+    outputs = {}
     for module in glob("examples/*"):
         module = module.replace(".py", "").replace("/", ".")
         print(f"Running example: {module}")
         main_fn = importlib.import_module(module).main
-
-        # We will replace stdout with custom StringIO and check whether example stdout is as expected
-        out_buffer = StringIO()
-        sys.stdout = out_buffer
-        set_seed()
-        main_fn(**override_kwds)
-        out_str = out_buffer.getvalue()
-        sys.stdout = sys.__stdout__
+        out_str = capture_example_stdout(main_fn)
 
         md5hash = hashlib.md5(out_str.encode()).hexdigest()
         outputs[module] = md5hash
