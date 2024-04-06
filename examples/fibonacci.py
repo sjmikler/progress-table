@@ -1,32 +1,25 @@
 #  Copyright (c) 2022-2024 Szymon Mikler
 
-import time
-
 from progress_table import ProgressTable
 
 
 def fibonacci(n):
     if n <= 1:
-        return n
+        return n, 1
     else:
-        return fibonacci(n - 1) + fibonacci(n - 2)
+        r1, c1 = fibonacci(n - 1)
+        r2, c2 = fibonacci(n - 2)
+        return r1 + r2, c1 + c2 + 1
 
 
-def fibonacci_timed(n):
-    time0 = time.perf_counter()
-    result = fibonacci(n)
-    time1 = time.perf_counter()
-    return result, time1 - time0
-
-
-def main():
-    table = ProgressTable()
+def main(**overrides):
+    table = ProgressTable(**overrides, default_column_alignment="left")
 
     for n in table(36):
-        result, td = fibonacci_timed(n)
+        result, number_of_calls = fibonacci(n)
         table["n"] = n
-        table["time (s)"] = td
-        table["value"] = result
+        table["fibonacci value"] = result
+        table["number of calls"] = number_of_calls
         table.next_row()
     table.close()
 

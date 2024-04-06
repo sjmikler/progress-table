@@ -5,7 +5,7 @@ import random
 import shutil
 from io import StringIO
 
-from progress_table import ProgressTableV1
+from progress_table import ProgressTable
 
 
 def set_seed():
@@ -18,7 +18,7 @@ def test_case_1():
     out_buffer = StringIO()
 
     # Define the columns at the beginning
-    table = ProgressTableV1(
+    table = ProgressTable(
         columns=["step", "x", "x squared"],
         # Default arguments:
         refresh_rate=1000000000,

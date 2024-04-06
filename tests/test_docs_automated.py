@@ -40,7 +40,7 @@ def scan_for_code_blobs(text):
 def test_all_code_blobs():
     all_code_blobs = []
 
-    for root, dirs, files in os.walk("."):
+    for root, dirs, files in os.walk(""):
         for file in files:
             path = pathlib.Path(os.path.join(root, file))
             if path.suffix == ".md":

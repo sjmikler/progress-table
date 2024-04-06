@@ -6,15 +6,15 @@ import time
 from progress_table import ProgressTable
 
 
-def main():
-    table = ProgressTable()
+def main(**overrides):
+    table = ProgressTable(**overrides)
 
     num_epochs = 10
     num_train_samples = 200
     num_valid_samples = 20
 
-    for epoch in table(num_epochs, show_throughput=False):
-        for step in table(num_train_samples, description="train epoch", show_progress=False):
+    for epoch in table(num_epochs):
+        for step in table(num_train_samples, description="train epoch"):
             table["epoch"] = epoch
 
             loss_value = random.random()
