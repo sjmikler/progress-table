@@ -12,27 +12,31 @@ def set_seed():
     random.seed(42)
 
 
-EXPECTED_TESTS_OUTPUTS = {
+EXPECTED_OUTPUTS = {
     "examples.nn_training": "dadfc581bf8e346df01905f901b8f57b",
     "examples.cumulating": "b5b7bc9b8232545ebfd5ca777bddacb4",
     "examples.fibonacci": "bae5411af4bf8a4326f1bce59ca9aad9",
+    "examples.features": "474d4aff94a3070d2300d78d4159e0a6",
 }
 
 
 def test_all_examples():
+    # Testing whether examples run exactly as intended
+
     # To eliminate run to run variation of the example outputs we need to be independent from the execution speed
-    # This includes:
+    # This includes removing the influence of:
     # * refresh rate
-    # * throughput indication
+    # * throughput display
 
     override_kwds = dict(
         refresh_rate=1000000000,
         pbar_show_throughput=False,
     )
 
+    outputs = {}
+
     for module in glob("examples/*"):
         module = module.replace(".py", "").replace("/", ".")
-
         print(f"Running example: {module}")
         main_fn = importlib.import_module(module).main
 
@@ -41,9 +45,19 @@ def test_all_examples():
         sys.stdout = out_buffer
         set_seed()
         main_fn(**override_kwds)
-        outputs = out_buffer.getvalue()
+        out_str = out_buffer.getvalue()
         sys.stdout = sys.__stdout__
 
-        md5hash = hashlib.md5(outputs.encode()).hexdigest()
-        expected_md5hash = EXPECTED_TESTS_OUTPUTS[module]
-        assert md5hash == expected_md5hash, f"Got {md5hash}, expected {expected_md5hash}"
+        md5hash = hashlib.md5(out_str.encode()).hexdigest()
+        outputs[module] = md5hash
+
+    err_msg = []
+    for key in EXPECTED_OUTPUTS:
+        output = outputs.get(key, None)
+        expected = EXPECTED_OUTPUTS[key]
+        if output != expected:
+            err_msg.append(f" {output} instead of {expected} in {key}")
+    err_msg = "\n".join(err_msg)
+
+    if err_msg:
+        assert False, f"Errors in example outputs\n{err_msg}"
