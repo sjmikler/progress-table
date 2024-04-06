@@ -182,11 +182,8 @@ class ProgressTableV1:
                                          If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
             custom_format: A function that allows specyfing custom formatting for values in cells. This function should be universal and
                            work for all datatypes as inputs. It takes one value as an input and returns one value as an output.
-            embedded_progress_bar: True by default. If True, changes the way the progress bar looks.
-                                   Embedded version is more subtle, but does not prevent the current row
-                                   from being displayed. If False, the progress bar covers the current
-                                   row, preventing the user from seeing values that are being updated
-                                   until the progress bar finishes.
+            embedded_progress_bar: True by default. If True, the first progress bar will be embedded in the row.
+                                   Non-embedded progress bars are displayed below the table - might not work well with some terminals.
             table_style: Change the borders of the table. Cause KeyError to see all the available styles.
             file: Redirect the output to another stream. There can be multiple streams at once passed as list or tuple.
                   Defaults to None, which is interpreted as stdout.
