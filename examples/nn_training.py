@@ -21,7 +21,11 @@ def main(**overrides):
     num_train_samples = 200
     num_valid_samples = 20
 
+    table.add_column("epoch")
+
     for epoch in table(num_epochs):
+        time.sleep(1)
+
         for step in table(num_train_samples, description="train epoch"):
             table["epoch"] = epoch
 

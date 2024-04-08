@@ -110,14 +110,14 @@ def maybe_convert_to_colorama(color: ColorFormat) -> str:
 
 
 def get_default_format_func(decimal_places):
-    def fmt(x):
+    def fmt(x) -> str:
         if isinstance(x, int):
-            return x
+            return str(x)
         else:
             try:
                 return format(x, f".{decimal_places}f")
             except Exception:
-                return x
+                return str(x)
 
     return fmt
 
@@ -150,8 +150,8 @@ class ProgressTableV1:
         pbar_show_throughput: bool = True,
         pbar_show_progress: bool = False,
         print_row_on_update: bool = True,
-        reprint_header_every_n_rows: int = 30,
-        custom_cell_format: Callable[[Any], Any] | None = None,
+        print_header_every_n_rows: int = 30,
+        custom_cell_format: Callable[[Any], str] | None = None,
         table_style: str | Type[styles.StyleNormal] = "round",
         file=None,
     ):
@@ -181,7 +181,7 @@ class ProgressTableV1:
             refresh_rate: The maximal number of times per second the last row of the Table will be refreshed.
                           This applies only when using Progress Bar or when `print_row_on_update = True`.
             num_decimal_places: This is only applicable when using the default formatting.
-                                This won't be used if `custom_cell_format` is set.
+                                This won't be used if `custom_cell_repr` is set.
                                 If applicable, for every displayed value except integers there will be an attempt to round it.
             default_column_color: Color of the header and the data in the column.
                                   This can be overwritten in columns by using an argument in `add_column` method.
@@ -192,11 +192,11 @@ class ProgressTableV1:
             default_column_aggregate: By default, there's no aggregation. But if this is for example 'mean', then after every update in
                                       the current row, the mean of the provided values will be displayed. Aggregated values is reset at
                                       every new row. This can be overwritten by columns by using an argument in `add_column` method.
-            reprint_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
-                                         If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
-            custom_cell_format: A function that allows specyfing custom formatting for values in cells.
+            print_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
+                                       If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
+            custom_cell_format: A function that defines how to get str value to display from a cell content.
                                 This function should be universal and work for all datatypes as inputs.
-                                It takes one value as an input and returns one value as an output.
+                                It takes one value as an input and returns string as an output.
             table_style: Change the borders of the table. Cause KeyError to see all the available styles.
             file: Redirect the output to another stream. There can be multiple streams at once passed as list or tuple.
                   Defaults to None, which is interpreted as stdout.
@@ -226,10 +226,11 @@ class ProgressTableV1:
 
         self.files = (file,) if not isinstance(file, (list, tuple)) else file
 
-        assert reprint_header_every_n_rows > 0, "Reprint header every n rows has to be positive!"
-        self._reprint_header_every_n_rows = reprint_header_every_n_rows
+        assert print_header_every_n_rows > 0, "Reprint header every n rows has to be positive!"
+        self._reprint_header_every_n_rows = print_header_every_n_rows
         self._previous_header_counter = 0
 
+        self._new_row_created: bool = False
         self._data_rows: list[DATA_ROW] = []
         self._display_rows: list[str | int] = []
         self._pending_display_rows: list[int] = []
@@ -252,54 +253,10 @@ class ProgressTableV1:
         self.max_active_pbars = {2: 100, 1: 1, 0: 0}[interactive]
         self.embedded_progress_bar = False if interactive == 2 else True
         self._printing_buffer = []
+        self.render_thread: Thread | None = None
 
         # Calls after init
         self.add_columns(*columns)
-
-    def _rendering_loop(self):
-        idle_time: float = 1 / self.refresh_rate
-        while self._renderer_running:
-            self._print_pending_rows_to_buffer()
-            self._refresh_active_pbars()
-            self._print_and_reset_buffer()
-            time.sleep(idle_time)
-
-    def _start_rendering(self):
-        self._renderer_running = True
-        self._next_row_prefix.append("SPLIT TOP")
-        self._next_row_prefix.append("HEADER")
-        self._next_row_prefix.append("SPLIT MID")
-
-        if self.interactive > 0:
-            self.render_thread = Thread(target=self._rendering_loop, daemon=True)
-            self.render_thread.start()
-
-    def close(self):
-        self._renderer_running = False
-        if self.interactive > 0:
-            self.render_thread.join(timeout=1 / self.refresh_rate)
-        self._add_display_row("SPLIT BOT")
-        self._print_pending_rows_to_buffer()
-
-        self._printing_buffer.append("\n")
-        self._print_and_reset_buffer()
-        self._freeze_view()
-
-    def _add_display_row(self, element):
-        self._pending_display_rows.append(len(self._display_rows))
-        self._display_rows.append(element)
-
-    def _add_empty_row(self):
-        # Refresh the old row before adding the new one
-        self._pending_display_rows.append(len(self._display_rows) - 1)
-
-        for prefix in self._next_row_prefix or []:
-            self._add_display_row(prefix)
-        self._next_row_prefix = None
-
-        row = DATA_ROW(VALUES={}, WEIGHTS={}, COLORS={})
-        self._add_display_row(len(self._data_rows))
-        self._data_rows.append(row)
 
     def add_column(
         self,
@@ -341,7 +298,7 @@ class ProgressTableV1:
         self.column_colors[name] = maybe_convert_to_colorama(color or self.column_color or self.DEFAULT_COLUMN_COLOR)
         self.column_alignments[name] = alignment or self.column_alignment or self.DEFAULT_COLUMN_ALIGNMENT
         self.column_aggregates[name] = get_aggregate_fn(aggregate or self.column_aggregate or self.DEFAULT_COLUMN_AGGREGATE)
-        self._force_full_reprint()
+        self._set_all_display_rows_as_pending()
 
     def add_columns(self, *columns, **kwds):
         """Add multiple columns to the table.
@@ -368,7 +325,7 @@ class ProgressTableV1:
         self.column_colors = {k: self.column_colors[k] for k in column_names}
         self.column_alignments = {k: self.column_alignments[k] for k in column_names}
         self.column_aggregates = {k: self.column_aggregates[k] for k in column_names}
-        self._force_full_reprint()
+        self._set_all_display_rows_as_pending()
 
     def update(self, key, value, *, row=-1, weight=1, **column_kwds):
         """Update value in the current row. This is extends capabilities of __setitem__.
@@ -384,6 +341,7 @@ class ProgressTableV1:
         if key not in self.column_names:
             self.add_column(key, **column_kwds)
 
+        # Renderer starts on first update
         if not self._renderer_running:
             self._start_rendering()
 
@@ -393,7 +351,7 @@ class ProgressTableV1:
         data_row_index = row if row >= 0 else num_rows + row
 
         if data_row_index == len(self._data_rows):
-            self._add_empty_row()
+            self._append_data_row()
         if data_row_index >= len(self._data_rows):
             raise ValueError(f"Row {data_row_index} out of range! Number of rows: {len(self._data_rows)}")
 
@@ -413,22 +371,6 @@ class ProgressTableV1:
         """Update multiple values in the current row."""
         for key, value in dictionary.items():
             self.update(key, value)
-
-    def __setitem__(self, key, value):
-        if isinstance(key, tuple):
-            row, key = key
-        else:
-            row = -1
-        self.update(key, value, row=row, weight=1)
-
-    def __getitem__(self, key):
-        if isinstance(key, tuple):
-            row, key = key
-        else:
-            row = -1
-
-        assert key in self.column_names, f"Column '{key}' not in {self.column_names}"
-        return self._data_rows[row].VALUES[key]
 
     def next_row(self, color: ColorFormat | Dict[str, ColorFormat] = None, split=False, header=False):
         """End the current row."""
@@ -459,6 +401,106 @@ class ProgressTableV1:
         for key, value in zip(self.column_names, values):
             self.update(key, value)
         self.next_row(**kwds)
+
+    def close(self):
+        self._renderer_running = False
+        if self.render_thread is not None and self.render_thread.is_alive():
+            self.render_thread.join(timeout=1 / self.refresh_rate)
+        self.render_thread = None
+
+        self._append_display_row("SPLIT BOT")
+        self._print_pending_rows_to_buffer()
+
+        self._printing_buffer.append("\n")
+        self._print_and_reset_buffer()
+        self._freeze_view()
+
+    def __setitem__(self, key, value):
+        if isinstance(key, tuple):
+            row, key = key
+        else:
+            row = -1
+        self.update(key, value, row=row, weight=1)
+
+    def __getitem__(self, key):
+        if isinstance(key, tuple):
+            row, key = key
+        else:
+            row = -1
+
+        assert key in self.column_names, f"Column '{key}' not in {self.column_names}"
+        return self._data_rows[row].VALUES[key]
+
+    def write(self, *args, sep=" "):
+        """Write a message gracefully when the table is opened."""
+        full_message = []
+        for arg in args:
+            full_message.append(str(arg))
+        full_message = sep.join(full_message)
+        message_lines = full_message.split("\n")
+        for line in message_lines:
+            self._append_display_row(("CUSTOM WRITE", line))
+
+    def to_list(self):
+        """Convert to Python nested list."""
+        return [[row.VALUES.get(col, None) for col in self.column_names] for row in self._data_rows]
+
+    def to_numpy(self):
+        """Convert to numpy array."""
+        try:
+            import numpy as np
+        except ImportError:
+            raise ImportError("Numpy is not installed!")
+        return np.array(self.to_list())
+
+    def to_df(self):
+        """Convert to pandas DataFrame."""
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("Pandas is not installed!")
+        return pd.DataFrame(self.to_list(), columns=self.column_names)
+
+    #####################
+    ## PRIVATE METHODS ##
+    #####################
+
+    def _rendering_loop(self):
+        idle_time: float = 1 / self.refresh_rate
+        while self._renderer_running:
+            self._print_pending_rows_to_buffer()
+            self._refresh_active_pbars()
+            self._print_and_reset_buffer()
+            time.sleep(idle_time)
+
+    def _start_rendering(self):
+        # Rendering should start when
+        # * User enters the first value into the table
+
+        self._renderer_running = True
+        self._next_row_prefix.append("SPLIT TOP")
+        self._next_row_prefix.append("HEADER")
+        self._next_row_prefix.append("SPLIT MID")
+
+        if self.interactive > 0:
+            self.render_thread = Thread(target=self._rendering_loop, daemon=True)
+            self.render_thread.start()
+
+    def _append_display_row(self, element):
+        self._pending_display_rows.append(len(self._display_rows))
+        self._display_rows.append(element)
+
+    def _append_data_row(self):
+        # Refresh the old row before adding the new one
+        self._pending_display_rows.append(len(self._display_rows) - 1)
+
+        for prefix in self._next_row_prefix or []:
+            self._append_display_row(prefix)
+        self._next_row_prefix = None
+
+        row = DATA_ROW(VALUES={}, WEIGHTS={}, COLORS={})
+        self._append_display_row(len(self._data_rows))
+        self._data_rows.append(row)
 
     def _move_cursor_in_buffer(self, row_index):
         if row_index < 0:
@@ -495,47 +537,54 @@ class ProgressTableV1:
             self._print_to_buffer(row_str)
         self._move_cursor_in_buffer(-1)
 
+    def _set_all_display_rows_as_pending(self):
+        self._pending_display_rows = list(range(len(self._display_rows)))
+
     def _print_pending_rows_to_buffer(self):
         self._print_selected_rows_to_buffer(self._pending_display_rows)
         self._pending_display_rows = []
-
-    def _force_full_reprint(self):
-        self._pending_display_rows = list(range(len(self._display_rows)))
 
     def _freeze_view(self):
         self.CURSOR_ROW = 0
         self._display_rows = []
         self._pending_display_rows = []
 
-    def write(self, *args, sep=" "):
-        """Write a message gracefully when the table is opened."""
-        full_message = []
-        for arg in args:
-            full_message.append(str(arg))
-        full_message = sep.join(full_message)
-        message_lines = full_message.split("\n")
-        for line in message_lines:
-            self._add_display_row(("CUSTOM WRITE", line))
+    def _resolve_row_color_dict(self, color: ColorFormat | Dict[str, ColorFormat] = None):
+        color = color or self.row_color or {}
+        if isinstance(color, ColorFormatTuple):
+            color = {column: color for column in self.column_names}
 
-    def to_list(self):
-        """Convert to Python nested list."""
-        return [[row.VALUES.get(col, None) for col in self.column_names] for row in self._data_rows]
+        color = {column: color.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
+        color = {column: maybe_convert_to_colorama(color) for column, color in color.items()}
+        color = {col: self.column_colors[col] + color[col] for col in color}
+        return color
 
-    def to_numpy(self):
-        """Convert to numpy array."""
-        try:
-            import numpy as np
-        except ImportError:
-            raise ImportError("Numpy is not installed!")
-        return np.array(self.to_list())
+    def _apply_cell_formatting(self, value: Any, column_name: str, color: str):
+        str_value = self.custom_cell_format(value)
+        width = self.column_widths[column_name]
+        alignment = self.column_alignments[column_name]
 
-    def to_df(self):
-        """Convert to pandas DataFrame."""
-        try:
-            import pandas as pd
-        except ImportError:
-            raise ImportError("Pandas is not installed!")
-        return pd.DataFrame(self.to_list(), columns=self.column_names)
+        if alignment == "center":
+            str_value = str_value.center(width)
+        elif alignment == "left":
+            str_value = str_value.ljust(width)
+        elif alignment == "right":
+            str_value = str_value.rjust(width)
+        else:
+            allowed_alignments = ["center", "left", "right"]
+            raise KeyError(f"Alignment '{alignment}' not in {allowed_alignments}!")
+
+        clipped = len(str_value) > width
+        str_value = "".join(
+            [
+                " ",  # space at the beginning of the row
+                str_value[:width].center(width),
+                self.table_style.cell_overflow if clipped else " ",
+            ]
+        )
+        reset = Style.RESET_ALL if color else ""
+        str_value = f"{color}{str_value}{reset}"
+        return str_value
 
     #####################
     ## DISPLAY HELPERS ##
@@ -555,10 +604,8 @@ class ProgressTableV1:
         content = []
         for column in self.column_names:
             value = row.VALUES.get(column, "")
-            value = self.custom_cell_format(value)
-
             color = row.COLORS.get(column, "") if colored else ""
-            value = self._apply_cell_formatting(str_value=str(value), column_name=column, color=color)
+            value = self._apply_cell_formatting(value=value, column_name=column, color=color)
             content.append(value)
         return "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
 
@@ -588,50 +635,9 @@ class ProgressTableV1:
         s = "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
         return s
 
-    def _resolve_row_color_dict(self, color: ColorFormat | Dict[str, ColorFormat] = None):
-        color = color or self.row_color or {}
-        if isinstance(color, ColorFormatTuple):
-            color = {column: color for column in self.column_names}
-
-        color = {column: color.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
-        color = {column: maybe_convert_to_colorama(color) for column, color in color.items()}
-        color = {col: self.column_colors[col] + color[col] for col in color}
-        return color
-
-    def _apply_cell_formatting(self, str_value: str, column_name: str, color: str):
-        width = self.column_widths[column_name]
-        alignment = self.column_alignments[column_name]
-
-        if alignment == "center":
-            str_value = str_value.center(width)
-        elif alignment == "left":
-            str_value = str_value.ljust(width)
-        elif alignment == "right":
-            str_value = str_value.rjust(width)
-        else:
-            allowed_alignments = ["center", "left", "right"]
-            raise KeyError(f"Alignment '{alignment}' not in {allowed_alignments}!")
-
-        clipped = len(str_value) > width
-        str_value = "".join(
-            [
-                " ",  # space at the beginning of the row
-                str_value[:width].center(width),
-                self.table_style.cell_overflow if clipped else " ",
-            ]
-        )
-        reset = Style.RESET_ALL if color else ""
-        str_value = f"{color}{str_value}{reset}"
-        return str_value
-
-    def _refresh_active_pbars(self, clean=False):
-        for pbar_level in list(self._active_pbars):
-            if pbar_level in self._active_pbars:
-                pbar = self._active_pbars[pbar_level]
-                if clean:
-                    pbar.cleanup()
-                else:
-                    pbar.display()
+    ##################
+    ## PROGRESS BAR ##
+    ##################
 
     def pbar(
         self,
@@ -663,9 +669,6 @@ class ProgressTableV1:
             logging.warning(f"Exceeding max open pbars={self.max_active_pbars} with {self.interactive=}")
             return iter(iterable)
 
-        # if not self._renderer_running:
-        #     self._start_rendering()
-
         level = level if level is not None else (len(self._active_pbars) + 1 - self.embedded_progress_bar)
         total = total if total is not None else (len(iterable) if isinstance(iterable, Sized) else 0)
 
@@ -681,6 +684,15 @@ class ProgressTableV1:
         )
         self._active_pbars[level] = pbar
         return pbar
+
+    def _refresh_active_pbars(self, clean=False):
+        for pbar_level in list(self._active_pbars):
+            if pbar_level in self._active_pbars:
+                pbar = self._active_pbars[pbar_level]
+                if clean:
+                    pbar.cleanup()
+                else:
+                    pbar.display()
 
     def __call__(self, *args, **kwds):
         """Creates iterable progress bar object using .pbar method and returns it."""

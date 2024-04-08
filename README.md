@@ -64,7 +64,7 @@ table = ProgressTable(
     pbar_show_throughput=True,
     pbar_show_progress=False,
     print_row_on_update=True,
-    reprint_header_every_n_rows=30,
+    print_header_every_n_rows=30,
     table_style="round",
     file=sys.stdout,
 )

@@ -16,7 +16,7 @@ def main(**overrides):
         default_column_width=8,
         default_column_alignment="center",
         print_row_on_update=True,
-        reprint_header_every_n_rows=10,
+        print_header_every_n_rows=10,
         pbar_show_progress=True,
         file=sys.stdout,
         **overrides,
