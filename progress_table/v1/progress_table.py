@@ -257,11 +257,9 @@ class ProgressTableV1:
     def _rendering_loop(self):
         idle_time: float = 1 / self.refresh_rate
         while self._renderer_running:
-            update_pending = bool(self._pending_display_rows)
-            if update_pending:
-                self._render_updated_rows()
-                self._refresh_active_pbars()
-                self._display_print_buffer()
+            self._render_pending_rows()
+            self._refresh_active_pbars()
+            self._display_print_buffer()
             time.sleep(idle_time)
 
     def _start_rendering(self):
@@ -279,7 +277,7 @@ class ProgressTableV1:
         if self.interactive > 0:
             self.render_thread.join(timeout=1 / self.refresh_rate)
         self._add_display_row("SPLIT BOT")
-        self._render_updated_rows()
+        self._render_pending_rows()
 
         self._print_buffer.append("\n")
         self._display_print_buffer()
@@ -381,11 +379,11 @@ class ProgressTableV1:
             column_kwds: Additional arguments for the column. They will be only used for column creation.
                          If column already exists, they will have no effect.
         """
-        if not self._renderer_running:
-            self._start_rendering()
-
         if key not in self.column_names:
             self.add_column(key, **column_kwds)
+
+        if not self._renderer_running:
+            self._start_rendering()
 
         num_rows = len(self._data_rows)
         if self._next_row_prefix is not None:
@@ -451,7 +449,7 @@ class ProgressTableV1:
 
         # There's no renderer thread when interactive==0
         if self.interactive == 0:
-            self._render_updated_rows()
+            self._render_pending_rows()
             self._display_print_buffer()
 
     def add_row(self, *values, **kwds):
@@ -495,7 +493,7 @@ class ProgressTableV1:
             self._add_to_print_buffer(row_str)
         self._move_cursor(-1)
 
-    def _render_updated_rows(self):
+    def _render_pending_rows(self):
         self._render_selected_rows(self._pending_display_rows)
         self._pending_display_rows = []
 
@@ -670,6 +668,9 @@ class ProgressTableV1:
         if len(self._active_pbars) >= self.max_active_pbars:
             logging.warning(f"Exceeding max open pbars={self.max_active_pbars} with {self.interactive=}")
             return iter(iterable)
+
+        # if not self._renderer_running:
+        #     self._start_rendering()
 
         level = level if level is not None else (len(self._active_pbars) + 1 - self.embedded_progress_bar)
         total = total if total is not None else (len(iterable) if isinstance(iterable, Sized) else 0)
