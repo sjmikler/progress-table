@@ -251,7 +251,7 @@ class ProgressTableV1:
 
         self.max_active_pbars = {2: 100, 1: 1, 0: 0}[interactive]
         self.embedded_progress_bar = False if interactive == 2 else True
-        self._print_buffer = []
+        self._printing_buffer = []
 
         # Calls after init
         self.add_columns(*columns)
@@ -259,9 +259,9 @@ class ProgressTableV1:
     def _rendering_loop(self):
         idle_time: float = 1 / self.refresh_rate
         while self._renderer_running:
-            self._render_pending_rows()
+            self._print_pending_rows_to_buffer()
             self._refresh_active_pbars()
-            self._display_print_buffer()
+            self._print_and_reset_buffer()
             time.sleep(idle_time)
 
     def _start_rendering(self):
@@ -279,10 +279,10 @@ class ProgressTableV1:
         if self.interactive > 0:
             self.render_thread.join(timeout=1 / self.refresh_rate)
         self._add_display_row("SPLIT BOT")
-        self._render_pending_rows()
+        self._print_pending_rows_to_buffer()
 
-        self._print_buffer.append("\n")
-        self._display_print_buffer()
+        self._printing_buffer.append("\n")
+        self._print_and_reset_buffer()
         self._freeze_view()
 
     def _add_display_row(self, element):
@@ -447,12 +447,12 @@ class ProgressTableV1:
         row = self._data_rows[-1]
 
         # Color is applied to the existing row - not the new one!
-        row.COLORS.update(self._prepare_row_color_dict(color))
+        row.COLORS.update(self._resolve_row_color_dict(color))
 
         # There's no renderer thread when interactive==0
         if self.interactive == 0:
-            self._render_pending_rows()
-            self._display_print_buffer()
+            self._print_pending_rows_to_buffer()
+            self._print_and_reset_buffer()
 
     def add_row(self, *values, **kwds):
         """Mimicking rich.table behavior for adding rows in one call."""
@@ -460,19 +460,19 @@ class ProgressTableV1:
             self.update(key, value)
         self.next_row(**kwds)
 
-    def _move_cursor(self, row_index):
+    def _move_cursor_in_buffer(self, row_index):
         if row_index < 0:
             row_index = len(self._display_rows) + row_index
         offset = self.CURSOR_ROW - row_index
 
         if offset > 0:
-            self._add_to_print_buffer(CURSOR_UP * offset)
+            self._print_to_buffer(CURSOR_UP * offset)
         else:
             offset = -offset
-            self._add_to_print_buffer("\n" * offset)
+            self._print_to_buffer("\n" * offset)
         self.CURSOR_ROW = row_index
 
-    def _render_selected_rows(self, selected_rows: list[int]):
+    def _print_selected_rows_to_buffer(self, selected_rows: list[int]):
         for row_index in selected_rows:
             item = self._display_rows[row_index]
             if isinstance(item, int):
@@ -491,12 +491,12 @@ class ProgressTableV1:
             else:
                 raise ValueError(f"Unknown item: {item}")
 
-            self._move_cursor(row_index)
-            self._add_to_print_buffer(row_str)
-        self._move_cursor(-1)
+            self._move_cursor_in_buffer(row_index)
+            self._print_to_buffer(row_str)
+        self._move_cursor_in_buffer(-1)
 
-    def _render_pending_rows(self):
-        self._render_selected_rows(self._pending_display_rows)
+    def _print_pending_rows_to_buffer(self):
+        self._print_selected_rows_to_buffer(self._pending_display_rows)
         self._pending_display_rows = []
 
     def _force_full_reprint(self):
@@ -541,12 +541,12 @@ class ProgressTableV1:
     ## DISPLAY HELPERS ##
     #####################
 
-    def _add_to_print_buffer(self, msg):
-        self._print_buffer.append(msg + "\r")
+    def _print_to_buffer(self, msg):
+        self._printing_buffer.append(msg + "\r")
 
-    def _display_print_buffer(self):
-        output = "".join(self._print_buffer)
-        self._print_buffer = []
+    def _print_and_reset_buffer(self):
+        output = "".join(self._printing_buffer)
+        self._printing_buffer = []
 
         for file in self.files:
             print(output, file=file or sys.stdout, end="")
@@ -580,8 +580,15 @@ class ProgressTableV1:
     def _get_bar_mid(self):
         return self._get_bar(self.table_style.no_left, self.table_style.all, self.table_style.no_right)
 
-    @typing.no_type_check
-    def _prepare_row_color_dict(self, color: ColorFormat | Dict[str, ColorFormat] = None):
+    def _get_header(self):
+        content = []
+        for column in self.column_names:
+            value = self._apply_cell_formatting(column, column, color=self.column_colors[column])
+            content.append(value)
+        s = "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
+        return s
+
+    def _resolve_row_color_dict(self, color: ColorFormat | Dict[str, ColorFormat] = None):
         color = color or self.row_color or {}
         if isinstance(color, ColorFormatTuple):
             color = {column: color for column in self.column_names}
@@ -617,14 +624,6 @@ class ProgressTableV1:
         str_value = f"{color}{str_value}{reset}"
         return str_value
 
-    def _get_header(self):
-        content = []
-        for column in self.column_names:
-            value = self._apply_cell_formatting(column, column, color=self.column_colors[column])
-            content.append(value)
-        s = "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
-        return s
-
     def _refresh_active_pbars(self, clean=False):
         for pbar_level in list(self._active_pbars):
             if pbar_level in self._active_pbars:
@@ -633,13 +632,6 @@ class ProgressTableV1:
                     pbar.cleanup()
                 else:
                     pbar.display()
-
-    def _clean_active_pbars(self):
-        for pbar_level in list(self._active_pbars):
-            if pbar_level in self._active_pbars:
-                pbar = self._active_pbars[pbar_level]
-                if pbar:
-                    pbar.cleanup()
 
     def pbar(
         self,
@@ -795,11 +787,11 @@ class TableProgressBar:
             pbar.append(pbar_body)
             self._last_pbar_width = len(pbar_body)
         pbar.append(CURSOR_UP * self.level)
-        self.table._add_to_print_buffer("".join(pbar))
+        self.table._print_to_buffer("".join(pbar))
 
     def cleanup(self):
         pbar = ["\n" * self.level, " " * self._last_pbar_width, CURSOR_UP * self.level]
-        self.table._add_to_print_buffer("".join(pbar))
+        self.table._print_to_buffer("".join(pbar))
 
     def update(self, n=1):
         self._step += n
