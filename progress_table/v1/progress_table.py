@@ -344,6 +344,8 @@ class ProgressTableV1:
             column_kwds: Additional arguments for the column. They will be only used for column creation.
                          If column already exists, they will have no effect.
         """
+        if isinstance(name, int):
+            name = self.column_names[name]
         if name not in self.column_names:
             self.add_column(name, **column_kwds)
 
@@ -351,8 +353,7 @@ class ProgressTableV1:
         if not self._RENDERER_RUNNING:
             self._start_rendering()
 
-        num_rows = len(self._data_rows)
-        data_row_index = row if row >= 0 else num_rows + row
+        data_row_index = row if row >= 0 else len(self._data_rows) + row
         if data_row_index >= len(self._data_rows):
             raise ValueError(f"Row {data_row_index} out of range! Number of rows: {len(self._data_rows)}")
 
@@ -437,8 +438,6 @@ class ProgressTableV1:
             row, key = key
         else:
             row = -1
-        if isinstance(key, int):
-            key = self.column_names[key]
         self.update(key, value, row=row, weight=1)
 
     def __getitem__(self, key):
