@@ -24,8 +24,6 @@ def main(**overrides):
     table.add_column("epoch")
 
     for epoch in table(num_epochs):
-        time.sleep(1)
-
         for step in table(num_train_samples, description="train epoch"):
             table["epoch"] = epoch
 
@@ -37,7 +35,7 @@ def main(**overrides):
             table.update("train loss", loss_value, aggregate="mean", color="blue")
             table.update("train accuracy", accuracy, aggregate="mean", color="blue bold")
 
-        run_validation = epoch % 5 == 0 or epoch == num_epochs - 1
+        run_validation = epoch % 5 == 4 or epoch == num_epochs - 1
         if run_validation:
             for step in table(num_valid_samples, description="valid epoch"):
                 time.sleep(0.1)
