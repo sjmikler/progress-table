@@ -180,7 +180,8 @@ class ProgressTableV1:
                          printed after calling `next_row`.
             refresh_rate: The maximal number of times per second the last row of the Table will be refreshed.
                           This applies only when using Progress Bar or when `print_row_on_update = True`.
-            num_decimal_places: This is only applicable when using the default formatting. This won't be used if `custom_cell_format` is set.
+            num_decimal_places: This is only applicable when using the default formatting.
+                                This won't be used if `custom_cell_format` is set.
                                 If applicable, for every displayed value except integers there will be an attempt to round it.
             default_column_color: Color of the header and the data in the column.
                                   This can be overwritten in columns by using an argument in `add_column` method.
@@ -193,8 +194,9 @@ class ProgressTableV1:
                                       every new row. This can be overwritten by columns by using an argument in `add_column` method.
             reprint_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
                                          If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
-            custom_cell_format: A function that allows specyfing custom formatting for values in cells. This function should be universal and
-                           work for all datatypes as inputs. It takes one value as an input and returns one value as an output.
+            custom_cell_format: A function that allows specyfing custom formatting for values in cells.
+                                This function should be universal and work for all datatypes as inputs.
+                                It takes one value as an input and returns one value as an output.
             table_style: Change the borders of the table. Cause KeyError to see all the available styles.
             file: Redirect the output to another stream. There can be multiple streams at once passed as list or tuple.
                   Defaults to None, which is interpreted as stdout.
