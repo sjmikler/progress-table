@@ -10,9 +10,12 @@ def main(**overrides):
     default = dict(
         pbar_show_progress=True,
         pbar_show_throughput=False,
+        interactive=2,
     )
     default = {**default, **overrides}
-    table = ProgressTable(**default)
+    table = ProgressTable(
+        **default,
+    )
 
     num_epochs = 10
     num_train_samples = 200
@@ -30,7 +33,8 @@ def main(**overrides):
             table.update("train loss", loss_value, aggregate="mean", color="blue")
             table.update("train accuracy", accuracy, aggregate="mean", color="blue bold")
 
-        if epoch % 5 == 0 or epoch == num_epochs - 1:
+        run_validation = epoch % 5 == 0 or epoch == num_epochs - 1
+        if run_validation:
             for step in table(num_valid_samples, description="valid epoch"):
                 time.sleep(0.1)
 
@@ -38,7 +42,7 @@ def main(**overrides):
             accuracy = random.random() ** 0.5
             table["valid loss"] = loss_value
             table["valid accuracy"] = accuracy
-        table.next_row()
+        table.next_row(split=run_validation)
 
     table.close()
 

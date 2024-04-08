@@ -13,7 +13,10 @@ def fibonacci(n):
 
 
 def main(**overrides):
-    table = ProgressTable(**overrides, default_column_alignment="left")
+    table = ProgressTable(**overrides, default_column_alignment="left", interactive=2)
+    table.add_column("n")
+    table.add_column("fibonacci value")
+    table.add_column("number of calls")
 
     for n in table(36):
         result, number_of_calls = fibonacci(n)

@@ -53,6 +53,7 @@ table = ProgressTable()
 # Or customize its settings:
 table = ProgressTable(
     columns=["step"],
+    interactive=2,
     refresh_rate=20,
     num_decimal_places=4,
     default_column_width=None,
@@ -60,12 +61,10 @@ table = ProgressTable(
     default_column_alignment=None,
     default_column_aggregate=None,
     default_row_color=None,
-    embedded_progress_bar=True,
     pbar_show_throughput=True,
     pbar_show_progress=False,
     print_row_on_update=True,
     reprint_header_every_n_rows=30,
-    custom_format=None,
     table_style="round",
     file=sys.stdout,
 )
