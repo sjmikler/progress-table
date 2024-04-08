@@ -35,6 +35,7 @@ ColorFormatTuple = (str, Tuple, List, NoneType)
 
 EPS = 1e-9
 CURSOR_UP = "\033[A"
+NUM_PBAR_WARNED = False
 
 ################
 ## V2 version ##
@@ -331,7 +332,7 @@ class ProgressTableV1:
         self.column_aggregates = {k: self.column_aggregates[k] for k in column_names}
         self._set_all_display_rows_as_pending()
 
-    def update(self, name, value, *, row=-1, weight=1, color=None, **column_kwds):
+    def update(self, name, value, *, row=-1, weight=1, cell_color=None, **column_kwds):
         """Update value in the current row. This is extends capabilities of __setitem__.
 
         Args:
@@ -339,7 +340,7 @@ class ProgressTableV1:
             value: Value to be set.
             row: Index of the row. By default, it's the last row.
             weight: Weight of the value. This is used for aggregation.
-            color: Optionally override color for specific cell, independent from rows and columns.
+            cell_color: Optionally override color for specific cell, independent from rows and columns.
             column_kwds: Additional arguments for the column. They will be only used for column creation.
                          If column already exists, they will have no effect.
         """
@@ -359,8 +360,8 @@ class ProgressTableV1:
         if data_row_index not in self._display_rows:
             assert data_row_index == len(self._data_rows) - 1, "Unexpected row!"
             for element in self._latest_row_prefix:
-                self._append_display_row(element)
-            self._append_display_row(data_row_index)
+                self._append_or_update_display_row(element)
+            self._append_or_update_display_row(data_row_index)
 
         # Set default values for new rows
         row = self._data_rows[row]
@@ -371,11 +372,9 @@ class ProgressTableV1:
         row.VALUES[name] = fn(value, row.VALUES[name], row.WEIGHTS[name])
         row.WEIGHTS[name] += weight
 
-        if color is not None:
-            row.COLORS[name] = self._resolve_row_color_dict(color)[name]
-
-        display_row_index = self._display_rows.index(data_row_index)
-        self._pending_display_rows.append(display_row_index)
+        if cell_color is not None:
+            row.COLORS[name] = self._resolve_row_color_dict(cell_color)[name]
+        self._append_or_update_display_row(data_row_index)
 
     def update_from_dict(self, dictionary):
         """Update multiple values in the current row."""
@@ -395,8 +394,8 @@ class ProgressTableV1:
         data_row_index = len(self._data_rows) - 1
         if data_row_index not in self._display_rows:
             for element in self._latest_row_prefix:
-                self._append_display_row(element)
-            self._append_display_row(data_row_index)
+                self._append_or_update_display_row(element)
+            self._append_or_update_display_row(data_row_index)
 
         # Color is applied to the existing row - not the new one!
         row.COLORS.update(self._resolve_row_color_dict(color))
@@ -426,7 +425,7 @@ class ProgressTableV1:
             self._renderer.join(timeout=1 / self.refresh_rate)
         self._renderer = None
 
-        self._append_display_row("SPLIT BOT")
+        self._append_or_update_display_row("SPLIT BOT")
         self._print_pending_rows_to_buffer()
 
         self._printing_buffer.append("\n")
@@ -460,7 +459,7 @@ class ProgressTableV1:
         full_message = sep.join(full_message)
         message_lines = full_message.split("\n")
         for line in message_lines:
-            self._append_display_row(("USER WRITE", line))
+            self._append_or_update_display_row(("USER WRITE", line))
 
     def to_list(self):
         """Convert to Python nested list."""
@@ -489,9 +488,10 @@ class ProgressTableV1:
     def _rendering_loop(self):
         idle_time: float = 1 / self.refresh_rate
         while self._RENDERER_RUNNING:
-            self._print_pending_rows_to_buffer()
-            self._refresh_active_pbars()
-            self._print_and_reset_buffer()
+            if self._display_rows:
+                self._print_pending_rows_to_buffer()
+                self._refresh_active_pbars()
+                self._print_and_reset_buffer()
             time.sleep(idle_time)
 
     def _start_rendering(self):
@@ -502,12 +502,15 @@ class ProgressTableV1:
             self._renderer = Thread(target=self._rendering_loop, daemon=True)
             self._renderer.start()
 
-    def _append_display_row(self, element):
-        self._pending_display_rows.append(len(self._display_rows))
-        self._display_rows.append(element)
+    def _append_or_update_display_row(self, element):
+        if isinstance(element, int):
+            if element not in self._display_rows:
+                self._display_rows.append(element)
+            display_index = self._display_rows.index(element)
+            self._pending_display_rows.append(display_index)
+            return
 
-    def _append_data_row(self):
-        # Refresh the old row before adding the new one
+        self._display_rows.append(element)
         self._pending_display_rows.append(len(self._display_rows) - 1)
 
     def _append_new_empty_data_row(self):
@@ -679,7 +682,10 @@ class ProgressTableV1:
             iterable = range(iterable, *range_args)
 
         if len(self._active_pbars) >= self._max_active_pbars:
-            logging.warning(f"Exceeding max open pbars={self._max_active_pbars} with {self.interactive=}")
+            global NUM_PBAR_WARNED
+            if not NUM_PBAR_WARNED:
+                logging.warning(f"Exceeding max open pbars={self._max_active_pbars} with {self.interactive=}")
+            NUM_PBAR_WARNED = True
             return iter(iterable)
 
         level = level if level is not None else (len(self._active_pbars) + 1 - self._embed_progress_bar)

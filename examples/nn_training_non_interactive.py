@@ -10,7 +10,7 @@ def main(**overrides):
     default = dict(
         pbar_show_progress=True,
         pbar_show_throughput=False,
-        interactive=2,
+        interactive=1,
     )
     default = {**default, **overrides}
     table = ProgressTable(
@@ -21,11 +21,9 @@ def main(**overrides):
     num_train_samples = 200
     num_valid_samples = 20
 
-    table.add_column("epoch")
-    time.sleep(1)
+    table.add_columns("epoch", "train loss", "train accuracy", "valid loss", "valid accuracy")
 
     for epoch in table(num_epochs):
-        time.sleep(1)
         for step in table(num_train_samples, description="train epoch"):
             table["epoch"] = epoch
 
