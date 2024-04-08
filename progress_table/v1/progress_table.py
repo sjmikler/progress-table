@@ -9,6 +9,8 @@ import shutil
 import sys
 import time
 import typing
+from dataclasses import dataclass
+from threading import Thread
 from typing import Any, Callable, Dict, Iterable, List, Sized, Tuple, Type, Union
 
 from colorama import Fore, Style
@@ -33,7 +35,6 @@ ColorFormatTuple = (str, Tuple, List, NoneType)
 
 EPS = 1e-9
 CURSOR_UP = "\033[A"
-MAX_ACITVE_PBARS = 10
 
 ################
 ## V2 version ##
@@ -121,6 +122,13 @@ def get_default_format_func(decimal_places):
     return fmt
 
 
+@dataclass
+class ROW:
+    VALUES: dict[str, Any]
+    WEIGHTS: dict[str, float]
+    COLORS: dict[str, str]
+
+
 class ProgressTableV1:
     DEFAULT_COLUMN_WIDTH = 8
     DEFAULT_COLUMN_COLOR = None
@@ -138,14 +146,14 @@ class ProgressTableV1:
         default_column_alignment: str | None = None,
         default_column_aggregate: str | None = None,
         default_row_color: ColorFormat = None,
-        embedded_progress_bar: bool = True,
         pbar_show_throughput: bool = True,
         pbar_show_progress: bool = False,
         print_row_on_update: bool = True,
         reprint_header_every_n_rows: int = 30,
-        custom_format: Callable[[Any], Any] | None = None,
+        custom_cell_format: Callable[[Any], Any] | None = None,
         table_style: str | Type[styles.StyleNormal] = "round",
         file=None,
+        interactive: int = 2,
     ):
         """Progress Table instance.
 
@@ -165,7 +173,7 @@ class ProgressTableV1:
                      color and width, while columns added through methods can have those customized.
             refresh_rate: The maximal number of times per second the last row of the Table will be refreshed.
                           This applies only when using Progress Bar or when `print_row_on_update = True`.
-            num_decimal_places: This is only applicable when using the default formatting. This won't be used if `custom_format` is set.
+            num_decimal_places: This is only applicable when using the default formatting. This won't be used if `custom_cell_format` is set.
                                 If applicable, for every displayed value except integers there will be an attempt to round it.
             default_column_color: Color of the header and the data in the column.
                                   This can be overwritten in columns by using an argument in `add_column` method.
@@ -180,7 +188,7 @@ class ProgressTableV1:
                                  Row is considered ready after calling `.next_row` or `.close` methods.
             reprint_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
                                          If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
-            custom_format: A function that allows specyfing custom formatting for values in cells. This function should be universal and
+            custom_cell_format: A function that allows specyfing custom formatting for values in cells. This function should be universal and
                            work for all datatypes as inputs. It takes one value as an input and returns one value as an output.
             embedded_progress_bar: True by default. If True, the first progress bar will be embedded in the row.
                                    Non-embedded progress bars are displayed below the table - might not work well with some terminals.
@@ -211,36 +219,78 @@ class ProgressTableV1:
         self.column_aggregates: dict[str, Callable] = {}
         self.column_names: list[str] = []  # Names serve as keys for column configs
 
-        # We are storing row configs
-        self.row_colors: dict[str, str] = {}
-        self.finished_rows: list[dict[str, Any]] = []
-
-        self._new_row: dict[str, Any] = {}
-        self._new_row_cumulated_weight: dict[str, int] = {}
+        self.display_rows = []
+        self.data_rows: list[ROW] = []
+        self.updated_display_rows: list[int] = []
         self.files = (file,) if not isinstance(file, (list, tuple)) else file
 
-        self.previous_header_counter = 0
         assert reprint_header_every_n_rows > 0, "Reprint header every n rows has to be positive!"
         self.reprint_header_every_n_rows = reprint_header_every_n_rows
+        self.previous_header_counter = 0
 
-        # Various flags for table flow
-        self._request_header = True
-        self._request_splitter = False
         self._active_pbars: dict[int, TableProgressBar] = {}
 
-        self.custom_format = custom_format or get_default_format_func(num_decimal_places)
-        self.embedded_progress_bar: bool = embedded_progress_bar
+        self.custom_cell_format = custom_cell_format or get_default_format_func(num_decimal_places)
         self.pbar_show_throughput: bool = pbar_show_throughput
         self.pbar_show_progress: bool = pbar_show_progress
         self.print_row_on_update: bool = print_row_on_update
         self.refresh_rate: int = refresh_rate
 
-        self._last_time_row_printed = -float("inf")
-        self._refresh_progress_bar: Callable = lambda: None
+        self._last_time_refresh = -float("inf")
         self._is_table_opened = False
 
         for column in columns:
             self.add_column(column)
+
+        self.CURSOR_ROW = 0
+        self.RENDERING_ON = False
+        self.NEXT_ROW_PENDING: tuple | None = None
+        self.message_queue = []
+
+        # Interactivity settings
+        self.interactive = int(interactive)
+        assert self.interactive in (2, 1, 0)
+        self.max_active_pbars = 10 if interactive == 2 else 1
+        self.embedded_progress_bar = False if interactive == 2 else True
+
+    def render_loop(self):
+        idle_time = 1 / self.refresh_rate
+        while self.RENDERING_ON:
+            self.render_updated()
+            self._refresh_active_pbars()
+            time.sleep(idle_time)
+
+    def start_rendering(self):
+        self.RENDERING_ON = True
+        self.NEXT_ROW_PENDING = (False, True)
+
+        if self.interactive > 0:
+            self.render_thread = Thread(target=self.render_loop, daemon=True)
+            self.render_thread.start()
+
+    def close(self):
+        self.RENDERING_ON = False
+        if self.interactive > 0:
+            self.render_thread.join(timeout=1.0)
+        self.add_display_row("SPLIT BOT")
+        self.render_updated()
+        self.freeze_view()
+
+    def add_display_row(self, element):
+        self.updated_display_rows.append(len(self.display_rows))
+        self.display_rows.append(element)
+
+    def add_empty_row(self, split=False, header=False):
+        if header:
+            self.add_display_row("SPLIT TOP")
+            self.add_display_row("HEADER")
+            self.add_display_row("SPLIT MID")
+        elif split:
+            self.add_display_row("SPLIT MID")
+
+        row = ROW(VALUES={}, WEIGHTS={}, COLORS={})
+        self.add_display_row(len(self.data_rows))
+        self.data_rows.append(row)
 
     def add_column(
         self,
@@ -252,6 +302,8 @@ class ProgressTableV1:
         aggregate=None,
     ):
         """Add column to the table.
+
+        You can re-add an existing column to modify its properties.
 
         Args:
             name: Name of the column. Will be displayed in the header.
@@ -270,6 +322,9 @@ class ProgressTableV1:
         else:
             self.column_names.append(name)
 
+        if self.interactive < 2 and self.RENDERING_ON:
+            raise Exception("Cannot add new columns when table display started when interactive < 2!")
+
         resolved_width = width or self.column_width or self.DEFAULT_COLUMN_WIDTH
         if not width and resolved_width < len(str(name)):
             resolved_width = len(str(name))
@@ -277,70 +332,25 @@ class ProgressTableV1:
         self.column_colors[name] = maybe_convert_to_colorama(color or self.column_color or self.DEFAULT_COLUMN_COLOR)
         self.column_alignments[name] = alignment or self.column_alignment or self.DEFAULT_COLUMN_ALIGNMENT
         self.column_aggregates[name] = get_aggregate_fn(aggregate or self.column_aggregate or self.DEFAULT_COLUMN_AGGREGATE)
-
-        # Columns might be added later - in this case we need to reprint header
-        self._request_header = True
-        self._is_table_opened = False
-
-        # Initialize color for the column in the new row
-        self._prepare_row_color_dict()
+        self.invalidate_displayed_rows()
 
     def add_columns(self, *columns, **kwds):
-        """Add multiple columns to the table."""
+        """Add multiple columns to the table.
+
+        Args:
+            columns: Names of the columns.
+            kwds: Additional arguments for the columns. Column properties will be identical for all added columns.
+        """
         for column in columns:
             self.add_column(column, **kwds)
 
-    def update(self, key, value, *, weight=1, **column_kwds):
-        """Update value in the current row. This is extends capabilities of __setitem__.
-
-        Args:
-            key: Name of the column.
-            value: Value to be set.
-            weight: Weight of the value. This is used for aggregation.
-            column_kwds: Additional arguments for the column. They will be only used for column creation.
-                         If column already exists, they will have no effect.
-        """
-        if key not in self.column_names:
-            if self._is_table_opened:
-                logging.info("Closing table (new column added to opened table)")
-                self.close(close_pbars=False, close_row=False)
-
-            self.add_column(key, **column_kwds)
-
-        # Set default values for new rows
-        self._new_row.setdefault(key, 0)
-        self._new_row_cumulated_weight.setdefault(key, 0)
-
-        fn = self.column_aggregates[key]
-        self._new_row[key] = fn(value, self._new_row[key], self._new_row_cumulated_weight[key])
-        self._new_row_cumulated_weight[key] += weight
-
-        t0 = time.time()
-        td = t0 - self._last_time_row_printed
-        if self._is_table_opened:
-            if self.print_row_on_update and td > 1 / self.refresh_rate:
-                self._last_time_row_printed = t0
-                self._display_new_row_or_pbar()
-
-    def update_from_dict(self, dictionary):
-        """Update multiple values in the current row."""
-        for key, value in dictionary.items():
-            self.update(key, value)
-
-    def __setitem__(self, key, value):
-        self.update(key, value, weight=1)
-
-    def __getitem__(self, key):
-        assert key in self.column_names, f"Column '{key}' not in {self.column_names}"
-
-        return self._new_row[key]
-
     def reorder_columns(self, *column_names):
+        """Reorder columns in the table."""
         if all(x == y for x, y in zip(column_names, self.column_names)):
             return
 
         logging.info("Closing table (reordering columns)")
-        self.close(close_pbars=False, close_row=False)
+        # self.close(close_pbars=False, close_row=False)
 
         assert isinstance(column_names, (List, Tuple))
         assert all([x in self.column_names for x in column_names]), f"Columns {column_names} not in {self.column_names}"
@@ -349,64 +359,190 @@ class ProgressTableV1:
         self.column_colors = {k: self.column_colors[k] for k in column_names}
         self.column_alignments = {k: self.column_alignments[k] for k in column_names}
         self.column_aggregates = {k: self.column_aggregates[k] for k in column_names}
+        self.invalidate_displayed_rows()
 
-    def _clear_line(self):
-        row_str = self._get_row_str(coloring=False)
-        self._print(len(row_str) * " ", end="\r")
+    def add_pending_row(self):
+        self.add_empty_row(*self.NEXT_ROW_PENDING)
+        self.NEXT_ROW_PENDING = None
 
-    def write(self, *args, **kwds):
-        """Write a message gracefully when the table is opened.
+    def update(self, key, value, *, row=-1, weight=1, **column_kwds):
+        """Update value in the current row. This is extends capabilities of __setitem__.
 
-        Table will be closed, the message will be printed and the table will be opened again.
+        Args:
+            key: Name of the column.
+            value: Value to be set.
+            row: Index of the row. By default, it's the last row.
+            weight: Weight of the value. This is used for aggregation.
+            column_kwds: Additional arguments for the column. They will be only used for column creation.
+                         If column already exists, they will have no effect.
         """
-        self.close(close_pbars=False, close_row=False)
-        self._clear_line()
-        self._print(*args, **kwds)
-        self.print_header()
+        if not self.RENDERING_ON:
+            self.start_rendering()
 
-    def close(self, close_pbars=True, close_row=True):
-        """End the table and close it."""
-        if close_row and self._new_row:
-            self.next_row()
+        if key not in self.column_names:
+            self.add_column(key, **column_kwds)
 
-        if close_pbars and self._active_pbars:
-            for pbar in list(self._active_pbars.values()):
-                pbar.close()
+        num_rows = len(self.data_rows)
+        if self.NEXT_ROW_PENDING is not None:
+            num_rows += 1
+        data_row_index = row if row >= 0 else num_rows + row
 
-        if self._is_table_opened:
-            self._is_table_opened = False
-            self._request_header = True
-            self._print_bar_bot()
+        if data_row_index == len(self.data_rows):
+            assert self.NEXT_ROW_PENDING is not None
+            self.add_pending_row()
+        if data_row_index >= len(self.data_rows):
+            raise ValueError(f"Row {data_row_index} out of range! Number of rows: {len(self.data_rows)}")
 
-    def to_list(self):
-        """Convert to Python nested list."""
-        all_columns = []
-        for row in self.finished_rows:
-            for col in row:
-                if col not in all_columns:
-                    all_columns.append(col)
-        return [[row.get(col, None) for col in all_columns] for row in self.finished_rows]
+        display_row_index = self.display_rows.index(data_row_index)
+        self.updated_display_rows.append(display_row_index)
 
-    def to_numpy(self):
-        """Convert to numpy array."""
-        try:
-            import numpy as np
-        except ImportError:
-            raise ImportError("Numpy is not installed!")
-        return np.array(self.to_list())
+        # Set default values for new rows
+        row = self.data_rows[row]
+        row.VALUES.setdefault(key, 0)
+        row.WEIGHTS.setdefault(key, 0)
 
-    def to_df(self):
-        """Convert to pandas DataFrame."""
-        try:
-            import pandas as pd
-        except ImportError:
-            raise ImportError("Pandas is not installed!")
-        all_columns = []
-        for row in self.finished_rows:
-            for col in row:
-                if col not in all_columns:
-                    all_columns.append(col)
-        return pd.DataFrame(self.to_list(), columns=all_columns)
+        fn = self.column_aggregates[key]
+        row.VALUES[key] = fn(value, row.VALUES[key], row.WEIGHTS[key])
+        row.WEIGHTS[key] += weight
+
+    def update_from_dict(self, dictionary):
+        """Update multiple values in the current row."""
+        for key, value in dictionary.items():
+            self.update(key, value)
+
+    def __setitem__(self, key, value):
+        if isinstance(key, tuple):
+            row, key = key
+        else:
+            row = -1
+        self.update(key, value, row=row, weight=1)
+
+    def __getitem__(self, key):
+        if isinstance(key, tuple):
+            row, key = key
+        else:
+            row = -1
+
+        assert key in self.column_names, f"Column '{key}' not in {self.column_names}"
+        return self.data_rows[row].VALUES[key]
+
+    def next_row(self, color: ColorFormat | Dict[str, ColorFormat] = None, split=False, header=False):
+        """End the current row."""
+        if self.previous_header_counter >= self.reprint_header_every_n_rows:
+            # Force header if it wasn't printed for a long time
+            header = True
+
+        row = self.data_rows[-1]
+
+        # Color is applied to the existing row - not the new one!
+        row.COLORS.update(self._prepare_row_color_dict(color))
+        self.NEXT_ROW_PENDING = (split, header)
+
+        if self.interactive == 0:
+            self.render_updated()
+
+    def num_rows(self):
+        return len(self.data_rows) + int(self.NEXT_ROW_PENDING is not None)
+
+    def add_row(self, *values, **kwds):
+        """Mimicking rich.table behavior for adding rows in one call."""
+        for key, value in zip(self.column_names, values):
+            self.update(key, value)
+        self.next_row(**kwds)
+
+    def move_cursor(self, row_index):
+        if row_index < 0:
+            row_index = len(self.display_rows) + row_index
+        offset = self.CURSOR_ROW - row_index
+
+        if offset > 0:
+            self._print(CURSOR_UP * offset, end="")
+        else:
+            offset = -offset
+            self._print("\n" * offset, end="")
+        self.CURSOR_ROW = row_index
+
+    def render_selected_rows(self, selected_rows: list[int]):
+        for row_index in selected_rows:
+            item = self.display_rows[row_index]
+            if isinstance(item, int):
+                row = self.data_rows[item]
+                row_str = self._get_row_str(row)
+            elif item == "HEADER":
+                row_str = self._get_header()
+            elif item == "SPLIT TOP":
+                row_str = self._get_bar_top()
+            elif item == "SPLIT BOT":
+                row_str = self._get_bar_bot()
+            elif item == "SPLIT MID":
+                row_str = self._get_bar_mid()
+            elif isinstance(item, tuple) and len(item) > 0 and item[0] == "CUSTOM WRITE":
+                row_str = item[1]
+            else:
+                raise ValueError(f"Unknown item: {item}")
+
+            self.move_cursor(row_index)
+            self._print(row_str, end="\r")
+        self.move_cursor(-1)
+
+    def render_updated(self):
+        if self.updated_display_rows:
+            self.render_selected_rows(self.updated_display_rows)
+            self.updated_display_rows = []
+
+    def invalidate_displayed_rows(self):
+        self.updated_display_rows = list(range(len(self.display_rows)))
+
+    def freeze_view(self):
+        self._print()
+        self.CURSOR_ROW = 0
+        self.display_rows = []
+        self.updated_display_rows = []
+
+    # def _clear_line(self):
+    #     row_str = self._get_row_str(coloring=False)
+    #     self._print(len(row_str) * " ", end="\r")
+    #
+    def write(self, *args, sep=" "):
+        """Write a message gracefully when the table is opened."""
+        full_message = []
+        for arg in args:
+            full_message.append(str(arg))
+        full_message = sep.join(full_message)
+        message_lines = full_message.split("\n")
+        for line in message_lines:
+            self.add_display_row(("CUSTOM WRITE", line))
+
+    #
+    # def to_list(self):
+    #     """Convert to Python nested list."""
+    #     all_columns = []
+    #     for row in self.rows:
+    #         for col in row:
+    #             if col not in all_columns:
+    #                 all_columns.append(col)
+    #     return [[row.get(col, None) for col in all_columns] for row in self.rows]
+    #
+    # def to_numpy(self):
+    #     """Convert to numpy array."""
+    #     try:
+    #         import numpy as np
+    #     except ImportError:
+    #         raise ImportError("Numpy is not installed!")
+    #     return np.array(self.to_list())
+    #
+    # def to_df(self):
+    #     """Convert to pandas DataFrame."""
+    #     try:
+    #         import pandas as pd
+    #     except ImportError:
+    #         raise ImportError("Pandas is not installed!")
+    #     all_columns = []
+    #     for row in self.rows:
+    #         for col in row:
+    #             if col not in all_columns:
+    #                 all_columns.append(col)
+    #     return pd.DataFrame(self.to_list(), columns=all_columns)
 
     #####################
     ## DISPLAY HELPERS ##
@@ -416,43 +552,34 @@ class ProgressTableV1:
         for file in self.files:
             print(*args, **kwds, file=file or sys.stdout)
 
-    def _print_bar(self, left: str, center: str, right: str):
+    def _get_row_str(self, row: ROW, colored=True):
+        content = []
+        for column in self.column_names:
+            value = row.VALUES.get(column, "")
+            value = self.custom_cell_format(value)
+
+            color = row.COLORS.get(column, "") if colored else ""
+            value = self._apply_cell_formatting(str_value=str(value), column_name=column, color=color)
+            content.append(value)
+        return "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
+
+    def _get_bar(self, left: str, center: str, right: str):
         content_list: list[str] = []
         for column_name in self.column_names:
             content_list.append(self.table_style.horizontal * (self.column_widths[column_name] + 2))
 
         center = center.join(content_list)
         content = ["\r", left, center, right]
-        self._print("".join(content), end="\n")
+        return "".join(content)
 
-    def _print_bar_top(self):
-        return self._print_bar(self.table_style.down_right, self.table_style.no_up, self.table_style.down_left)
+    def _get_bar_top(self):
+        return self._get_bar(self.table_style.down_right, self.table_style.no_up, self.table_style.down_left)
 
-    def _print_bar_bot(self):
-        return self._print_bar(self.table_style.up_right, self.table_style.no_down, self.table_style.up_left)
+    def _get_bar_bot(self):
+        return self._get_bar(self.table_style.up_right, self.table_style.no_down, self.table_style.up_left)
 
-    def _print_bar_mid(self):
-        return self._print_bar(self.table_style.no_left, self.table_style.all, self.table_style.no_right)
-
-    def _get_row_str(self, coloring: bool):
-        content = []
-        for column in self.column_names:
-            value = self._new_row.get(column, "")
-            value = self.custom_format(value)
-            value = self._apply_cell_formatting(str_value=str(value), column_name=column, coloring=coloring)
-            content.append(value)
-        return "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
-
-    def _display_new_row(self):
-        row_str = self._get_row_str(coloring=True)
-        self._print(row_str, end="\r")
-
-    def _display_new_row_or_pbar(self):
-        if self._active_pbars.get(0, None) is not None:
-            # Level 0 pbar is embedded into the row, if it exists we want to display it instead of a row
-            self._active_pbars[0].display()
-        else:
-            self._display_new_row()
+    def _get_bar_mid(self):
+        return self._get_bar(self.table_style.no_left, self.table_style.all, self.table_style.no_right)
 
     @typing.no_type_check
     def _prepare_row_color_dict(self, color: ColorFormat | Dict[str, ColorFormat] = None):
@@ -462,40 +589,10 @@ class ProgressTableV1:
 
         color = {column: color.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
         color = {column: maybe_convert_to_colorama(color) for column, color in color.items()}
-        self.row_colors = color
+        color = {col: self.column_colors[col] + color[col] for col in color}
+        return color
 
-    def next_row(self, color: ColorFormat | Dict[str, ColorFormat] = None, split=False, header=False):
-        """End the current row."""
-        if header or self._request_header or self.previous_header_counter >= self.reprint_header_every_n_rows:
-            self.print_header()
-            split = False
-        if split or self._request_splitter:
-            self._print_splitter()
-
-        # Reset aggregated values!
-        self._new_row_cumulated_weight = {}
-
-        self._prepare_row_color_dict(color)
-        self._display_new_row()
-        self._print()  # Insert a newline
-        self._prepare_row_color_dict()
-        self.previous_header_counter += 1
-
-        # Reset the new row
-        self.finished_rows.append(self._new_row)
-        self._new_row = {}
-
-        # Clear up the new row
-        self._refresh_active_pbars()
-        self._display_new_row_or_pbar()
-
-    def add_row(self, *values, **kwds):
-        """Mimicking rich.table behavior for adding rows in one call."""
-        for key, value in zip(self.column_names, values):
-            self.update(key, value)
-        self.next_row(**kwds)
-
-    def _apply_cell_formatting(self, str_value: str, column_name: str, coloring: bool):
+    def _apply_cell_formatting(self, str_value: str, column_name: str, color: str):
         width = self.column_widths[column_name]
         alignment = self.column_alignments[column_name]
 
@@ -517,38 +614,24 @@ class ProgressTableV1:
                 self.table_style.cell_overflow if clipped else " ",
             ]
         )
-        if coloring:
-            reset = Style.RESET_ALL if (self.column_colors[column_name] or self.row_colors[column_name]) else ""
-            str_value = f"{self.column_colors[column_name]}{self.row_colors[column_name]}{str_value}{reset}"
+        reset = Style.RESET_ALL if color else ""
+        str_value = f"{color}{str_value}{reset}"
         return str_value
 
-    def _print_splitter(self):
-        self._print_bar_mid()
-        self._request_splitter = False
-
-    def print_header(self):
-        if self._is_table_opened:
-            self._print_bar_mid()
-        else:
-            self._print_bar_top()
-
+    def _get_header(self):
         content = []
         for column in self.column_names:
-            value = self._apply_cell_formatting(column, column, coloring=True)
+            value = self._apply_cell_formatting(column, column, color=self.column_colors[column])
             content.append(value)
         s = "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
-        self._print(s)
-
-        self._request_header = False
-        self._request_splitter = False
-        self._is_table_opened = True
-        self.previous_header_counter = 0
-        self._print_bar_mid()
+        return s
 
     def _refresh_active_pbars(self):
-        for pbar in self._active_pbars.values():
-            if pbar:
-                pbar.display()
+        for pbar_level in list(self._active_pbars):
+            if pbar_level in self._active_pbars:
+                pbar = self._active_pbars[pbar_level]
+                if pbar:
+                    pbar.display()
 
     def pbar(
         self,
@@ -591,7 +674,7 @@ class ProgressTableV1:
         )
         self._active_pbars[level] = pbar
 
-        if len(self._active_pbars) > MAX_ACITVE_PBARS:
+        if len(self._active_pbars) > self.max_active_pbars:
             raise ValueError("Too many active pbars, remember to .close() old pbars!")
         return pbar
 
@@ -616,6 +699,7 @@ class TableProgressBar:
         self.show_progress: bool = show_progress
         self.show_throughput: bool = show_throughput
         self._is_active: bool = True
+        self._last_pbar_width = 0
 
     def display(self):
         assert self._is_active, "Progress bar was closed!"
@@ -656,7 +740,7 @@ class TableProgressBar:
             num_filled = math.ceil(step / total * tot_width)
             num_empty = tot_width - num_filled
 
-            pbar.extend(
+            pbar_body = "".join(
                 [
                     self.table.table_style.vertical,
                     infobar,
@@ -665,19 +749,27 @@ class TableProgressBar:
                     self.table.table_style.vertical,
                 ]
             )
+            pbar.append(pbar_body)
+            self._last_pbar_width = len(pbar_body)
         else:
-            row = self.table._get_row_str(coloring=False)
-            pbar.extend(row[:2] + infobar)
-            row = row[2 + len(infobar) :]
+            if not self.table.display_rows or not isinstance(self.table.display_rows[-1], int):
+                return
+
+            row_idx = self.table.display_rows[-1]
+            row = self.table.data_rows[row_idx]
+
+            row_str = self.table._get_row_str(row, colored=False)
+            pbar.extend(row_str[:2] + infobar)
+            row_str = row_str[2 + len(infobar) :]
 
             if not self._total:  # When total is unknown
-                total = len(row)
+                total = len(row_str)
                 step = self._step % total
 
             new_row = [Style.BRIGHT]
-            for letter_idx, letter in enumerate(row):
-                is_bar = letter_idx / len(row) <= (step / total) % (1 + EPS)
-                is_head = (letter_idx - 1) / len(row) <= (step / total) % (1 + EPS)
+            for letter_idx, letter in enumerate(row_str):
+                is_bar = letter_idx / len(row_str) <= (step / total) % (1 + EPS)
+                is_head = (letter_idx - 1) / len(row_str) <= (step / total) % (1 + EPS)
                 if letter == " " and is_bar:
                     letter = self.table.table_style.embedded_pbar_filled
                 if letter == " " and is_head:
@@ -688,6 +780,10 @@ class TableProgressBar:
                 new_row.append(letter)
             pbar.extend(new_row)
         pbar.append(CURSOR_UP * self.level)
+        self.table._print("".join(pbar), end="\r")
+
+    def cleanup(self):
+        pbar = ["\n" * self.level, " " * self._last_pbar_width, CURSOR_UP * self.level]
         self.table._print("".join(pbar), end="\r")
 
     def _update(self, n):
@@ -712,3 +808,4 @@ class TableProgressBar:
     def close(self):
         self.table._active_pbars.pop(self.level)
         self._is_active = False
+        self.cleanup()
