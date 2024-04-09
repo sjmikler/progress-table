@@ -10,7 +10,7 @@ import sys
 import time
 from dataclasses import dataclass
 from threading import Thread
-from typing import Any, Callable, Iterable, Sized, Type
+from typing import Any, Callable, Iterable, Sized, Type, Union
 
 from colorama import Fore, Style
 
@@ -29,7 +29,7 @@ COLORAMA_TRANSLATE = {
 }
 
 NoneType = type(None)
-ColorFormat = str | tuple | list | NoneType
+ColorFormat = Union[str, tuple, list, NoneType]
 ColorFormatTuple = (str, tuple, list, NoneType)
 
 EPS = 1e-9
