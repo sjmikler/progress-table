@@ -10,7 +10,7 @@ import sys
 import time
 from dataclasses import dataclass
 from threading import Thread
-from typing import Any, Callable, Dict, Iterable, List, Sized, Tuple, Type, Union
+from typing import Any, Callable, Iterable, Sized, Type
 
 from colorama import Fore, Style
 
@@ -29,8 +29,8 @@ COLORAMA_TRANSLATE = {
 }
 
 NoneType = type(None)
-ColorFormat = Union[str, Tuple, List, NoneType]
-ColorFormatTuple = (str, Tuple, List, NoneType)
+ColorFormat = str | tuple | list | NoneType
+ColorFormatTuple = (str, tuple, list, NoneType)
 
 EPS = 1e-9
 CURSOR_UP = "\033[A"
@@ -61,7 +61,7 @@ def aggregate_min(value, old_value, weight, old_weight):
     return min(old_value, value)
 
 
-def get_aggregate_fn(aggregate: str | Callable | None):
+def get_aggregate_fn(aggregate: None | str | Callable):
     """Get the aggregate function from the provided value."""
 
     if aggregate is None:
@@ -139,7 +139,7 @@ class ProgressTableV1:
 
     def __init__(
         self,
-        columns: Tuple | List = (),
+        columns: tuple | list = (),
         interactive: int = 2,
         refresh_rate: int = 20,
         num_decimal_places: int = 4,
@@ -324,7 +324,7 @@ class ProgressTableV1:
         if self.interactive < 2 and self._RENDERER_RUNNING:
             raise Exception("Cannot reorder columns when table display started if interactive < 2!")
 
-        assert isinstance(column_names, (List, Tuple))
+        assert isinstance(column_names, (list, tuple))
         assert all([x in self.column_names for x in column_names]), f"Columns {column_names} not in {self.column_names}"
         self.column_names = list(column_names)
         self.column_widths = {k: self.column_widths[k] for k in column_names}
@@ -404,7 +404,7 @@ class ProgressTableV1:
         for key, value in dictionary.items():
             self.update(key, value)
 
-    def next_row(self, color: ColorFormat | Dict[str, ColorFormat] = None, split: bool | None = None, header: bool | None = None):
+    def next_row(self, color: ColorFormat | dict[str, ColorFormat] = None, split: bool | None = None, header: bool | None = None):
         """End the current row."""
 
         # Force header if it wasn't printed for a long time
@@ -579,7 +579,7 @@ class ProgressTableV1:
         self._display_rows = []
         self._pending_display_rows = []
 
-    def _resolve_row_color_dict(self, color: ColorFormat | Dict[str, ColorFormat] = None):
+    def _resolve_row_color_dict(self, color: ColorFormat | dict[str, ColorFormat] = None):
         color = color or self.row_color or {}
         if isinstance(color, ColorFormatTuple):
             color = {column: color for column in self.column_names}
