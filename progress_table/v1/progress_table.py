@@ -289,13 +289,13 @@ class ProgressTableV1:
                        displayed. Aggregated values is reset at every new row.
         """
         assert isinstance(name, str), f"Column name has to be a string, not {type(name)}!"
+        if self.interactive < 2 and self._RENDERER_RUNNING:
+            raise Exception("Cannot add new columns when table display started if interactive < 2!")
+
         if name in self.column_names:
             logging.info(f"Column '{name}' already exists!")
         else:
             self.column_names.append(name)
-
-        if self.interactive < 2 and self._RENDERER_RUNNING:
-            raise Exception("Cannot add new columns when table display started if interactive < 2!")
 
         resolved_width = width or self.column_width or self.DEFAULT_COLUMN_WIDTH
         if not width and resolved_width < len(str(name)):
@@ -352,24 +352,23 @@ class ProgressTableV1:
         if data_row_index >= len(self._data_rows):
             raise ValueError(f"Row {data_row_index} out of range! Number of rows: {len(self._data_rows)}")
 
-        # Displaying the latest row
+        # Displaying the latest row prefix
         if data_row_index not in self._display_rows:
             assert data_row_index == len(self._data_rows) - 1, "Unexpected row!"
             for element in self._latest_row_prefix:
                 self._append_or_update_display_row(element)
-            self._append_or_update_display_row(data_row_index)
 
         # Set default values for new rows
-        row = self._data_rows[row]
-        row.VALUES.setdefault(name, 0)
-        row.WEIGHTS.setdefault(name, 0)
+        data_row = self._data_rows[row]
+        data_row.VALUES.setdefault(name, 0)
+        data_row.WEIGHTS.setdefault(name, 0)
 
         fn = self.column_aggregates[name]
-        row.VALUES[name] = fn(value, row.VALUES[name], row.WEIGHTS[name])
-        row.WEIGHTS[name] += weight
+        data_row.VALUES[name] = fn(value, data_row.VALUES[name], data_row.WEIGHTS[name])
+        data_row.WEIGHTS[name] += weight
 
         if cell_color is not None:
-            row.COLORS[name] = maybe_convert_to_colorama(cell_color)
+            data_row.COLORS[name] = maybe_convert_to_colorama(cell_color)
         self._append_or_update_display_row(data_row_index)
 
     def __setitem__(self, key, value):
