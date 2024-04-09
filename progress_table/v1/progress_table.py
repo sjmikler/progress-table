@@ -369,7 +369,7 @@ class ProgressTableV1:
         row.WEIGHTS[name] += weight
 
         if cell_color is not None:
-            row.COLORS[name] = self._resolve_row_color_dict(cell_color)[name]
+            row.COLORS[name] = maybe_convert_to_colorama(cell_color)
         self._append_or_update_display_row(data_row_index)
 
     def __setitem__(self, key, value):
