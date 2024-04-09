@@ -1,6 +1,5 @@
 #  Copyright (c) 2022-2024 Szymon Mikler
 
-import random
 import time
 
 import numpy as np
