@@ -17,16 +17,12 @@ def main(**overrides):
     TARGET_DISTANCE = 100
 
     PARTICLE_VELOCITY = 1
-    PARTICLE_MAX_VELOCITY = 2 * PARTICLE_VELOCITY
-    PARTICLE_MIN_VELOCITY = 0
-
     PARTICLE_MOMENTUM = 0.999
 
     SLEEP = 0.001
     MAX_ROWS = 30
 
     distance_pbar = table.pbar(TARGET_DISTANCE, description="Distance", show_throughput=False, show_progress=True)
-    # velocity_pbar = table.pbar(PARTICLE_MAX_VELOCITY, description="Velocity", show_throughput=False, show_progress=True)
 
     current_position = (0, 0)
     current_velocity = PARTICLE_VELOCITY
@@ -51,7 +47,6 @@ def main(**overrides):
         table["position Y", row] = current_position[1]
         table["distance from center", row] = distance_from_center
         distance_pbar.reset(total=int(distance_from_center))
-        #         velocity_pbar.reset(total=round(current_velocity, 2))
 
         if table.num_rows() < MAX_ROWS:
             table.next_row()

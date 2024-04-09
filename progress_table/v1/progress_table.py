@@ -256,7 +256,7 @@ class ProgressTableV1:
 
         self._max_active_pbars = {2: 100, 1: 1, 0: 0}[interactive]
         self._embed_progress_bar = False if interactive == 2 else True
-        self._printing_buffer = []
+        self._printing_buffer: list[str] = []
         self._renderer: Thread | None = None
 
         # Making function calls after init
@@ -465,8 +465,8 @@ class ProgressTableV1:
         full_message = []
         for arg in args:
             full_message.append(str(arg))
-        full_message = sep.join(full_message)
-        message_lines = full_message.split("\n")
+        full_message_str = sep.join(full_message)
+        message_lines = full_message_str.split("\n")
         for line in message_lines:
             self._append_or_update_display_row(("USER WRITE", line))
 
@@ -585,9 +585,9 @@ class ProgressTableV1:
             color = {column: color for column in self.column_names}
 
         color = {column: color.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
-        color = {column: maybe_convert_to_colorama(color) for column, color in color.items()}
-        color = {col: self.column_colors[col] + color[col] for col in color}
-        return color
+        color_colorama = {column: maybe_convert_to_colorama(color) for column, color in color.items()}
+        color_colorama = {col: self.column_colors[col] + color_colorama[col] for col in color}
+        return color_colorama
 
     def _apply_cell_formatting(self, value: Any, column_name: str, color: str):
         str_value = self.custom_cell_format(value)
@@ -671,7 +671,7 @@ class ProgressTableV1:
 
     def pbar(
         self,
-        iterable: Iterable | int | None = None,
+        iterable: Iterable | int,
         *range_args,
         level=None,
         total=None,
@@ -754,7 +754,7 @@ class TableProgressBar:
         assert self._is_active, "Progress bar was closed!"
 
         is_embedded = self.level == 0
-        terminal_width = shutil.get_terminal_size(fallback=(0, 0)).columns or float("inf")
+        terminal_width = shutil.get_terminal_size(fallback=(0, 0)).columns or int(1e9)
 
         total = self._total
         step = min(self._step, total) if total else self._step
