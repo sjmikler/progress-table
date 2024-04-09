@@ -42,24 +42,24 @@ NUM_PBAR_WARNED = False
 ################
 
 
-def aggregate_dont(new_value, old_value, n):
-    return new_value
+def aggregate_dont(value, old_value, weight, old_weight):
+    return value
 
 
-def aggregate_mean(new_value, old_value, n):
-    return (old_value * n + new_value) / (n + 1)
+def aggregate_mean(value, old_value, weight, old_weight):
+    return (old_value * old_weight + value * weight) / (old_weight + weight)
 
 
-def aggregate_sum(new_value, old_value, n):
-    return old_value + new_value
+def aggregate_sum(value, old_value, weight, old_weight):
+    return old_value + value
 
 
-def aggregate_max(new_value, old_value, n):
-    return max(old_value, new_value)
+def aggregate_max(value, old_value, weight, old_weight):
+    return max(old_value, value)
 
 
-def aggregate_min(new_value, old_value, n):
-    return min(old_value, new_value)
+def aggregate_min(value, old_value, weight, old_weight):
+    return min(old_value, value)
 
 
 def get_aggregate_fn(aggregate: str | Callable | None):
@@ -69,7 +69,8 @@ def get_aggregate_fn(aggregate: str | Callable | None):
         return aggregate_dont
 
     if callable(aggregate):
-        assert len(inspect.signature(aggregate).parameters) == 3, "Aggregate function has to take 3 arguments"
+        num_parameters = len(inspect.signature(aggregate).parameters)
+        assert num_parameters == 4, f"Aggregate function has to take 4 arguments, not {num_parameters}!"
         return aggregate
 
     if isinstance(aggregate, str):
@@ -364,7 +365,7 @@ class ProgressTableV1:
         data_row.WEIGHTS.setdefault(name, 0)
 
         fn = self.column_aggregates[name]
-        data_row.VALUES[name] = fn(value, data_row.VALUES[name], data_row.WEIGHTS[name])
+        data_row.VALUES[name] = fn(value, data_row.VALUES[name], weight, data_row.WEIGHTS[name])
         data_row.WEIGHTS[name] += weight
 
         if cell_color is not None:
