@@ -262,6 +262,7 @@ class ProgressTableV1:
         # Making function calls after init
         self.add_columns(*columns)
         self._append_new_empty_data_row()
+        self._at_indexer = TableAtIndexer(self)
 
     def add_column(
         self,
@@ -344,14 +345,8 @@ class ProgressTableV1:
             column_kwds: Additional arguments for the column. They will be only used for column creation.
                          If column already exists, they will have no effect.
         """
-        if isinstance(name, int):
-            name = self.column_names[name]
         if name not in self.column_names:
             self.add_column(name, **column_kwds)
-
-        # Renderer starts on first update
-        if not self._RENDERER_RUNNING:
-            self._start_rendering()
 
         data_row_index = row if row >= 0 else len(self._data_rows) + row
         if data_row_index >= len(self._data_rows):
@@ -376,6 +371,34 @@ class ProgressTableV1:
         if cell_color is not None:
             row.COLORS[name] = self._resolve_row_color_dict(cell_color)[name]
         self._append_or_update_display_row(data_row_index)
+
+    def __setitem__(self, key, value):
+        if isinstance(key, tuple):
+            name, row = key
+            if isinstance(name, int) and isinstance(row, str):
+                name, row = row, name
+        else:
+            name = key
+            row = -1
+        assert isinstance(row, int), f"Row {row} has to be an integer, not {type(row)}!"
+        self.update(name, value, row=row, weight=1)
+
+    def __getitem__(self, key):
+        if isinstance(key, tuple):
+            name, row = key
+            if isinstance(name, int) and isinstance(row, int):
+                name, row = row, name
+        else:
+            name = key
+            row = -1
+        assert name in self.column_names, f"Column {name} not in {self.column_names}"
+        assert isinstance(row, int), f"Row {row} has to be an integer, not {type(row)}!"
+        return self._data_rows[row].VALUES.get(key, None)
+
+    @property
+    def at(self):
+        """Advanced indexing for the table."""
+        return self._at_indexer
 
     def update_from_dict(self, dictionary):
         """Update multiple values in the current row."""
@@ -420,35 +443,23 @@ class ProgressTableV1:
             self.update(key, value)
         self.next_row(**kwds)
 
+    def num_rows(self):
+        return len(self._data_rows)
+
     def close(self):
+        # Closing opened table
+        if "SPLIT TOP" in self._display_rows:
+            self._append_or_update_display_row("SPLIT BOT")
+
         self._RENDERER_RUNNING = False
         if self._renderer is not None and self._renderer.is_alive():
             self._renderer.join(timeout=1 / self.refresh_rate)
         self._renderer = None
 
-        self._append_or_update_display_row("SPLIT BOT")
         self._print_pending_rows_to_buffer()
-
         self._printing_buffer.append("\n")
         self._print_and_reset_buffer()
         self._freeze_view()
-
-    def __setitem__(self, key, value):
-        if isinstance(key, tuple):
-            row, key = key
-        else:
-            row = -1
-        self.update(key, value, row=row, weight=1)
-
-    def __getitem__(self, key):
-        if isinstance(key, tuple):
-            row, key = key
-        else:
-            row = -1
-        if isinstance(key, int):
-            key = self.column_names[key]
-        assert key in self.column_names, f"Column '{key}' not in {self.column_names}"
-        return self._data_rows[row].VALUES.get(key, None)
 
     def write(self, *args, sep=" "):
         """Write a message gracefully when the table is opened."""
@@ -502,6 +513,10 @@ class ProgressTableV1:
             self._renderer.start()
 
     def _append_or_update_display_row(self, element):
+        # Renderer starts on first update
+        if not self._RENDERER_RUNNING:
+            self._start_rendering()
+
         if isinstance(element, int):
             if element not in self._display_rows:
                 self._display_rows.append(element)
@@ -561,6 +576,7 @@ class ProgressTableV1:
 
     def _freeze_view(self):
         self._CURSOR_ROW = 0
+        self._data_rows = []
         self._display_rows = []
         self._pending_display_rows = []
 
@@ -842,3 +858,67 @@ class TableProgressBar:
         self.table._active_pbars.pop(self.level)
         self._is_active = False
         self.cleanup()
+
+
+class TableAtIndexer:
+    def __init__(self, table: ProgressTableV1):
+        self.table = table
+        self.edit_mode_prefix_map = {}
+        for word in ("VALUES", "WEIGHTS", "COLORS"):
+            self.edit_mode_prefix_map.update({word[:i]: word for i in range(1, len(word))})
+
+    def parse_index(self, key) -> tuple[slice, slice, str]:
+        try:
+            if len(key) == 2:
+                rows = key[0]
+                cols = key[1]
+                mode = "VALUES"
+            elif len(key) >= 3:
+                rows = key[0]
+                cols = key[1]
+                mode = key[2]
+                assert mode in self.edit_mode_prefix_map
+                mode = self.edit_mode_prefix_map[mode]
+            else:
+                raise Exception
+
+            if isinstance(rows, int):
+                rows = slice(rows, rows + 1)
+            if isinstance(cols, int):
+                cols = slice(cols, cols + 1)
+            assert isinstance(rows, slice) and isinstance(cols, slice), "Rows and columns have to be slices!"
+            return rows, cols, mode
+
+        except Exception:
+            raise KeyError(f"Incorrect indexing: {key}")
+
+    def __setitem__(self, key, value):
+        rows, columns, edit_mode = self.parse_index(key)
+        if edit_mode == "COLORS":
+            value = maybe_convert_to_colorama(value)
+
+        for row in self.table._data_rows[rows]:
+            for column in self.table.column_names[columns]:
+                row.__getattribute__(edit_mode)[column] = value
+
+            # Displaying the update
+            data_row_index = self.table._data_rows.index(row)
+            self.table._append_or_update_display_row(data_row_index)
+
+    def __getitem__(self, key):
+        rows, columns, edit_mode = self.parse_index(key)
+        values = []
+        for row in self.table._data_rows[rows]:
+            row_values = []
+            for column in self.table.column_names[columns]:
+                row_values.append(row.__getattribute__(edit_mode).get(column, None))
+            values.append(row_values)
+
+        # Flattening outputs
+        if len(values) == 1 and len(values[0]) == 1:
+            return values[0][0]
+        if len(values) == 1:
+            return values[0]
+        if all(len(x) == 1 for x in values):
+            return [x[0] for x in values]
+        return values

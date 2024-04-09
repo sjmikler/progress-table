@@ -17,16 +17,12 @@ def main(**overrides):
         **default,
     )
 
-    num_epochs = 10
-    num_train_samples = 200
-    num_valid_samples = 20
+    NUM_EPOCHS = 10
+    NUM_TRAIN_SAMPLES = 200
+    NUM_VALID_SAMPLES = 20
 
-    table.add_column("epoch")
-    time.sleep(1)
-
-    for epoch in table(num_epochs):
-        time.sleep(1)
-        for step in table(num_train_samples, description="train epoch"):
+    for epoch in table(NUM_EPOCHS):
+        for step in table(NUM_TRAIN_SAMPLES, description="train epoch"):
             table["epoch"] = epoch
 
             loss_value = random.random()
@@ -37,9 +33,9 @@ def main(**overrides):
             table.update("train loss", loss_value, aggregate="mean", color="blue")
             table.update("train accuracy", accuracy, aggregate="mean", color="blue bold")
 
-        run_validation = epoch % 5 == 4 or epoch == num_epochs - 1
+        run_validation = epoch % 5 == 4 or epoch == NUM_EPOCHS - 1
         if run_validation:
-            for step in table(num_valid_samples, description="valid epoch"):
+            for step in table(NUM_VALID_SAMPLES, description="valid epoch"):
                 time.sleep(0.1)
 
             loss_value = random.random()
