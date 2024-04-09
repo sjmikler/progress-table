@@ -698,7 +698,7 @@ class ProgressTableV1:
         if len(self._active_pbars) >= self._max_active_pbars:
             global NUM_PBAR_WARNED
             if not NUM_PBAR_WARNED:
-                logging.warning(f"Exceeding max open pbars={self._max_active_pbars} with {self.interactive=}")
+                logging.warning(f"Exceeding max open pbars={self._max_active_pbars} with interactivity={self.interactive}")
             NUM_PBAR_WARNED = True
             return iter(iterable)
 
