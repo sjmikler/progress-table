@@ -18,7 +18,7 @@ table = ProgressTable(
 table.add_columns(*[str(i) for i in range(BOARD_SIZE)])
 
 # Adding multiple new rows
-for row in range(BOARD_SIZE):
+for row_idx in range(BOARD_SIZE):
     table.next_row(split=True)
 
 sign = 0
