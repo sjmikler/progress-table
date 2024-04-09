@@ -507,7 +507,7 @@ class ProgressTableV1:
         # Rendering should start when
         # * User enters the first value into the table
         self._RENDERER_RUNNING = True
-        if self.interactive > 0:
+        if self.interactive > 0 and self.refresh_rate > 0:
             self._renderer = Thread(target=self._rendering_loop, daemon=True)
             self._renderer.start()
 

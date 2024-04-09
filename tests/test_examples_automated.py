@@ -25,7 +25,7 @@ def capture_example_stdout(main_fn):
     # * refresh rate
     # * throughput display
     override_kwds = dict(
-        refresh_rate=1000000000,
+        refresh_rate=0,
         pbar_show_throughput=False,
     )
 

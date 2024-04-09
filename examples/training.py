@@ -48,19 +48,9 @@ def model_grads(targets, logits, inputs):
 
 
 def main(**overrides):
-    default = dict(
-        pbar_show_progress=True,
-        pbar_show_throughput=False,
-        interactive=2,
-    )
-    default = {**default, **overrides}
     table = ProgressTable(
-        **default,
+        **overrides,
     )
-
-    # Seeding for reproducible results
-    random.seed(42)
-    np.random.seed(42)
 
     # Loading dataset
     X, Y = load_iris(return_X_y=True)

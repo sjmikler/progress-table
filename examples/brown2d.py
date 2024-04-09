@@ -12,7 +12,9 @@ def calc_distance(pos):
 
 
 def main(**overrides):
-    table = ProgressTable(**overrides)
+    table = ProgressTable(
+        **overrides,
+    )
 
     TARGET_DISTANCE = 100
 
