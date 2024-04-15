@@ -57,7 +57,7 @@ def main(**overrides):
 
     weights = np.random.rand(4, 3)
 
-    for epoch in table(NUM_EPOCHS):
+    for epoch in table(NUM_EPOCHS, show_throughput=False, show_progress=False, show_percents=True):
         table["epoch"] = epoch
         # Shuffling training dataset each epoch
         X_train, Y_train = shuffle(X_train, Y_train)

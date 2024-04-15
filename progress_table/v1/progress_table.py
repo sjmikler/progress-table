@@ -149,7 +149,8 @@ class ProgressTableV1:
         default_column_aggregate: str | None = None,
         default_row_color: ColorFormat = None,
         pbar_show_throughput: bool = True,
-        pbar_show_progress: bool = False,
+        pbar_show_progress: bool = True,
+        pbar_show_percents: bool = False,
         print_row_on_update: bool = True,
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
@@ -194,6 +195,10 @@ class ProgressTableV1:
             default_column_aggregate: By default, there's no aggregation. But if this is for example 'mean', then after every update in
                                       the current row, the mean of the provided values will be displayed. Aggregated values is reset at
                                       every new row. This can be overwritten by columns by using an argument in `add_column` method.
+            default_row_color: Color of the row. This can be overwritten by using an argument in `next_row` method.
+            pbar_show_throughput: Show throughput in the progress bar, for example `3.55 it/s`. Defaults to True.
+            pbar_show_progress: Show progress in the progress bar, for example 10/40. Defaults to True.
+            pbar_show_percents: Show percents in the progress bar, for example 25%. Defaults to False.
             print_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
                                        If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
             custom_cell_format: A function that defines how to get str value to display from a cell content.
@@ -245,6 +250,7 @@ class ProgressTableV1:
         self.custom_cell_format = custom_cell_format or get_default_format_func(num_decimal_places)
         self.pbar_show_throughput: bool = pbar_show_throughput
         self.pbar_show_progress: bool = pbar_show_progress
+        self.pbar_show_percents: bool = pbar_show_percents
         self.refresh_rate: int = refresh_rate
 
         self._CURSOR_ROW = 0
@@ -679,6 +685,7 @@ class ProgressTableV1:
         description="",
         show_throughput=None,
         show_progress=None,
+        show_percents=None,
     ):
         """Create iterable progress bar object.
 
@@ -691,6 +698,7 @@ class ProgressTableV1:
             description: Custom description of the progress bar that will be shown as prefix.
             show_throughput: If True, the throughput will be displayed.
             show_progress: If True, the progress will be displayed.
+            show_percents: If True, the percentage of the progress will be displayed.
         """
         if isinstance(iterable, int):
             iterable = range(iterable, *range_args)
@@ -714,6 +722,7 @@ class ProgressTableV1:
             description=description,
             show_throughput=show_throughput if show_throughput is not None else self.pbar_show_throughput,
             show_progress=show_progress if show_progress is not None else self.pbar_show_progress,
+            show_percents=show_percents if show_percents is not None else self.pbar_show_percents,
         )
         self._active_pbars[level] = pbar
         return pbar
@@ -733,7 +742,7 @@ class ProgressTableV1:
 
 
 class TableProgressBar:
-    def __init__(self, iterable, *, table, total, level, refresh_rate, description, show_throughput, show_progress):
+    def __init__(self, iterable, *, table, total, level, refresh_rate, description, show_throughput, show_progress, show_percents):
         self.iterable: Iterable | None = iterable
 
         self._step: int = 0
@@ -745,8 +754,9 @@ class TableProgressBar:
         self.table: ProgressTableV1 = table
         self.refresh_rate: int = refresh_rate
         self.description: str = description
-        self.show_progress: bool = show_progress
         self.show_throughput: bool = show_throughput
+        self.show_progress: bool = show_progress
+        self.show_percents: bool = show_percents
         self._is_active: bool = True
         self._last_pbar_width = 0
 
@@ -771,6 +781,11 @@ class TableProgressBar:
                 inside_infobar.append(f"{self._step}/{self._total}")
             else:
                 inside_infobar.append(f"{self._step}")
+        if self.show_percents:
+            if self._total and self._total > 0:
+                inside_infobar.append(f"{100 * step / total: <.2f}%")
+            else:
+                inside_infobar.append(f"?%")
         if self.show_throughput:
             inside_infobar.append(f"{throughput: <.2f} it/s")
         infobar = "[" + ", ".join(inside_infobar) + "] " if inside_infobar else ""
