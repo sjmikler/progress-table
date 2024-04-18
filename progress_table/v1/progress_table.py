@@ -151,12 +151,16 @@ class ProgressTableV1:
         pbar_show_throughput: bool = True,
         pbar_show_progress: bool = True,
         pbar_show_percents: bool = False,
+        pbar_embedded: bool = True,
         print_row_on_update: bool = True,
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
         custom_cell_format: Callable[[Any], str] | None = None,
         table_style: str | Type[styles.StyleNormal] = "round",
         file=None,
+        # Deprecated arguments
+        custom_format: None = None,
+        embedded_progress_bar: None = None,
     ):
         """Progress Table instance.
 
@@ -199,6 +203,11 @@ class ProgressTableV1:
             pbar_show_throughput: Show throughput in the progress bar, for example `3.55 it/s`. Defaults to True.
             pbar_show_progress: Show progress in the progress bar, for example 10/40. Defaults to True.
             pbar_show_percents: Show percents in the progress bar, for example 25%. Defaults to False.
+            pbar_embedded: False by default. If True, changes the way the progress bar looks.
+                           Embedded version is more subtle, but does not prevent the current row
+                           from being displayed. If False, the progress bar covers the current
+                           row, preventing the user from seeing values that are being updated
+                           until the progress bar finishes.
             print_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
                                        If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
             custom_cell_format: A function that defines how to get str value to display from a cell content.
@@ -208,6 +217,14 @@ class ProgressTableV1:
             file: Redirect the output to another stream. There can be multiple streams at once passed as list or tuple.
                   Defaults to None, which is interpreted as stdout.
         """
+        # Deprecation handling
+        if custom_format is not None:
+            logging.warning("Argument `custom_format` is deprecated. Use `custom_cell_format` instead!")
+            if custom_cell_format is None:
+                custom_cell_format = custom_format
+        if embedded_progress_bar is not None:
+            logging.warning("Argument `embedded_progress_bar` is deprecated. Use `pbar_embedded` instead!")
+
         if isinstance(table_style, str):
             assert table_style in styles.PREDEFINED_STYLES, f"Style {table_style} unknown! Available: {' '.join(styles.PREDEFINED_STYLES)}"
             self.table_style = styles.PREDEFINED_STYLES[table_style]
@@ -261,7 +278,7 @@ class ProgressTableV1:
         assert self.interactive in (2, 1, 0)
 
         self._max_active_pbars = {2: 100, 1: 1, 0: 0}[interactive]
-        self._embed_progress_bar = False if interactive == 2 else True
+        self._pbar_embedded = pbar_embedded
         self._printing_buffer: list[str] = []
         self._renderer: Thread | None = None
 
@@ -296,7 +313,7 @@ class ProgressTableV1:
         """
         assert isinstance(name, str), f"Column name has to be a string, not {type(name)}!"
         if self.interactive < 2 and self._RENDERER_RUNNING:
-            raise Exception("Cannot add new columns when table display started if interactive < 2!")
+            logging.warning("Adding columns when table display started and interactive<2 - not recommended!")
 
         if name in self.column_names:
             logging.info(f"Column '{name}' already exists!")
@@ -424,7 +441,8 @@ class ProgressTableV1:
         if data_row_index not in self._display_rows:
             for element in self._latest_row_prefix:
                 self._append_or_update_display_row(element)
-            self._append_or_update_display_row(data_row_index)
+        # Refresh row is necessary to apply colors
+        self._append_or_update_display_row(data_row_index)
 
         # Color is applied to the existing row - not the new one!
         row.COLORS.update(self._resolve_row_color_dict(color))
@@ -437,7 +455,7 @@ class ProgressTableV1:
         elif split:
             self._latest_row_prefix.append("SPLIT MID")
 
-        # There's no renderer thread when interactive==0
+        # There's no renderer thread when interactive==0, so we force refresh after every row
         if self.interactive == 0:
             self._print_pending_rows_to_buffer()
             self._print_and_reset_buffer()
@@ -507,6 +525,9 @@ class ProgressTableV1:
                 self._print_pending_rows_to_buffer()
                 self._refresh_active_pbars()
                 self._print_and_reset_buffer()
+
+                # Clean-up pbars is necessary when displaying content shorter than the table
+                self._refresh_active_pbars(clean=True)
             time.sleep(idle_time)
 
     def _start_rendering(self):
@@ -706,11 +727,11 @@ class ProgressTableV1:
         if len(self._active_pbars) >= self._max_active_pbars:
             global NUM_PBAR_WARNED
             if not NUM_PBAR_WARNED:
-                logging.warning(f"Exceeding max open pbars={self._max_active_pbars} with interactivity={self.interactive}")
+                logging.warning(f"Exceeding max_active_pbars={self._max_active_pbars} with interactivity={self.interactive}")
             NUM_PBAR_WARNED = True
             return iter(iterable)
 
-        level = level if level is not None else (len(self._active_pbars) + 1 - self._embed_progress_bar)
+        level = level if level is not None else (len(self._active_pbars) + 1 - self._pbar_embedded)
         total = total if total is not None else (len(iterable) if isinstance(iterable, Sized) else 0)
 
         pbar = TableProgressBar(
@@ -758,7 +779,7 @@ class TableProgressBar:
         self.show_progress: bool = show_progress
         self.show_percents: bool = show_percents
         self._is_active: bool = True
-        self._last_pbar_width = 0
+        self._clearing_str: str = ""
 
     def display(self):
         assert self._is_active, "Progress bar was closed!"
@@ -778,16 +799,33 @@ class TableProgressBar:
             inside_infobar.append(self.description)
         if self.show_progress:
             if self._total:
-                inside_infobar.append(f"{self._step}/{self._total}")
+                str_total = str(self._total)
+                str_step = str(self._step).rjust(len(str(self._total - 1)))
+                inside_infobar.append(f"{str_step}/{str_total}")
             else:
                 inside_infobar.append(f"{self._step}")
+
         if self.show_percents:
             if self._total and self._total > 0:
-                inside_infobar.append(f"{100 * step / total: <.2f}%")
+                if step / total < 0.1:
+                    percents_str = f"{100 * step / total: <.2f}%"
+                elif step / total < 1:
+                    percents_str = f"{100 * step / total: <.1f}%"
+                else:
+                    percents_str = f"{100 * step / total: <.0f}%"
             else:
-                inside_infobar.append(f"?%")
+                percents_str = "?%"
+            inside_infobar.append(percents_str)
+
         if self.show_throughput:
-            inside_infobar.append(f"{throughput: <.2f} it/s")
+            if throughput < 10:
+                throughput_str = f"{throughput: <.2f} it/s"
+            elif throughput < 100:
+                throughput_str = f"{throughput: <.1f} it/s"
+            else:
+                throughput_str = f"{throughput: <.0f} it/s"
+
+            inside_infobar.append(throughput_str)
         infobar = "[" + ", ".join(inside_infobar) + "] " if inside_infobar else ""
 
         pbar = ["\n" * self.level]
@@ -795,6 +833,9 @@ class TableProgressBar:
             tot_width = sum(self.table.column_widths.values()) + 3 * (len(self.table.column_widths) - 1) + 2
             if tot_width >= terminal_width - 1:
                 tot_width = terminal_width - 2
+
+            if len(infobar) > tot_width:
+                infobar = "[…] "
 
             tot_width = tot_width - len(infobar)
             if not self._total:
@@ -814,16 +855,19 @@ class TableProgressBar:
                 ]
             )
             pbar.append(pbar_body)
-            self._last_pbar_width = len(pbar_body)
+            self._clearing_str = " " * len(pbar_body)
         else:
+            # Embedded progress bar doesn't make sense without any data rows
             if not self.table._display_rows or not isinstance(self.table._display_rows[-1], int):
                 return
 
             row_idx = self.table._display_rows[-1]
             row = self.table._data_rows[row_idx]
-            row_str = self.table._get_row_str(row, colored=False)
-            pbar_body_elements = [row_str[:2], infobar]
+            orig_row_str = row_str = self.table._get_row_str(row, colored=False)
+            if len(infobar) > len(orig_row_str):
+                infobar = "[…] "
 
+            pbar_body_elements = [row_str[:2], infobar]
             row_str = row_str[2 + len(infobar) :]
             if not self._total:  # When total is unknown
                 total = len(row_str)
@@ -845,12 +889,11 @@ class TableProgressBar:
             pbar_body_elements.append(Style.RESET_ALL)
             pbar_body = "".join(pbar_body_elements)
             pbar.append(pbar_body)
-            self._last_pbar_width = len(pbar_body)
         pbar.append(CURSOR_UP * self.level)
         self.table._print_to_buffer("".join(pbar))
 
     def cleanup(self):
-        pbar = ["\n" * self.level, " " * self._last_pbar_width, CURSOR_UP * self.level]
+        pbar = ["\n" * self.level, self._clearing_str, CURSOR_UP * self.level]
         self.table._print_to_buffer("".join(pbar))
 
     def update(self, n=1):
