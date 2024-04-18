@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import logging
 import math
+import os
 import shutil
 import sys
 import time
@@ -140,7 +141,7 @@ class ProgressTableV1:
     def __init__(
         self,
         columns: tuple | list = (),
-        interactive: int = 2,
+        interactive: int = os.environ.get("PTABLE_INTERACTIVE", 2),
         refresh_rate: int = 20,
         num_decimal_places: int = 4,
         default_column_width: int | None = None,
@@ -282,7 +283,7 @@ class ProgressTableV1:
         assert self.interactive in (2, 1, 0)
 
         self._pbar_embedded = pbar_embedded or True if self.interactive < 2 else False
-        self._max_active_pbars = {2: 100, 1: 1, 0: 0}[interactive]
+        self._max_active_pbars = {2: 100, 1: 1, 0: 0}[self.interactive]
         self._printing_buffer: list[str] = []
         self._renderer: Thread | None = None
 
@@ -316,9 +317,6 @@ class ProgressTableV1:
                        displayed. Aggregated values is reset at every new row.
         """
         assert isinstance(name, str), f"Column name has to be a string, not {type(name)}!"
-        if self.interactive < 2 and self._RENDERER_RUNNING:
-            logging.warning("Adding columns when table display started and interactive<2 - not recommended!")
-
         if name in self.column_names:
             logging.info(f"Column '{name}' already exists!")
         else:
@@ -598,7 +596,11 @@ class ProgressTableV1:
         self._move_cursor_in_buffer(-1)
 
     def _set_all_display_rows_as_pending(self):
-        self._pending_display_rows = list(range(len(self._display_rows)))
+        # Only interactivity=2 allows to modify already existing rows
+        if self.interactive >= 2:
+            self._pending_display_rows = list(range(len(self._display_rows)))
+        else:
+            self._pending_display_rows = [len(self._display_rows) - 1]
 
     def _print_pending_rows_to_buffer(self):
         self._print_selected_rows_to_buffer(self._pending_display_rows)
