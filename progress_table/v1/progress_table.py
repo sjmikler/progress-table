@@ -102,7 +102,7 @@ def maybe_convert_to_colorama_str(color: str) -> str:
 
 
 def maybe_convert_to_colorama(color: ColorFormat) -> str:
-    if color is None:
+    if color is None or color == "":
         return ""
     if isinstance(color, str):
         color = color.split(" ")
@@ -151,8 +151,7 @@ class ProgressTableV1:
         pbar_show_throughput: bool = True,
         pbar_show_progress: bool = True,
         pbar_show_percents: bool = False,
-        pbar_embedded: bool = True,
-        print_row_on_update: bool = True,
+        pbar_embedded: bool | None = None,
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
         custom_cell_format: Callable[[Any], str] | None = None,
@@ -161,6 +160,7 @@ class ProgressTableV1:
         # Deprecated arguments
         custom_format: None = None,
         embedded_progress_bar: None = None,
+        print_row_on_update: None = None,
     ):
         """Progress Table instance.
 
@@ -185,8 +185,7 @@ class ProgressTableV1:
                          On level 1 you can only operate on the current row, the old rows are frozen, but you still get
                          to use a progress bar, albeit not nested. On level 0 there are no progress bars and rows are only
                          printed after calling `next_row`.
-            refresh_rate: The maximal number of times per second the last row of the Table will be refreshed.
-                          This applies only when using Progress Bar or when `print_row_on_update = True`.
+            refresh_rate: The maximal number of times per second the renderer will render updates in the table.
             num_decimal_places: This is only applicable when using the default formatting.
                                 This won't be used if `custom_cell_repr` is set.
                                 If applicable, for every displayed value except integers there will be an attempt to round it.
@@ -203,11 +202,10 @@ class ProgressTableV1:
             pbar_show_throughput: Show throughput in the progress bar, for example `3.55 it/s`. Defaults to True.
             pbar_show_progress: Show progress in the progress bar, for example 10/40. Defaults to True.
             pbar_show_percents: Show percents in the progress bar, for example 25%. Defaults to False.
-            pbar_embedded: False by default. If True, changes the way the progress bar looks.
-                           Embedded version is more subtle, but does not prevent the current row
-                           from being displayed. If False, the progress bar covers the current
-                           row, preventing the user from seeing values that are being updated
-                           until the progress bar finishes.
+            pbar_embedded: If True, changes the way the progress bar looks.
+                           Embedded version is more subtle, but does not prevent the current row from being displayed.
+                           If False, the progress bar covers the current row, preventing the user from seeing values
+                           that are being updated until the progress bar finishes. The default depends on interactivity.
             print_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
                                        If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
             custom_cell_format: A function that defines how to get str value to display from a cell content.
@@ -224,6 +222,12 @@ class ProgressTableV1:
                 custom_cell_format = custom_format
         if embedded_progress_bar is not None:
             logging.warning("Argument `embedded_progress_bar` is deprecated. Use `pbar_embedded` instead!")
+            if pbar_embedded is None:
+                pbar_embedded = embedded_progress_bar
+        if print_row_on_update is not None:
+            logging.warning("Argument `print_row_on_update` is deprecated. Use `refresh_rate` instead!")
+            if refresh_rate is None:
+                refresh_rate = 20 if print_row_on_update else 0
 
         if isinstance(table_style, str):
             assert table_style in styles.PREDEFINED_STYLES, f"Style {table_style} unknown! Available: {' '.join(styles.PREDEFINED_STYLES)}"
@@ -277,8 +281,8 @@ class ProgressTableV1:
         self.interactive = int(interactive)
         assert self.interactive in (2, 1, 0)
 
+        self._pbar_embedded = pbar_embedded or True if self.interactive < 2 else False
         self._max_active_pbars = {2: 100, 1: 1, 0: 0}[interactive]
-        self._pbar_embedded = pbar_embedded
         self._printing_buffer: list[str] = []
         self._renderer: Thread | None = None
 
@@ -701,6 +705,7 @@ class ProgressTableV1:
         iterable: Iterable | int,
         *range_args,
         level=None,
+        color="",
         total=None,
         refresh_rate=None,
         description="",
@@ -714,6 +719,7 @@ class ProgressTableV1:
             iterable: Iterable to iterate over. If None, it will be created from as range(iterable, *range_args).
             range_args: Optional arguments for range function.
             level: Level of the progress bar. If not provided, it will be set automatically.
+            color: Color of the progress bar.
             total: Total number of iterations. If not provided, it will be calculated from the length of the iterable.
             refresh_rate: The maximal number of times per second the progress bar will be refreshed.
             description: Custom description of the progress bar that will be shown as prefix.
@@ -739,6 +745,7 @@ class ProgressTableV1:
             table=self,
             total=total,
             level=level,
+            color=color,
             refresh_rate=refresh_rate if refresh_rate is not None else self.refresh_rate,
             description=description,
             show_throughput=show_throughput if show_throughput is not None else self.pbar_show_throughput,
@@ -763,7 +770,20 @@ class ProgressTableV1:
 
 
 class TableProgressBar:
-    def __init__(self, iterable, *, table, total, level, refresh_rate, description, show_throughput, show_progress, show_percents):
+    def __init__(
+        self,
+        iterable,
+        *,
+        table,
+        total,
+        level,
+        color,
+        refresh_rate,
+        description,
+        show_throughput,
+        show_progress,
+        show_percents,
+    ):
         self.iterable: Iterable | None = iterable
 
         self._step: int = 0
@@ -772,6 +792,7 @@ class TableProgressBar:
         self._last_refresh_time: float = -float("inf")
 
         self.level: int = level
+        self.color: str = maybe_convert_to_colorama(color)
         self.table: ProgressTableV1 = table
         self.refresh_rate: int = refresh_rate
         self.description: str = description
@@ -849,7 +870,9 @@ class TableProgressBar:
                 [
                     self.table.table_style.vertical,
                     infobar,
+                    self.color,
                     self.table.table_style.pbar_filled * num_filled,
+                    Style.RESET_ALL if self.color else "",
                     self.table.table_style.pbar_empty * num_empty,
                     self.table.table_style.vertical,
                 ]
@@ -873,7 +896,8 @@ class TableProgressBar:
                 total = len(row_str)
                 step = self._step % total
 
-            pbar_body_elements.append(Style.BRIGHT)
+            if self.color:
+                pbar_body_elements.append(self.color)
             for letter_idx, letter in enumerate(row_str):
                 is_bar = letter_idx / len(row_str) <= (step / total) % (1 + EPS)
                 is_head = (letter_idx - 1) / len(row_str) <= (step / total) % (1 + EPS)
@@ -882,7 +906,7 @@ class TableProgressBar:
                 if letter == " " and is_head:
                     letter = self.table.table_style.embedded_pbar_head
 
-                if not is_bar and not is_head:
+                if self.color and not is_bar and not is_head:
                     pbar_body_elements.append(Style.RESET_ALL)
                 pbar_body_elements.append(letter)
 
