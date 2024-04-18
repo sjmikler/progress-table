@@ -548,6 +548,10 @@ class ProgressTableV1:
         if isinstance(element, int):
             if element not in self._display_rows:
                 self._display_rows.append(element)
+            elif self.interactive < 2:
+                # Cannot edit existing rows for interactive<2
+                return
+
             display_index = self._display_rows.index(element)
             self._pending_display_rows.append(display_index)
             return
