@@ -1,15 +1,6 @@
-> Note: versions 1.X introduced new features and changes of default behaviour.
+> Versions 2.X introduce new features and new interactive modes.
 >
-> The old version is still available as `progress_table.ProgressTableV0`.
->
-> New features include:
-> * Nested progress bar support
-> * Custom table styles support
-> * Color customization on row level support
-> * Adding columns automatically, without calling `add_column`
-> * Continuous progress bar when iterator length is unknown
-> * Pandas and numpy being only optional dependencies
-> * Other minor changes
+> New features allow for previously impossible applications: see examples at the end.
 
 # Progress Table
 
@@ -17,92 +8,74 @@
 [![PyPI license](https://img.shields.io/badge/dynamic/json?label=license&query=info.license&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
 
 Lightweight utility to display the progress of your process as a pretty table in the command line.
-Alternative to TQDM whenever you want to track metrics produced by your process.
 
-![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-table-example.png?raw=true)
+* Alternative to TQDM whenever you want to track metrics produced by your process
+* Designed to monitor ML experiments, but works for any metrics-producing process
+* Allows you to see at a glance what's going on with your process
+* Increases readability and simplifies your command line logging
 
-Designed to monitor machine learning experiments, but can be used for any metrics-producing process.
-Allows you to quickly see what's going on with your process.
-Increases readability and simplifies your command line logging.
-
-## Purpose
-
-Change this:
+### Change this:
 
 ![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-before3.gif?raw=true)
 
-Into this:
+### Into this:
 
 ![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-after4.gif?raw=true)
 
-## Example
+## Examples
 
-> Click here for examples of integration with deep learning libraries:
-> [integrations.md](https://github.com/gahaalt/progress-table/blob/main/integrations.md).
+* Neural network training
+
+![example-training](images/examples-training.gif)
+
+* Simulation and interactive display of Brownian motion
+
+![example-brown2d](images/examples-brown2d.gif)
+
+* Display of a game board
+
+![example-tictactoe](images/examples-tictactoe.gif)
+
+## Quick start code
 
 ```python
 import random
-import sys
 import time
 
 from progress_table import ProgressTable
 
 # Create table object:
-table = ProgressTable()
+table = ProgressTable(num_decimal_places=1)
 
-# Or customize its settings:
-table = ProgressTable(
-    columns=["step"],
-    interactive=2,
-    refresh_rate=20,
-    num_decimal_places=4,
-    default_column_width=None,
-    default_column_color=None,
-    default_column_alignment=None,
-    default_column_aggregate=None,
-    default_row_color=None,
-    pbar_show_throughput=True,
-    pbar_show_progress=False,
-    print_row_on_update=True,
-    print_header_every_n_rows=30,
-    table_style="round",
-    file=sys.stdout,
-)
-
-# You (optionally) define the columns at the beginning
-table.add_column("x", width=3)
-table.add_column("x root", color="red")
-table.add_column("random average", color=["bright", "red"], aggregate="mean")
+# You can (optionally) define the columns at the beginning
+table.add_column("x", color="bold red")
 
 for step in range(10):
     x = random.randint(0, 200)
 
-    # There are two ways to add new values:
+    # You can add entries in a compact way
     table["x"] = x
-    table["step"] = step
-    # Second:
-    table.update("x root", x ** 0.5)
-    table.update("x squared", x ** 2)
 
-    # Display the progress bar by wrapping the iterator
+    # Or you can use the update method
+    table.update("x", value=x, weight=1.0)
+
+    # Display the progress bar by wrapping an iterator or an integer
     for _ in table(10):  # -> Equivalent to `table(range(10))`
-        # You can use weights for aggregated values
-        table.update("random average", random.random(), weight=1)
+        # Set and get values from the table
+        table["y"] = random.randint(0, 200)
+        table["x-y"] = table["x"] - table["y"]
+        table.update("average x-y", value=table["x-y"], weight=1.0, aggregate="mean")
         time.sleep(0.1)
 
     # Go to the next row when you're ready
     table.next_row()
 
-# Close the table when it's ready
+# Close the table when it's finished
 table.close()
-
-# Export your data
-data = table.to_list()
-pandas_df = table.to_df()  # Requires pandas to be installed
-np_array = table.to_numpy()  # Requires numpy to be installed
 ```
 
-![example](https://github.com/gahaalt/progress-table/blob/main/images/example-output4.gif?raw=true)
+> Click here for examples of integration with deep learning libraries:
+> [integrations.md](https://github.com/gahaalt/progress-table/blob/main/integrations.md).
 
 ## Installation
 
