@@ -152,6 +152,7 @@ class ProgressTableV1:
         pbar_show_throughput: bool = True,
         pbar_show_progress: bool = True,
         pbar_show_percents: bool = False,
+        pbar_show_eta: bool = False,
         pbar_embedded: bool | None = None,
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
@@ -203,6 +204,7 @@ class ProgressTableV1:
             pbar_show_throughput: Show throughput in the progress bar, for example `3.55 it/s`. Defaults to True.
             pbar_show_progress: Show progress in the progress bar, for example 10/40. Defaults to True.
             pbar_show_percents: Show percents in the progress bar, for example 25%. Defaults to False.
+            pbar_show_eta: Show estimated time of finishing in the progress bar, for example 10s. Defaults to False.
             pbar_embedded: If True, changes the way the progress bar looks.
                            Embedded version is more subtle, but does not prevent the current row from being displayed.
                            If False, the progress bar covers the current row, preventing the user from seeing values
@@ -273,6 +275,7 @@ class ProgressTableV1:
         self.pbar_show_throughput: bool = pbar_show_throughput
         self.pbar_show_progress: bool = pbar_show_progress
         self.pbar_show_percents: bool = pbar_show_percents
+        self.pbar_show_eta: bool = pbar_show_eta
         self.refresh_rate: int = refresh_rate
 
         self._CURSOR_ROW = 0
@@ -470,6 +473,9 @@ class ProgressTableV1:
 
     def num_rows(self):
         return len(self._data_rows)
+
+    def num_columns(self):
+        return len(self.column_names)
 
     def close(self):
         # Closing opened table
@@ -718,6 +724,7 @@ class ProgressTableV1:
         show_throughput=None,
         show_progress=None,
         show_percents=None,
+        show_eta=None,
     ):
         """Create iterable progress bar object.
 
@@ -732,6 +739,7 @@ class ProgressTableV1:
             show_throughput: If True, the throughput will be displayed.
             show_progress: If True, the progress will be displayed.
             show_percents: If True, the percentage of the progress will be displayed.
+            show_eta: If True, the estimated time of finishing will be displayed.
         """
         if isinstance(iterable, int):
             iterable = range(iterable, *range_args)
@@ -757,6 +765,7 @@ class ProgressTableV1:
             show_throughput=show_throughput if show_throughput is not None else self.pbar_show_throughput,
             show_progress=show_progress if show_progress is not None else self.pbar_show_progress,
             show_percents=show_percents if show_percents is not None else self.pbar_show_percents,
+            show_eta=show_eta if show_eta is not None else self.pbar_show_eta,
         )
         self._active_pbars[level] = pbar
         return pbar
@@ -789,6 +798,7 @@ class TableProgressBar:
         show_throughput,
         show_progress,
         show_percents,
+        show_eta,
     ):
         self.iterable: Iterable | None = iterable
 
@@ -805,6 +815,7 @@ class TableProgressBar:
         self.show_throughput: bool = show_throughput
         self.show_progress: bool = show_progress
         self.show_percents: bool = show_percents
+        self.show_eta: bool = show_eta
         self._is_active: bool = True
         self._clearing_str: str = ""
 
@@ -820,20 +831,21 @@ class TableProgressBar:
         self._last_refresh_time = time.perf_counter()
         time_passed = self._last_refresh_time - self._creation_time
         throughput = self._step / time_passed if time_passed > 0 else 0.0
+        eta = (total - step) / throughput if throughput > 0 and total else None
 
         inside_infobar = []
         if self.description:
             inside_infobar.append(self.description)
         if self.show_progress:
-            if self._total:
-                str_total = str(self._total)
-                str_step = str(self._step).rjust(len(str(self._total - 1)))
+            if total:
+                str_total = str(total)
+                str_step = str(self._step).rjust(len(str(total - 1)))
                 inside_infobar.append(f"{str_step}/{str_total}")
             else:
                 inside_infobar.append(f"{self._step}")
 
         if self.show_percents:
-            if self._total and self._total > 0:
+            if total and total > 0:
                 if step / total < 0.1:
                     percents_str = f"{100 * step / total: <.2f}%"
                 elif step / total < 1:
@@ -853,6 +865,20 @@ class TableProgressBar:
                 throughput_str = f"{throughput: <.0f} it/s"
 
             inside_infobar.append(throughput_str)
+
+        if self.show_eta:
+            if eta is None:
+                inside_infobar.append("ETA ?")
+            elif eta < 60:
+                eta_str = f"ETA {eta:>2.0f}s"
+                inside_infobar.append(eta_str)
+            elif eta < 3600:
+                eta_str = f"ETA {eta / 60:>2.0f}m"
+                inside_infobar.append(eta_str)
+            else:
+                eta_str = f"ETA {eta / 3600:>2.0f}h"
+                inside_infobar.append(eta_str)
+
         infobar = "[" + ", ".join(inside_infobar) + "] " if inside_infobar else ""
 
         pbar = ["\n" * self.level]
@@ -865,9 +891,8 @@ class TableProgressBar:
                 infobar = "[…] "
 
             tot_width = tot_width - len(infobar)
-            if not self._total:
-                total = tot_width
-                step = self._step % total
+            if not total:
+                step = self._step % tot_width
 
             num_filled = math.ceil(step / total * tot_width)
             num_empty = tot_width - num_filled
@@ -898,9 +923,8 @@ class TableProgressBar:
 
             pbar_body_elements = [row_str[:2], infobar]
             row_str = row_str[2 + len(infobar) :]
-            if not self._total:  # When total is unknown
-                total = len(row_str)
-                step = self._step % total
+            if not total:  # When total is unknown
+                step = self._step % len(row_str)
 
             if self.color:
                 pbar_body_elements.append(self.color)
@@ -953,6 +977,7 @@ class TableAtIndexer:
         self.edit_mode_prefix_map = {}
         for word in ("VALUES", "WEIGHTS", "COLORS"):
             self.edit_mode_prefix_map.update({word[:i]: word for i in range(1, len(word))})
+            self.edit_mode_prefix_map.update({word[:i].lower(): word for i in range(1, len(word))})
 
     def parse_index(self, key) -> tuple[slice, slice, str]:
         try:
