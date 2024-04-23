@@ -1,6 +1,6 @@
-> Versions 2.X introduce new features and new interactive modes.
+> Version 2.X introduces new features and a new interactive modes.
 >
-> New features allow for previously impossible applications: see examples at the end.
+> New features allow for previously impossible applications, see examples below.
 
 # Progress Table
 
