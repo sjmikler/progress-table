@@ -40,6 +40,7 @@ def shift_by_one(table, last_row_color):
 
 def main(**overrides):
     table = ProgressTable(
+        pbar_embedded=False,
         **overrides,
     )
 

@@ -153,7 +153,7 @@ class ProgressTableV1:
         pbar_show_progress: bool = True,
         pbar_show_percents: bool = False,
         pbar_show_eta: bool = False,
-        pbar_embedded: bool | None = None,
+        pbar_embedded: bool = True,
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
         custom_cell_format: Callable[[Any], str] | None = None,
@@ -205,10 +205,10 @@ class ProgressTableV1:
             pbar_show_progress: Show progress in the progress bar, for example 10/40. Defaults to True.
             pbar_show_percents: Show percents in the progress bar, for example 25%. Defaults to False.
             pbar_show_eta: Show estimated time of finishing in the progress bar, for example 10s. Defaults to False.
-            pbar_embedded: If True, changes the way the progress bar looks.
+            pbar_embedded: If True, changes the way the first (non-nested) progress bar looks.
                            Embedded version is more subtle, but does not prevent the current row from being displayed.
                            If False, the progress bar covers the current row, preventing the user from seeing values
-                           that are being updated until the progress bar finishes. The default depends on interactivity.
+                           that are being updated until the progress bar finishes. The default is True.
             print_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
                                        If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
             custom_cell_format: A function that defines how to get str value to display from a cell content.
@@ -221,16 +221,10 @@ class ProgressTableV1:
         # Deprecation handling
         if custom_format is not None:
             logging.warning("Argument `custom_format` is deprecated. Use `custom_cell_format` instead!")
-            if custom_cell_format is None:
-                custom_cell_format = custom_format
         if embedded_progress_bar is not None:
             logging.warning("Argument `embedded_progress_bar` is deprecated. Use `pbar_embedded` instead!")
-            if pbar_embedded is None:
-                pbar_embedded = embedded_progress_bar
         if print_row_on_update is not None:
-            logging.warning("Argument `print_row_on_update` is deprecated. Use `refresh_rate` instead!")
-            if refresh_rate is None:
-                refresh_rate = 20 if print_row_on_update else 0
+            logging.warning("Argument `print_row_on_update` is deprecated. Specify `interactive` instead!")
 
         if isinstance(table_style, str):
             assert table_style in styles.PREDEFINED_STYLES, f"Style {table_style} unknown! Available: {' '.join(styles.PREDEFINED_STYLES)}"
@@ -276,6 +270,8 @@ class ProgressTableV1:
         self.pbar_show_progress: bool = pbar_show_progress
         self.pbar_show_percents: bool = pbar_show_percents
         self.pbar_show_eta: bool = pbar_show_eta
+        self.pbar_embedded: bool = pbar_embedded
+
         self.refresh_rate: int = refresh_rate
 
         self._CURSOR_ROW = 0
@@ -285,7 +281,6 @@ class ProgressTableV1:
         self.interactive = int(interactive)
         assert self.interactive in (2, 1, 0)
 
-        self._pbar_embedded = pbar_embedded or True if self.interactive < 2 else False
         self._max_active_pbars = {2: 100, 1: 1, 0: 0}[self.interactive]
         self._printing_buffer: list[str] = []
         self._renderer: Thread | None = None
@@ -751,7 +746,7 @@ class ProgressTableV1:
             NUM_PBAR_WARNED = True
             return iter(iterable)
 
-        level = level if level is not None else (len(self._active_pbars) + 1 - self._pbar_embedded)
+        level = level if level is not None else (len(self._active_pbars) + 1 - self.pbar_embedded)
         total = total if total is not None else (len(iterable) if isinstance(iterable, Sized) else 0)
 
         pbar = TableProgressBar(

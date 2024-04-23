@@ -56,6 +56,7 @@ def model_grads(targets, logits, inputs):
 
 def main(**overrides):
     table = ProgressTable(
+        pbar_embedded=False,
         **overrides,
     )
 

@@ -12,6 +12,7 @@ SLEEP = 0.05
 
 def main(**overrides):
     table = ProgressTable(
+        pbar_embedded=False,
         default_column_width=1,
         print_header_on_top=False,
         **overrides,
