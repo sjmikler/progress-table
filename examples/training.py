@@ -1,17 +1,25 @@
 #  Copyright (c) 2022-2024 Szymon Mikler
 
+import random
 import time
 
-import numpy as np
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
-from sklearn.utils import shuffle
+try:
+    import numpy as np
+except ImportError:
+    raise ImportError("Numpy is required to run this example. Run: pip install numpy.")
+
+try:
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+    from sklearn.utils import shuffle
+except ImportError:
+    raise ImportError("Scikit-learn is required to run this example. Run: pip install scikit-learn.")
 
 from progress_table import ProgressTable
 
 # Training parameters
 SGD_LR = 0.01
-NUM_EPOCHS = 15
+NUM_EPOCHS = 20
 
 
 def softmax(x):
@@ -26,7 +34,7 @@ def log_softmax(x):
 
 def cross_entropy_loss(targets, logits):
     # Simulate heavy computation
-    time.sleep(0.1)
+    time.sleep(0.025)
 
     assert len(targets) == len(logits)
     num_elements = len(targets)
@@ -51,18 +59,27 @@ def main(**overrides):
         **overrides,
     )
 
+    print("Training a simple linear model on the Iris dataset.")
+    random.seed(7)
+    np.random.seed(7)
+
     # Loading dataset
     X, Y = load_iris(return_X_y=True)
     X_train, X_valid, Y_train, Y_valid = train_test_split(X, Y)
-
     weights = np.random.rand(4, 3)
 
-    for epoch in table(NUM_EPOCHS, show_throughput=False, show_progress=False, show_percents=True):
+    for epoch in table(
+        NUM_EPOCHS,
+        show_throughput=False,
+        show_progress=False,
+        show_percents=True,
+        show_eta=True,
+    ):
         table["epoch"] = epoch
         # Shuffling training dataset each epoch
         X_train, Y_train = shuffle(X_train, Y_train)
 
-        NUM_BATCHES = 8
+        NUM_BATCHES = 16
         X_batches = np.array_split(X_train, NUM_BATCHES)
         Y_batches = np.array_split(Y_train, NUM_BATCHES)
 
@@ -84,7 +101,7 @@ def main(**overrides):
 
         run_validation = epoch % 5 == 4 or epoch == NUM_EPOCHS - 1
         if run_validation:
-            NUM_BATCHES = 4
+            NUM_BATCHES = 32
             X_batches = np.array_split(X_valid, NUM_BATCHES)
             Y_batches = np.array_split(Y_valid, NUM_BATCHES)
 

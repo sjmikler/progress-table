@@ -17,6 +17,9 @@ def main(**overrides):
         **overrides,
     )
 
+    print("Two players are playing tic-tac-toe.")
+    print(f"The first to get a streak of {STREAK_LENGTH} wins.")
+
     # Column names don't matter for this example
     table.add_columns(*[str(i) for i in range(BOARD_SIZE)])
 

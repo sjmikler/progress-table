@@ -11,6 +11,33 @@ def calc_distance(pos):
     return (pos[0] ** 2 + pos[1] ** 2) ** 0.5
 
 
+def get_color(distance):
+    if distance < 20:
+        return "white"
+    elif distance < 40:
+        return "cyan"
+    elif distance < 60:
+        return "blue"
+    elif distance < 80:
+        return "magenta"
+    elif distance < 100:
+        return "red"
+    else:
+        return "yellow bold"
+
+
+def shift_by_one(table, last_row_color):
+    num_rows = table.num_rows()
+    num_columns = table.num_columns()
+
+    for row in range(num_rows - 1):
+        for col in range(num_columns):
+            table.at[row, col] = table.at[row + 1, col]
+            table.at[row, col, "color"] = table.at[row + 1, col, "color"]
+    for col in range(num_columns):
+        table.at[-2, col, "color"] = last_row_color
+
+
 def main(**overrides):
     table = ProgressTable(
         **overrides,
@@ -22,15 +49,16 @@ def main(**overrides):
     PARTICLE_MOMENTUM = 0.999
 
     SLEEP = 0.001
-    MAX_ROWS = 30
+    MAX_ROWS = 20
+    STEP_SIZE = 100
 
     distance_pbar = table.pbar(TARGET_DISTANCE, description="Distance", show_throughput=False, show_progress=True)
 
     current_position = (0, 0)
     current_velocity = PARTICLE_VELOCITY
 
-    print("Simulating brownian motions!")
-    print(f"Simulation will end when {TARGET_DISTANCE} distance is exceeded!")
+    print("Particle will move randomly in 2D space.")
+    print(f"Simulation stops when it reaches distance of {TARGET_DISTANCE} from the center.")
 
     tick = 0
     while calc_distance(current_position) < TARGET_DISTANCE:
@@ -43,20 +71,27 @@ def main(**overrides):
 
         row = tick % MAX_ROWS
         tick += 1
-        table["tick", row] = tick
-        table["velocity", row] = current_velocity
-        table["position X", row] = current_position[0]
-        table["position Y", row] = current_position[1]
-        table["distance from center", row] = distance_from_center
+        table["tick"] = tick
+        table["velocity"] = current_velocity
+        table["position X"] = current_position[0]
+        table["position Y"] = current_position[1]
+        table["distance from center"] = distance_from_center
         distance_pbar.reset(total=int(distance_from_center))
 
-        if table.num_rows() < MAX_ROWS:
-            table.next_row()
+        if tick % STEP_SIZE == 0:
+            color = get_color(distance_from_center)
+            if table.num_rows() > MAX_ROWS:
+                shift_by_one(table, last_row_color=color)
+            else:
+                table.next_row(color=color)
+
         time.sleep(SLEEP)
 
-    row = (tick - 1) % MAX_ROWS
-    table.at[:row, :, "C"] = "blue"
-    table.at[row, :, "C"] = "blue bold"
+    # row = (tick - 1) % MAX_ROWS
+    # table.at[:row, :, "C"] = "blue"
+    # table.at[row, :, "C"] = "blue bold"
+    color = get_color(100)
+    table.next_row(color=color)
     table.close()
 
 
