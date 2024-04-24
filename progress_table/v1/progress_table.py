@@ -36,7 +36,10 @@ ColorFormatTuple = (str, tuple, list, NoneType)
 
 EPS = 1e-9
 CURSOR_UP = "\033[A"
-NUM_PBAR_WARNED = False
+
+# Flags that indicate if the warning was already triggered
+WARNED_PBAR_HIDDEN = False
+WARNED_PBAR_NOT_EMBEDDED = False
 
 ################
 ## V2 version ##
@@ -261,7 +264,7 @@ class ProgressTableV1:
         self._data_rows: list[DATA_ROW] = []
         self._display_rows: list[str | int] = []
         self._pending_display_rows: list[int] = []
-        self._active_pbars: dict[int, TableProgressBar] = {}
+        self._active_pbars: list[TableProgressBar] = []
         self._latest_row_decorations: list = ["SPLIT TOP"]
         if self._print_header_on_top:
             self._latest_row_decorations.append("HEADER")
@@ -283,7 +286,6 @@ class ProgressTableV1:
         self.interactive = int(interactive)
         assert self.interactive in (2, 1, 0)
 
-        self._max_active_pbars = {2: 100, 1: 1, 0: 0}[self.interactive]
         self._printing_buffer: list[str] = []
         self._renderer: Thread | None = None
 
@@ -306,7 +308,7 @@ class ProgressTableV1:
     ):
         """Add column to the table.
 
-        You can re-add an existing column to modify its properties.
+        You can re-add existing columns to modify their properties.
 
         Args:
             name: Name of the column. Will be displayed in the header.
@@ -451,11 +453,11 @@ class ProgressTableV1:
         row = self._data_rows[-1]
         data_row_index = len(self._data_rows) - 1
 
-        # Refresh row is necessary to apply colors
-        self._append_or_update_display_row(data_row_index)
-
         # Color is applied to the existing row - not the new one!
         row.COLORS.update(self._resolve_row_color_dict(color))
+
+        # Refresh row is necessary to apply colors
+        self._append_or_update_display_row(data_row_index)
 
         self._append_new_empty_data_row()
         self._latest_row_decorations = []
@@ -468,7 +470,7 @@ class ProgressTableV1:
         # There's no renderer thread when interactive==0, so we force refresh after every row
         if self.interactive == 0:
             self._print_pending_rows_to_buffer()
-            self._print_and_reset_buffer()
+            self._flush_buffer()
 
     def add_row(self, *values, **kwds):
         """Mimicking rich.table behavior for adding whole rows in one call without providing names."""
@@ -509,7 +511,7 @@ class ProgressTableV1:
 
         self._print_pending_rows_to_buffer()
         self._printing_buffer.append("\n")
-        self._print_and_reset_buffer()
+        self._flush_buffer()
         self._freeze_view()
         self._closed = True
 
@@ -553,7 +555,7 @@ class ProgressTableV1:
             if self._display_rows:
                 self._print_pending_rows_to_buffer()
                 self._refresh_active_pbars()
-                self._print_and_reset_buffer()
+                self._flush_buffer()
 
                 # Clean-up pbars is necessary when displaying content shorter than the table
                 self._refresh_active_pbars(clean=True)
@@ -581,10 +583,9 @@ class ProgressTableV1:
                 for decoration in self._latest_row_decorations:
                     self._append_or_update_display_row(decoration)
                 self._latest_row_decorations = []
-
                 self._display_rows.append(element)
-            elif self.interactive < 2:
-                # Cannot modify existing rows for interactive<2
+            elif element != len(self._data_rows) - 1 and self.interactive < 2:
+                # Won't refresh existing rows for interactive<2
                 return
 
             display_index = self._display_rows.index(element)
@@ -630,16 +631,23 @@ class ProgressTableV1:
             else:
                 raise ValueError(f"Unknown item: {item}")
 
+            # Cannot use CURSOR_UP when interactivity is less than 2
+            offset = self._CURSOR_ROW - row_index
+            if self.interactive < 2 and offset > 0:
+                continue
+
             self._move_cursor_in_buffer(row_index)
             self._print_to_buffer(row_str)
         self._move_cursor_in_buffer(-1)
 
     def _set_all_display_rows_as_pending(self):
         # Only interactivity=2 allows to modify already existing rows
-        if self.interactive >= 2:
+        if self.interactive == 2:
             self._pending_display_rows = list(range(len(self._display_rows)))
         else:
-            self._pending_display_rows = [len(self._display_rows) - 1]
+            last_row_index = len(self._data_rows) - 1
+            if last_row_index not in self._pending_display_rows:
+                self._pending_display_rows.append(last_row_index)
 
     def _print_pending_rows_to_buffer(self):
         self._print_selected_rows_to_buffer(self._pending_display_rows)
@@ -696,7 +704,7 @@ class ProgressTableV1:
     def _print_to_buffer(self, msg):
         self._printing_buffer.append(msg + "\r")
 
-    def _print_and_reset_buffer(self):
+    def _flush_buffer(self):
         output = "".join(self._printing_buffer)
         self._printing_buffer = []
 
@@ -774,14 +782,21 @@ class ProgressTableV1:
         if isinstance(iterable, int):
             iterable = range(iterable, *range_args)
 
-        if len(self._active_pbars) >= self._max_active_pbars:
-            global NUM_PBAR_WARNED
-            if not NUM_PBAR_WARNED:
-                logging.warning(f"Exceeding max_active_pbars={self._max_active_pbars} with interactivity={self.interactive}")
-            NUM_PBAR_WARNED = True
-            return iter(iterable)
+        if self.interactive == 0:
+            global WARNED_PBAR_HIDDEN
+            if not WARNED_PBAR_HIDDEN:
+                logging.warning(f"Progress bars will be hidden when interactive=0")
+            WARNED_PBAR_HIDDEN = True
 
-        level = level if level is not None else (len(self._active_pbars) + 1 - self.pbar_embedded)
+        if level is None:
+            if self.interactive == 1 and not self.pbar_embedded:
+                global WARNED_PBAR_NOT_EMBEDDED
+                if not WARNED_PBAR_NOT_EMBEDDED:
+                    logging.warning(f"Progress bars will be embedded when interactive=1")
+                WARNED_PBAR_NOT_EMBEDDED = True
+
+            level = 0 if self.interactive < 2 else (len(self._active_pbars) + 1 - self.pbar_embedded)
+
         total = total if total is not None else (len(iterable) if isinstance(iterable, Sized) else 0)
 
         pbar = TableProgressBar(
@@ -797,17 +812,15 @@ class ProgressTableV1:
             show_percents=show_percents if show_percents is not None else self.pbar_show_percents,
             show_eta=show_eta if show_eta is not None else self.pbar_show_eta,
         )
-        self._active_pbars[level] = pbar
+        self._active_pbars.append(pbar)
         return pbar
 
     def _refresh_active_pbars(self, clean=False):
-        for pbar_level in list(self._active_pbars):
-            if pbar_level in self._active_pbars:
-                pbar = self._active_pbars[pbar_level]
-                if clean:
-                    pbar.cleanup()
-                else:
-                    pbar.display()
+        for pbar in self._active_pbars:
+            if clean:
+                pbar.cleanup()
+            else:
+                pbar.display()
 
     def __call__(self, *args, **kwds):
         """Creates iterable progress bar object using .pbar method and returns it."""
@@ -996,7 +1009,7 @@ class TableProgressBar:
             self.close()
 
     def close(self):
-        self.table._active_pbars.pop(self.level)
+        self.table._active_pbars.remove(self)
         self._is_active = False
         self.cleanup()
 
