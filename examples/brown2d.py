@@ -70,7 +70,6 @@ def main(**overrides):
         current_position = (current_position[0] + move_vector[0], current_position[1] + move_vector[1])
         distance_from_center = calc_distance(current_position)
 
-        row = tick % MAX_ROWS
         tick += 1
         table["tick"] = tick
         table["velocity"] = current_velocity
@@ -88,9 +87,6 @@ def main(**overrides):
 
         time.sleep(SLEEP)
 
-    # row = (tick - 1) % MAX_ROWS
-    # table.at[:row, :, "C"] = "blue"
-    # table.at[row, :, "C"] = "blue bold"
     color = get_color(100)
     table.next_row(color=color)
     table.close()

@@ -785,14 +785,14 @@ class ProgressTableV1:
         if self.interactive == 0:
             global WARNED_PBAR_HIDDEN
             if not WARNED_PBAR_HIDDEN:
-                logging.warning(f"Progress bars will be hidden when interactive=0")
+                logging.warning("Progress bars will be hidden when interactive=0")
             WARNED_PBAR_HIDDEN = True
 
         if level is None:
             if self.interactive == 1 and not self.pbar_embedded:
                 global WARNED_PBAR_NOT_EMBEDDED
                 if not WARNED_PBAR_NOT_EMBEDDED:
-                    logging.warning(f"Progress bars will be embedded when interactive=1")
+                    logging.warning("Progress bars will be embedded when interactive=1")
                 WARNED_PBAR_NOT_EMBEDDED = True
 
             level = 0 if self.interactive < 2 else (len(self._active_pbars) + 1 - self.pbar_embedded)
