@@ -72,10 +72,29 @@ for step in range(10):
 
 # Close the table when it's finished
 table.close()
+
 ```
 
-> Click here for examples of integration with deep learning libraries:
-> [integrations.md](https://github.com/gahaalt/progress-table/blob/main/integrations.md).
+> Go to [integrations](https://github.com/sjmikler/progress-table/blob/main/docs/integrations.md)
+> page to see examples of integration with deep learning libraries.
+
+## Advanced usage
+
+Go to [advanced usage](https://github.com/sjmikler/progress-table/blob/main/docs/advanced-usage.md) page for more information.
+
+## Troubleshooting
+
+### Exceesive output
+
+Progress Table works correctly in most consoles, but there are some exceptions:
+
+* Some cloud logging consoles (e.g. kubernetes) don't support `\r` properly.
+  You can still use ProgressTable, but with `interactive=0` option. This mode will not display progress bars.
+* Some consoles like `PyCharm Python Console` or `IDLE` don't support cursor movement.
+  You can still use ProgressTable, but with `interactive=1` option. This mode displays only 1 progress bar at once.
+
+> By default `interactive=2`. You can change the default `interactive` by
+> setting `PTABLE_INTERACTIVE` environment variable, e.g. `PTABLE_INTERACTIVE=1`.
 
 ## Installation
 
