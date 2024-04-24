@@ -972,8 +972,9 @@ class TableProgressBar:
             if self.color:
                 pbar_body_elements.append(self.color)
             for letter_idx, letter in enumerate(row_str):
-                is_bar = letter_idx / len(row_str) <= (step / total) % (1 + EPS)
-                is_head = (letter_idx - 1) / len(row_str) <= (step / total) % (1 + EPS)
+                len_row_str = len(row_str) or 1
+                is_bar = letter_idx / len_row_str <= (step / (total or len_row_str)) % (1 + EPS)
+                is_head = (letter_idx - 1) / len_row_str <= (step / (total or len_row_str)) % (1 + EPS)
                 if letter == " " and is_bar:
                     letter = self.table.table_style.embedded_pbar_filled
                 if letter == " " and is_head:
