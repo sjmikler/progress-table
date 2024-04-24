@@ -1,4 +1,4 @@
-> Version 2.X introduces new features and a new interactive modes.
+> Version 2.X introduces new features and new interactive modes.
 >
 > New features allow for previously impossible applications, see examples below.
 

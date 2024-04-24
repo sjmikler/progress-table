@@ -262,10 +262,10 @@ class ProgressTableV1:
         self._display_rows: list[str | int] = []
         self._pending_display_rows: list[int] = []
         self._active_pbars: dict[int, TableProgressBar] = {}
-        self._latest_row_prefix: list = ["SPLIT TOP"]
+        self._latest_row_decorations: list = ["SPLIT TOP"]
         if self._print_header_on_top:
-            self._latest_row_prefix.append("HEADER")
-            self._latest_row_prefix.append("SPLIT MID")
+            self._latest_row_decorations.append("HEADER")
+            self._latest_row_decorations.append("SPLIT MID")
 
         self.custom_cell_format = custom_cell_format or get_default_format_func(num_decimal_places)
         self.pbar_show_throughput: bool = pbar_show_throughput
@@ -393,12 +393,6 @@ class ProgressTableV1:
         if data_row_index >= len(self._data_rows):
             raise ValueError(f"Row {data_row_index} out of range! Number of rows: {len(self._data_rows)}")
 
-        # Displaying the latest row prefix
-        if data_row_index not in self._display_rows:
-            assert data_row_index == len(self._data_rows) - 1, "Unexpected row!"
-            for element in self._latest_row_prefix:
-                self._append_or_update_display_row(element)
-
         # Set default values for new rows
         data_row = self._data_rows[row]
         data_row.VALUES.setdefault(name, 0)
@@ -435,15 +429,15 @@ class ProgressTableV1:
         assert isinstance(row, int), f"Row {row} has to be an integer, not {type(row)}!"
         return self._data_rows[row].VALUES.get(key, None)
 
-    @property
-    def at(self):
-        """Advanced indexing for the table."""
-        return self._at_indexer
-
     def update_from_dict(self, dictionary):
         """Update multiple values in the current row."""
         for key, value in dictionary.items():
             self.update(key, value)
+
+    @property
+    def at(self):
+        """Advanced indexing for the table."""
+        return self._at_indexer
 
     def next_row(self, color: ColorFormat | dict[str, ColorFormat] = None, split: bool | None = None, header: bool | None = None):
         """End the current row."""
@@ -456,10 +450,7 @@ class ProgressTableV1:
 
         row = self._data_rows[-1]
         data_row_index = len(self._data_rows) - 1
-        if data_row_index not in self._display_rows:
-            assert data_row_index == len(self._data_rows) - 1, "Unexpected row!"
-            for element in self._latest_row_prefix:
-                self._append_or_update_display_row(element)
+
         # Refresh row is necessary to apply colors
         self._append_or_update_display_row(data_row_index)
 
@@ -467,12 +458,12 @@ class ProgressTableV1:
         row.COLORS.update(self._resolve_row_color_dict(color))
 
         self._append_new_empty_data_row()
-        self._latest_row_prefix = []
+        self._latest_row_decorations = []
         if header:
             self._previous_header_row_number = len(self._data_rows)
-            self._latest_row_prefix.extend(["SPLIT MID", "HEADER", "SPLIT MID"])
+            self._latest_row_decorations.extend(["SPLIT MID", "HEADER", "SPLIT MID"])
         elif split:
-            self._latest_row_prefix.append("SPLIT MID")
+            self._latest_row_decorations.append("SPLIT MID")
 
         # There's no renderer thread when interactive==0, so we force refresh after every row
         if self.interactive == 0:
@@ -480,13 +471,16 @@ class ProgressTableV1:
             self._print_and_reset_buffer()
 
     def add_row(self, *values, **kwds):
-        """Mimicking rich.table behavior for adding whole rows in one call."""
+        """Mimicking rich.table behavior for adding whole rows in one call without providing names."""
         for key, value in zip(self.column_names, values):
             self.update(key, value)
         self.next_row(**kwds)
 
     def add_rows(self, *rows, **kwds):
-        """Mimicking rich.table behavior for adding whole rows in one call."""
+        """Like `add_row`, but for multiple rows at once.
+
+        Optionally, it accepts an integer as the first argument, which will create that number of empty rows.
+        """
         if len(rows) == 1 and isinstance(rows[0], int):
             rows = [{} for _ in range(rows[0])]
 
@@ -583,11 +577,14 @@ class ProgressTableV1:
 
         if isinstance(element, int):
             if element not in self._display_rows:
-                # Display row decorations
+                # Display row decorations - if there are any
+                for decoration in self._latest_row_decorations:
+                    self._append_or_update_display_row(decoration)
+                self._latest_row_decorations = []
 
                 self._display_rows.append(element)
             elif self.interactive < 2:
-                # Cannot edit existing rows for interactive<2
+                # Cannot modify existing rows for interactive<2
                 return
 
             display_index = self._display_rows.index(element)
