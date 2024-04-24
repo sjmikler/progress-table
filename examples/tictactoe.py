@@ -24,9 +24,8 @@ def main(**overrides):
     # Use convenience method to add multiple columns at once
     table.add_columns(BOARD_SIZE)
 
-    # Adding multiple new rows
-    for row_idx in range(BOARD_SIZE):
-        table.next_row(split=True)
+    # Adding multiple new rows at once is also possible
+    table.add_rows(BOARD_SIZE, split=True)
 
     sign = 0
     x = 0

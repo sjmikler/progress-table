@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import atexit
 import inspect
 import logging
 import math
@@ -248,6 +249,7 @@ class ProgressTableV1:
         self.column_alignments: dict[str, str] = {}
         self.column_aggregates: dict[str, Callable] = {}
         self.column_names: list[str] = []  # Names serve as keys for column configs
+        self._closed = False
 
         self.files = (file,) if not isinstance(file, (list, tuple)) else file
 
@@ -289,6 +291,9 @@ class ProgressTableV1:
         self.add_columns(*columns)
         self._append_new_empty_data_row()
         self._at_indexer = TableAtIndexer(self)
+
+        # Close the table at program exit
+        atexit.register(self.close)
 
     def add_column(
         self,
@@ -452,6 +457,7 @@ class ProgressTableV1:
         row = self._data_rows[-1]
         data_row_index = len(self._data_rows) - 1
         if data_row_index not in self._display_rows:
+            assert data_row_index == len(self._data_rows) - 1, "Unexpected row!"
             for element in self._latest_row_prefix:
                 self._append_or_update_display_row(element)
         # Refresh row is necessary to apply colors
@@ -474,10 +480,18 @@ class ProgressTableV1:
             self._print_and_reset_buffer()
 
     def add_row(self, *values, **kwds):
-        """Mimicking rich.table behavior for adding rows in one call."""
+        """Mimicking rich.table behavior for adding whole rows in one call."""
         for key, value in zip(self.column_names, values):
             self.update(key, value)
         self.next_row(**kwds)
+
+    def add_rows(self, *rows, **kwds):
+        """Mimicking rich.table behavior for adding whole rows in one call."""
+        if len(rows) == 1 and isinstance(rows[0], int):
+            rows = [{} for _ in range(rows[0])]
+
+        for row in rows:
+            self.add_row(*row, **kwds)
 
     def num_rows(self):
         return len(self._data_rows)
@@ -486,6 +500,10 @@ class ProgressTableV1:
         return len(self.column_names)
 
     def close(self):
+        """Closes the table visually, removes the renderer thread. Closed table cannot be updated anymore."""
+        if self._closed:
+            return
+
         # Closing opened table
         if "SPLIT TOP" in self._display_rows:
             self._append_or_update_display_row("SPLIT BOT")
@@ -499,6 +517,7 @@ class ProgressTableV1:
         self._printing_buffer.append("\n")
         self._print_and_reset_buffer()
         self._freeze_view()
+        self._closed = True
 
     def write(self, *args, sep=" "):
         """Write a message gracefully when the table is opened."""
@@ -555,12 +574,17 @@ class ProgressTableV1:
             self._renderer.start()
 
     def _append_or_update_display_row(self, element):
+        if self._closed:
+            raise Exception("Table was closed! Updating closed tables is not supported.")
+
         # Renderer starts on first update
         if not self._RENDERER_RUNNING:
             self._start_rendering()
 
         if isinstance(element, int):
             if element not in self._display_rows:
+                # Display row decorations
+
                 self._display_rows.append(element)
             elif self.interactive < 2:
                 # Cannot edit existing rows for interactive<2
@@ -625,6 +649,7 @@ class ProgressTableV1:
         self._pending_display_rows = []
 
     def _freeze_view(self):
+        # Empty the row informations
         self._CURSOR_ROW = 0
         self._data_rows = []
         self._display_rows = []
@@ -987,38 +1012,37 @@ class TableAtIndexer:
             self.edit_mode_prefix_map.update({word[:i]: word for i in range(1, len(word))})
             self.edit_mode_prefix_map.update({word[:i].lower(): word for i in range(1, len(word))})
 
-    def parse_index(self, key) -> tuple[slice, slice, str]:
-        try:
-            if len(key) == 2:
-                rows = key[0]
-                cols = key[1]
-                mode = "VALUES"
-            elif len(key) >= 3:
-                rows = key[0]
-                cols = key[1]
-                mode = key[2]
-                assert mode in self.edit_mode_prefix_map
-                mode = self.edit_mode_prefix_map[mode]
-            else:
-                raise Exception
+    def parse_index(self, key) -> tuple[Any, Any, str]:
+        if isinstance(key, slice):
+            rows = key
+            cols = slice(None)
+            mode = "VALUES"
+        elif len(key) == 2:
+            rows = key[0]
+            cols = key[1]
+            mode = "VALUES"
+        elif len(key) >= 3:
+            rows = key[0]
+            cols = key[1]
+            mode = key[2]
+            assert mode in self.edit_mode_prefix_map, f"Unknown mode `{mode}`. Available: VALUES, WEIGHTS, COLORS"
+            mode = self.edit_mode_prefix_map[mode]
+        else:
+            raise Exception
 
-            if isinstance(rows, int):
-                rows = slice(rows, rows + 1)
-            if isinstance(cols, int):
-                cols = slice(cols, cols + 1)
-            assert isinstance(rows, slice) and isinstance(cols, slice), "Rows and columns have to be slices!"
-            return rows, cols, mode
-
-        except Exception:
-            raise KeyError(f"Incorrect indexing: {key}")
+        assert isinstance(rows, slice) or isinstance(rows, int), "Rows have to be a slice or an integer!"
+        assert isinstance(cols, slice) or isinstance(cols, int), "Columns have to be a slice or an integer!"
+        data_rows = self.table._data_rows[rows] if isinstance(rows, slice) else [self.table._data_rows[rows]]
+        column_names = self.table.column_names[cols] if isinstance(cols, slice) else [self.table.column_names[cols]]
+        return data_rows, column_names, mode
 
     def __setitem__(self, key, value):
-        rows, columns, edit_mode = self.parse_index(key)
+        data_rows, column_names, edit_mode = self.parse_index(key)
         if edit_mode == "COLORS":
             value = maybe_convert_to_colorama(value)
 
-        for row in self.table._data_rows[rows]:
-            for column in self.table.column_names[columns]:
+        for row in data_rows:
+            for column in column_names:
                 row.__getattribute__(edit_mode)[column] = value
 
             # Displaying the update
@@ -1026,19 +1050,20 @@ class TableAtIndexer:
             self.table._append_or_update_display_row(data_row_index)
 
     def __getitem__(self, key):
-        rows, columns, edit_mode = self.parse_index(key)
-        values = []
-        for row in self.table._data_rows[rows]:
+        data_rows, column_names, edit_mode = self.parse_index(key)
+        gathered_values = []
+
+        for row in data_rows:
             row_values = []
-            for column in self.table.column_names[columns]:
+            for column in column_names:
                 row_values.append(row.__getattribute__(edit_mode).get(column, None))
-            values.append(row_values)
+            gathered_values.append(row_values)
 
         # Flattening outputs
-        if len(values) == 1 and len(values[0]) == 1:
-            return values[0][0]
-        if len(values) == 1:
-            return values[0]
-        if all(len(x) == 1 for x in values):
-            return [x[0] for x in values]
-        return values
+        if len(gathered_values) == 1 and len(gathered_values[0]) == 1:
+            return gathered_values[0][0]
+        if len(gathered_values) == 1:
+            return gathered_values[0]
+        if all(len(x) == 1 for x in gathered_values):
+            return [x[0] for x in gathered_values]
+        return gathered_values
