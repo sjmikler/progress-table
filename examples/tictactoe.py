@@ -21,8 +21,8 @@ def main(**overrides):
     print("Two players are playing tic-tac-toe.")
     print(f"The first to get a streak of {STREAK_LENGTH} wins.")
 
-    # Column names don't matter for this example
-    table.add_columns(*[str(i) for i in range(BOARD_SIZE)])
+    # Use convenience method to add multiple columns at once
+    table.add_columns(BOARD_SIZE)
 
     # Adding multiple new rows
     for row_idx in range(BOARD_SIZE):

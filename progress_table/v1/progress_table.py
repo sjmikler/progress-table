@@ -332,12 +332,25 @@ class ProgressTableV1:
     def add_columns(self, *columns, **kwds):
         """Add multiple columns to the table.
 
+        This can be an integer - then the given number of columns will be created.
+
         Args:
-            columns: Names of the columns.
+            columns: Names of the columns or a number of columns to create.
             kwds: Additional arguments for the columns. Column properties will be identical for all added columns.
         """
-        for column in columns:
-            self.add_column(column, **kwds)
+        # Create the given number of columns
+        if len(columns) == 1 and isinstance(columns[0], int):
+            num_to_create = columns[0]
+            col_idx = 0
+            while num_to_create > 0:
+                column_name = str(col_idx)
+                if column_name not in self.column_names:
+                    self.add_column(column_name, **kwds)
+                    num_to_create -= 1
+                col_idx += 1
+        else:
+            for column in columns:
+                self.add_column(column, **kwds)
 
     def reorder_columns(self, *column_names):
         """Reorder columns in the table."""
