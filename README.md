@@ -28,6 +28,10 @@ Lightweight utility to display the progress of your process as a pretty table in
 
 ![example-training](images/examples-training.gif)
 
+* Progress of multi-threaded downloads
+
+![example-download](images/examples-download.gif)
+
 * Simulation and interactive display of Brownian motion
 
 ![example-brown2d](images/examples-brown2d.gif)
