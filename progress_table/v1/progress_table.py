@@ -306,6 +306,7 @@ class ProgressTableV1:
 
         self._printing_buffer: list[str] = []
         self._renderer: Thread | None = None
+        self.add_columns(*columns)
 
         # Making function calls after init
         self._append_or_update_display_row("SPLIT TOP")
@@ -313,7 +314,6 @@ class ProgressTableV1:
             self._append_or_update_display_row("HEADER")
             self._append_or_update_display_row("SPLIT MID")
 
-        self.add_columns(*columns)
         self._append_new_empty_data_row()
         self._at_indexer = TableAtIndexer(self)
 
