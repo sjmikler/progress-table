@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from threading import Thread
 from typing import Any, Callable, Iterable, Sized, Type, Union
 
-from colorama import Fore, Style
+from colorama import Back, Fore, Style
 
 from . import styles
 
@@ -22,7 +22,7 @@ ALL_COLOR_NAME = [x for x in dir(Fore) if not x.startswith("__")]
 ALL_STYLE_NAME = [x for x in dir(Style) if not x.startswith("__")]
 ALL_COLOR_STYLE_NAME = ALL_COLOR_NAME + ALL_STYLE_NAME
 
-ALL_COLOR = [getattr(Fore, x) for x in ALL_COLOR_NAME]
+ALL_COLOR = [getattr(Fore, x) for x in ALL_COLOR_NAME] + [getattr(Back, x) for x in ALL_COLOR_NAME]
 ALL_STYLE = [getattr(Style, x) for x in ALL_STYLE_NAME]
 ALL_COLOR_STYLE = ALL_COLOR + ALL_STYLE
 
@@ -126,6 +126,25 @@ def get_default_format_func(decimal_places):
                 return str(x)
 
     return fmt
+
+
+def merge_strings(str1: str, str2: str, overwrite_characters=None):
+    if overwrite_characters is None:
+        overwrite_characters = (" ",)
+
+    assert len(overwrite_characters) > 0, "Overwrite characters have to be provided!"
+    num_chars = min(len(str1), len(str2))
+    new_str = []
+
+    for i in range(num_chars):
+        letter = str2[i]
+        if letter in overwrite_characters:
+            new_str.append(str1[i])
+        else:
+            new_str.append(str2[i])
+    new_str.extend(str1[num_chars:])
+    new_str.extend(str2[num_chars:])
+    return "".join(new_str)
 
 
 @dataclass
@@ -265,10 +284,9 @@ class ProgressTableV1:
         self._display_rows: list[str | int] = []
         self._pending_display_rows: list[int] = []
         self._active_pbars: list[TableProgressBar] = []
-        self._latest_row_decorations: list = ["SPLIT TOP"]
-        if self._print_header_on_top:
-            self._latest_row_decorations.append("HEADER")
-            self._latest_row_decorations.append("SPLIT MID")
+        # self._latest_row_decorations: list = ["SPLIT TOP"]
+        # self._latest_row_decorations.append("HEADER")
+        # self._latest_row_decorations.append("SPLIT MID")
 
         self.custom_cell_format = custom_cell_format or get_default_format_func(num_decimal_places)
         self.pbar_show_throughput: bool = pbar_show_throughput
@@ -290,6 +308,11 @@ class ProgressTableV1:
         self._renderer: Thread | None = None
 
         # Making function calls after init
+        self._append_or_update_display_row("SPLIT TOP")
+        if self._print_header_on_top:
+            self._append_or_update_display_row("HEADER")
+            self._append_or_update_display_row("SPLIT MID")
+
         self.add_columns(*columns)
         self._append_new_empty_data_row()
         self._at_indexer = TableAtIndexer(self)
@@ -444,7 +467,7 @@ class ProgressTableV1:
     def next_row(self, color: ColorFormat | dict[str, ColorFormat] = None, split: bool | None = None, header: bool | None = None):
         """End the current row."""
 
-        # Force header if it wasn't printed for a long time
+        # Force header if it wasn't printed for a long enough time
         if header is None and len(self._data_rows) - self._previous_header_row_number >= self._print_header_every_n_rows:
             header = True
         header = header or False
@@ -456,16 +479,17 @@ class ProgressTableV1:
         # Color is applied to the existing row - not the new one!
         row.COLORS.update(self._resolve_row_color_dict(color))
 
-        # Refresh row is necessary to apply colors
+        # Refreshing the existing row is necessary to apply colors
         self._append_or_update_display_row(data_row_index)
 
-        self._append_new_empty_data_row()
-        self._latest_row_decorations = []
+        # Add decorations and a new row
         if header:
             self._previous_header_row_number = len(self._data_rows)
-            self._latest_row_decorations.extend(["SPLIT MID", "HEADER", "SPLIT MID"])
+            for decoration in ["SPLIT MID", "HEADER", "SPLIT MID"]:
+                self._append_or_update_display_row(decoration)
         elif split:
-            self._latest_row_decorations.append("SPLIT MID")
+            self._append_or_update_display_row("SPLIT MID")
+        self._append_new_empty_data_row()
 
         # There's no renderer thread when interactive==0, so we force refresh after every row
         if self.interactive == 0:
@@ -500,7 +524,6 @@ class ProgressTableV1:
         if self._closed:
             return
 
-        # Closing opened table
         if "SPLIT TOP" in self._display_rows:
             self._append_or_update_display_row("SPLIT BOT")
 
@@ -570,6 +593,10 @@ class ProgressTableV1:
             self._renderer.start()
 
     def _append_or_update_display_row(self, element):
+        """
+        For integer - this adds the corresponding existing data row as pending.
+        For string or tuple - this appends a new row decoration.
+        """
         if self._closed:
             raise Exception("Table was closed! Updating closed tables is not supported.")
 
@@ -578,27 +605,22 @@ class ProgressTableV1:
             self._start_rendering()
 
         if isinstance(element, int):
-            if element not in self._display_rows:
-                # Display row decorations - if there are any
-                for decoration in self._latest_row_decorations:
-                    self._append_or_update_display_row(decoration)
-                self._latest_row_decorations = []
-                self._display_rows.append(element)
-            elif element != len(self._data_rows) - 1 and self.interactive < 2:
-                # Won't refresh existing rows for interactive<2
+            # Won't refresh existing rows for interactive<2
+            if element != len(self._data_rows) - 1 and self.interactive < 2:
                 return
-
             display_index = self._display_rows.index(element)
             self._pending_display_rows.append(display_index)
-            return
-
-        self._display_rows.append(element)
-        self._pending_display_rows.append(len(self._display_rows) - 1)
+        else:
+            self._display_rows.append(element)
+            self._pending_display_rows.append(len(self._display_rows) - 1)
 
     def _append_new_empty_data_row(self):
         # Add a new data row - but don't add it as display row yet
         row = DATA_ROW(VALUES={}, WEIGHTS={}, COLORS={})
         self._data_rows.append(row)
+
+        self._display_rows.append(len(self._data_rows) - 1)
+        self._pending_display_rows.append(len(self._display_rows) - 1)
 
     def _move_cursor_in_buffer(self, row_index):
         if row_index < 0:
@@ -864,8 +886,6 @@ class TableProgressBar:
 
     def display(self):
         assert self._is_active, "Progress bar was closed!"
-
-        is_embedded = self.level == 0
         terminal_width = shutil.get_terminal_size(fallback=(0, 0)).columns or int(1e9)
 
         total = self._total
@@ -923,76 +943,69 @@ class TableProgressBar:
                 inside_infobar.append(eta_str)
 
         infobar = "[" + ", ".join(inside_infobar) + "] " if inside_infobar else ""
+        pbar = []
+        if self.level > 0:
+            pbar.append("\n" * self.level)
+        elif self.level < 0:
+            pbar.append(CURSOR_UP * -self.level)
 
-        pbar = ["\n" * self.level]
-        if not is_embedded:
-            tot_width = sum(self.table.column_widths.values()) + 3 * (len(self.table.column_widths) - 1) + 2
-            if tot_width >= terminal_width - 1:
-                tot_width = terminal_width - 2
+        tot_width = sum(self.table.column_widths.values()) + 3 * (len(self.table.column_widths) - 1) + 2
+        if tot_width >= terminal_width - 1:
+            tot_width = terminal_width - 2
 
-            if len(infobar) > tot_width:
-                infobar = "[…] "
+        if len(infobar) > tot_width:
+            infobar = "[…] "
 
-            tot_width = tot_width - len(infobar)
-            if not total:
-                step = self._step % tot_width
+        tot_width = tot_width - len(infobar)
+        if not total:
+            step = self._step % tot_width
 
-            num_filled = math.ceil(step / total * tot_width)
-            num_empty = tot_width - num_filled
+        num_filled = math.ceil(step / total * tot_width)
+        num_empty = tot_width - num_filled
 
-            pbar_body = "".join(
-                [
-                    self.table.table_style.vertical,
-                    infobar,
-                    self.color,
-                    self.table.table_style.pbar_filled * num_filled,
-                    Style.RESET_ALL if self.color else "",
-                    self.table.table_style.pbar_empty * num_empty,
-                    self.table.table_style.vertical,
-                ]
-            )
-            pbar.append(pbar_body)
-            self._clearing_str = " " * len(pbar_body)
-        else:
-            # Embedded progress bar doesn't make sense without any data rows
-            if not self.table._display_rows or not isinstance(self.table._display_rows[-1], int):
-                return
-
-            row_idx = self.table._display_rows[-1]
-            row = self.table._data_rows[row_idx]
-            orig_row_str = row_str = self.table._get_row_str(row, colored=False)
-            if len(infobar) > len(orig_row_str):
-                infobar = "[…] "
-
-            pbar_body_elements = [row_str[:2], infobar]
+        if self.level <= 0:
+            row = self.table._data_rows[self.level - 1]
+            row_str = self.table._get_row_str(row, colored=False)
             row_str = row_str[2 + len(infobar) :]
-            if not total:  # When total is unknown
-                step = self._step % len(row_str)
 
-            if self.color:
-                pbar_body_elements.append(self.color)
-            for letter_idx, letter in enumerate(row_str):
-                len_row_str = len(row_str) or 1
-                is_bar = letter_idx / len_row_str <= (step / (total or len_row_str)) % (1 + EPS)
-                is_head = (letter_idx - 1) / len_row_str <= (step / (total or len_row_str)) % (1 + EPS)
-                if letter == " " and is_bar:
-                    letter = self.table.table_style.embedded_pbar_filled
-                if letter == " " and is_head:
-                    letter = self.table.table_style.embedded_pbar_head
+            filled_part = row_str[:num_filled]
+            if len(filled_part) > 0 and filled_part[-1] == " ":
+                filled_part = filled_part[:-1] + self.table.table_style.embedded_pbar_head
+            filled_part = filled_part.replace(" ", self.table.table_style.embedded_pbar_filled)
+            empty_part = row_str[num_filled:-1]
+        else:
+            filled_part = self.table.table_style.pbar_filled * num_filled
+            empty_part = self.table.table_style.pbar_empty * num_empty
 
-                if self.color and not is_bar and not is_head:
-                    pbar_body_elements.append(Style.RESET_ALL)
-                pbar_body_elements.append(letter)
+        pbar_body = "".join(
+            [
+                self.table.table_style.vertical,
+                infobar,
+                self.color,
+                filled_part,
+                Style.RESET_ALL if self.color else "",
+                empty_part,
+                self.table.table_style.vertical,
+            ]
+        )
+        pbar.append(pbar_body)
+        self._clearing_str = " " * len(pbar_body)
 
-            pbar_body_elements.append(Style.RESET_ALL)
-            pbar_body = "".join(pbar_body_elements)
-            pbar.append(pbar_body)
-        pbar.append(CURSOR_UP * self.level)
+        if self.level > 0:
+            pbar.append(CURSOR_UP * self.level)
+        elif self.level < 0:
+            pbar.append("\n" * -self.level)
         self.table._print_to_buffer("".join(pbar))
 
     def cleanup(self):
-        pbar = ["\n" * self.level, self._clearing_str, CURSOR_UP * self.level]
-        self.table._print_to_buffer("".join(pbar))
+        if self.level >= 0:
+            pbar = ["\n" * self.level, self._clearing_str, CURSOR_UP * self.level]
+            self.table._print_to_buffer("".join(pbar))
+
+        # Refresh the table row if we were writing over existing rows
+        if self.level <= 0:
+            table_level = len(self.table._data_rows) + self.level - 1
+            self.table._append_or_update_display_row(table_level)
 
     def update(self, n=1):
         self._step += n
@@ -1041,8 +1054,8 @@ class TableAtIndexer:
         else:
             raise Exception
 
-        assert isinstance(rows, slice) or isinstance(rows, int), "Rows have to be a slice or an integer!"
-        assert isinstance(cols, slice) or isinstance(cols, int), "Columns have to be a slice or an integer!"
+        assert isinstance(rows, slice) or isinstance(rows, int), f"Rows have to be a slice or an integer, not {type(rows)}!"
+        assert isinstance(cols, slice) or isinstance(cols, int), f"Columns have to be a slice or an integer, not {type(cols)}!"
         data_rows = self.table._data_rows[rows] if isinstance(rows, slice) else [self.table._data_rows[rows]]
         column_names = self.table.column_names[cols] if isinstance(cols, slice) else [self.table.column_names[cols]]
         return data_rows, column_names, mode
