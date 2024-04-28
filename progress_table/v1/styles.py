@@ -85,7 +85,7 @@ class PbarStyleEmbed(PbarStyleBase):
 
 
 class PbarStyleNone(PbarStyleBase):
-    name = "none"
+    name = "hidden"
     filled = " "
     empty = " "
     head = " "
@@ -222,3 +222,19 @@ class TableStyleAsciiBare(TableStyleBase):
     no_right = "-"
     no_up = "-"
     no_down = "-"
+
+
+class TableStyleHidden(TableStyleBase):
+    name = "hidden"
+    cell_overflow = " "
+    horizontal = " "
+    vertical = " "
+    all = " "
+    up_left = " "
+    up_right = " "
+    down_left = " "
+    down_right = " "
+    no_left = " "
+    no_right = " "
+    no_up = " "
+    no_down = " "

@@ -8,7 +8,7 @@ import colorama
 from progress_table import ProgressTable
 
 
-def create_random_file():
+def create_random_file_info():
     info = {}
     index = random.randint(0, 1000)
     types = ["image_.jpg", "video_.mp4", "archive_.zip", "movie_.avi"]
@@ -19,7 +19,8 @@ def create_random_file():
     return info
 
 
-packages = [create_random_file() for _ in range(15)]
+NUM_FILES = 15
+files_to_download = [create_random_file_info() for _ in range(NUM_FILES)]
 
 
 table = ProgressTable(
@@ -29,37 +30,36 @@ table = ProgressTable(
     default_column_width=8,
     # Modify table styling so that emebedded pbar shows color only
     pbar_color=colorama.Back.BLACK,
-    pbar_style_embed="none",
+    pbar_style_embed="hidden",
 )
 
 
-def fake_download(file_info):
-    idx = file_info["idx"]
-    pbar = file_info["pbar"]
+def fake_download(idx, file_info):
+    pbar = table.pbar(1, position=idx, static=True)
 
-    name = file_info["name"]
+    # Update table values in a specifc row
     table.update("total size", str(file_info["size int"]) + " " + file_info["size unit"], row=idx)
-    table.update("name", name, row=idx)
-
+    table.update("name", file_info["name"], row=idx)
     table.update("seeds", random.randint(1, 30), row=idx)
     table.update("peers", random.randint(0, 5), row=idx)
 
-    errors = 0
+    number_of_errors = 0
 
     t0 = time.time()
     td = 0
     while True:
-        pbar.reset(td / file_info["time"])
+        pbar.reset(total=td / file_info["time"])  # Set specific pbar progress
 
+        # Maybe add an error to the error counter
         if random.random() < 0.004:
-            errors += 1
+            number_of_errors += 1
             random_delay = random.random()
             time.sleep(random_delay)
             t0 += random_delay
 
-        downloaded = int(td / file_info["time"] * file_info["size int"])
-        table.update("downloaded", str(downloaded) + " " + file_info["size unit"], row=idx)
-        table.update("warnings", errors, row=idx)
+        downloaded_units = int(td / file_info["time"] * file_info["size int"])
+        table.update("downloaded", str(downloaded_units) + " " + file_info["size unit"], row=idx)
+        table.update("warnings", number_of_errors, row=idx)
         time.sleep(0.01)
 
         td = time.time() - t0
@@ -70,16 +70,13 @@ def fake_download(file_info):
 
 table.add_column("name", alignment="right", width=25)
 table.add_columns("total size", "downloaded", "seeds", "peers", "warnings")
-table.add_rows(len(packages), color="blue")
+table.add_rows(len(files_to_download), color="blue")
 
 threads = []
 executor = ThreadPoolExecutor()
 
-for i, pkg in enumerate(packages):
-    pbar = table.pbar(1, position=i, static=True)
-    pkg["idx"] = i
-    pkg["pbar"] = pbar
-    threads.append(executor.submit(fake_download, pkg))
+for idx, pkg in enumerate(files_to_download):
+    threads.append(executor.submit(fake_download, idx, pkg))
 
 for thread in threads:
     thread.result()
