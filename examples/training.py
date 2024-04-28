@@ -56,7 +56,7 @@ def model_grads(targets, logits, inputs):
 
 def main(**overrides):
     table = ProgressTable(
-        pbar_embedded=False,
+        pbar_embedded=False,  # Do not use embedded pbar
         **overrides,
     )
 
@@ -69,13 +69,7 @@ def main(**overrides):
     X_train, X_valid, Y_train, Y_valid = train_test_split(X, Y)
     weights = np.random.rand(4, 3)
 
-    for epoch in table(
-        NUM_EPOCHS,
-        show_throughput=False,
-        show_progress=False,
-        show_percents=True,
-        show_eta=True,
-    ):
+    for epoch in table(NUM_EPOCHS, show_throughput=False, show_eta=True):
         table["epoch"] = epoch
         # Shuffling training dataset each epoch
         X_train, Y_train = shuffle(X_train, Y_train)

@@ -11,7 +11,7 @@ def calc_distance(pos):
     return (pos[0] ** 2 + pos[1] ** 2) ** 0.5
 
 
-def get_color(distance):
+def get_color_by_distance(distance):
     if distance < 20:
         return "white"
     elif distance < 40:
@@ -26,7 +26,7 @@ def get_color(distance):
         return "yellow bold"
 
 
-def shift_by_one(table, last_row_color):
+def shift_rows_up(table, last_row_color):
     num_rows = table.num_rows()
     num_columns = table.num_columns()
 
@@ -79,15 +79,15 @@ def main(**overrides):
         distance_pbar.reset(total=int(distance_from_center))
 
         if tick % STEP_SIZE == 0:
-            color = get_color(distance_from_center)
+            color = get_color_by_distance(distance_from_center)
             if table.num_rows() > MAX_ROWS:
-                shift_by_one(table, last_row_color=color)
+                shift_rows_up(table, last_row_color=color)
             else:
                 table.next_row(color=color)
 
         time.sleep(SLEEP)
 
-    color = get_color(100)
+    color = get_color_by_distance(100)
     table.next_row(color=color)
     table.close()
 

@@ -153,7 +153,7 @@ class ProgressTableV1:
         default_column_aggregate: str | None = None,
         default_row_color: ColorFormat = None,
         pbar_show_throughput: bool = True,
-        pbar_show_progress: bool = True,
+        pbar_show_progress: bool = False,
         pbar_show_percents: bool = False,
         pbar_show_eta: bool = False,
         pbar_embedded: bool = True,
