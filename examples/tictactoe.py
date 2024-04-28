@@ -26,7 +26,7 @@ def main(**overrides):
 
     # Adding multiple new rows at once is also possible
     # We get the 1-st row automatically, so we add one less
-    table.add_rows(BOARD_SIZE - 1, split=True)
+    table.add_rows(BOARD_SIZE, split=True)
 
     sign = 0
     x = 0
