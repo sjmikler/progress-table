@@ -144,7 +144,7 @@ class ProgressTableV1:
     def __init__(
         self,
         columns: tuple | list = (),
-        interactive: int = os.environ.get("PTABLE_INTERACTIVE", 2),
+        interactive: int = int(os.environ.get("PTABLE_INTERACTIVE", 2)),
         refresh_rate: int = 20,
         num_decimal_places: int = 4,
         default_column_width: int | None = None,
@@ -268,12 +268,13 @@ class ProgressTableV1:
         self._pending_display_rows: list[int] = []
 
         self._active_pbars: list[TableProgressBar] = []
-        self._cleaning_pbar_instructions = []
+        self._cleaning_pbar_instructions: list[tuple[int, str]] = []
 
+        self._latest_row_decorations: list[str]
         if self._print_header_on_top:
-            self._latest_row_decorations: list[str] = ["SPLIT TOP", "HEADER", "SPLIT MID"]
+            self._latest_row_decorations = ["SPLIT TOP", "HEADER", "SPLIT MID"]
         else:
-            self._latest_row_decorations: list[str] = ["SPLIT TOP"]
+            self._latest_row_decorations = ["SPLIT TOP"]
 
         self.custom_cell_format = custom_cell_format or get_default_format_func(num_decimal_places)
         self.pbar_show_throughput: bool = pbar_show_throughput
@@ -289,7 +290,7 @@ class ProgressTableV1:
         self._RENDERER_RUNNING = False
 
         # Interactivity settings
-        self.interactive = int(interactive)
+        self.interactive = interactive
         assert self.interactive in (2, 1, 0)
 
         self._printing_buffer: list[str] = []
@@ -848,7 +849,6 @@ class ProgressTableV1:
             position=position,
             static=static,
             color=color or self.pbar_color,
-            refresh_rate=refresh_rate if refresh_rate is not None else self.refresh_rate,
             description=description,
             show_throughput=show_throughput if show_throughput is not None else self.pbar_show_throughput,
             show_progress=show_progress if show_progress is not None else self.pbar_show_progress,
@@ -873,7 +873,6 @@ class TableProgressBar:
         color,
         position,
         static,
-        refresh_rate,
         description,
         show_throughput,
         show_progress,
@@ -892,7 +891,6 @@ class TableProgressBar:
 
         self.color: str = maybe_convert_to_colorama(color)
         self.table: ProgressTableV1 = table
-        self.refresh_rate: int = refresh_rate
         self.description: str = description
         self.show_throughput: bool = show_throughput
         self.show_progress: bool = show_progress
@@ -1057,8 +1055,8 @@ class TableAtIndexer:
 
         assert isinstance(rows, slice) or isinstance(rows, int), f"Rows have to be a slice or an integer, not {type(rows)}!"
         assert isinstance(cols, slice) or isinstance(cols, int), f"Columns have to be a slice or an integer, not {type(cols)}!"
-        data_rows = self.table._data_rows[rows] if isinstance(rows, slice) else [self.table._data_rows[rows]]
-        column_names = self.table.column_names[cols] if isinstance(cols, slice) else [self.table.column_names[cols]]
+        data_rows = self.table._data_rows[rows] if isinstance(rows, slice) else [self.table._data_rows[rows]]  # type: ignore
+        column_names = self.table.column_names[cols] if isinstance(cols, slice) else [self.table.column_names[cols]]  # type: ignore
         return data_rows, column_names, mode
 
     def __setitem__(self, key, value):
