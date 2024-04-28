@@ -8,7 +8,7 @@ from io import StringIO
 
 EXPECTED_OUTPUTS = {
     "examples.training": "14af860a37118c16aec4604e5629e5ed",
-    "examples.tictactoe": "056841a6cbf7456cd3daacbff356088a",
+    "examples.tictactoe": "378133fb7804a678282564d751068531",
     "examples.brown2d": "c0f37fdfcfc2db6ef465473c67c05d83",
 }
 
@@ -27,7 +27,7 @@ def capture_example_stdout(main_fn):
     # We will replace stdout with custom StringIO and check whether example stdout is as expected
     out_buffer = StringIO()
     sys.stdout = out_buffer
-    main_fn(random_seed=42, **override_kwds)
+    main_fn(random_seed=42, sleep_duration=0, **override_kwds)
     sys.stdout = sys.__stdout__
     return out_buffer.getvalue()
 

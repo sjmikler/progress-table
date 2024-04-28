@@ -40,7 +40,7 @@ def shift_rows_up(table, last_row_color):
         table.at[-2, col, "color"] = last_row_color
 
 
-def main(random_seed=random.randint(0, 100), **overrides):
+def main(random_seed=random.randint(0, 100), sleep_duration=0.001, **overrides):
     random.seed(random_seed)
 
     table = ProgressTable(
@@ -55,7 +55,6 @@ def main(random_seed=random.randint(0, 100), **overrides):
     PARTICLE_VELOCITY = 1
     PARTICLE_MOMENTUM = 0.999
 
-    SLEEP = 0.001
     MAX_ROWS = 20
     STEP_SIZE = 100
 
@@ -91,7 +90,7 @@ def main(random_seed=random.randint(0, 100), **overrides):
             else:
                 table.next_row(color=color)
 
-        time.sleep(SLEEP)
+        time.sleep(sleep_duration)
 
     color = get_color_by_distance(100)
     table.next_row(color=color)
