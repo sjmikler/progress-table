@@ -151,13 +151,15 @@ class ProgressTableV1:
         default_column_color: ColorFormat = None,
         default_column_alignment: str | None = None,
         default_column_aggregate: str | None = None,
+        default_header_color: ColorFormat = None,
         default_row_color: ColorFormat = None,
         pbar_show_throughput: bool = True,
         pbar_show_progress: bool = False,
         pbar_show_percents: bool = False,
         pbar_show_eta: bool = False,
         pbar_embedded: bool = True,
-        pbar_color: ColorFormat = None,
+        pbar_color_filled: ColorFormat = None,
+        pbar_color_empty: ColorFormat = None,
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
         custom_cell_format: Callable[[Any], str] | None = None,
@@ -215,6 +217,8 @@ class ProgressTableV1:
                            Embedded version is more subtle, but does not prevent the current row from being displayed.
                            If False, the progress bar covers the current row, preventing the user from seeing values
                            that are being updated until the progress bar finishes. The default is True.
+            pbar_color_filled: Default color of the filled part of the progress bars.
+            pbar_color_empty: Default color of the empty part of the progress bars.
             print_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
                                        If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
             custom_cell_format: A function that defines how to get str value to display from a cell content.
@@ -240,6 +244,9 @@ class ProgressTableV1:
 
         assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"  # type: ignore
         assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"  # type: ignore
+        assert isinstance(default_header_color, ColorFormatTuple), "Header color has to be a color format!"  # type: ignore
+        assert isinstance(pbar_color_filled, ColorFormatTuple)
+        assert isinstance(pbar_color_empty, ColorFormatTuple)
 
         # Default values for column and
         self.column_width = default_column_width
@@ -247,6 +254,7 @@ class ProgressTableV1:
         self.column_alignment = default_column_alignment
         self.column_aggregate = default_column_aggregate
         self.row_color = default_row_color
+        self.header_color = default_header_color
 
         # We are storing column configs
         self.column_widths: dict[str, int] = {}
@@ -282,7 +290,8 @@ class ProgressTableV1:
         self.pbar_show_percents: bool = pbar_show_percents
         self.pbar_show_eta: bool = pbar_show_eta
         self.pbar_embedded: bool = pbar_embedded
-        self.pbar_color = pbar_color
+        self.pbar_color_filled = pbar_color_filled
+        self.pbar_color_empty = pbar_color_empty
 
         self.refresh_rate: int = refresh_rate
 
@@ -786,8 +795,10 @@ class ProgressTableV1:
 
     def _get_header(self):
         content = []
+        colors = self.column_colors if self.header_color is None else self._resolve_row_color_dict(self.header_color)
+
         for column in self.column_names:
-            value = self._apply_cell_formatting(column, column, color=self.column_colors[column])
+            value = self._apply_cell_formatting(column, column, color=colors[column])
             content.append(value)
         s = "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
         return s
@@ -802,7 +813,8 @@ class ProgressTableV1:
         *range_args,
         position=None,
         static=False,
-        color="",
+        color_filled="",
+        color_empty="",
         total=None,
         refresh_rate=None,
         description="",
@@ -819,7 +831,8 @@ class ProgressTableV1:
             position: Level of the progress bar. If not provided, it will be set automatically.
             static: If True, the progress bar will stick to the row with index given by position.
                     If False, the position will be interpreted as the offset from the last row.
-            color: Color of the progress bar.
+            color_filled: Color of the filled part of the progress bar.
+            color_empty: Color of the empty part of the progress bar.
             total: Total number of iterations. If not provided, it will be calculated from the length of the iterable.
             refresh_rate: The maximal number of times per second the progress bar will be refreshed.
             description: Custom description of the progress bar that will be shown as prefix.
@@ -850,7 +863,8 @@ class ProgressTableV1:
             total=total,
             position=position,
             static=static,
-            color=color or self.pbar_color,
+            color_filled=color_filled or self.pbar_color_filled,
+            color_empty=color_empty or self.pbar_color_empty,
             description=description,
             show_throughput=show_throughput if show_throughput is not None else self.pbar_show_throughput,
             show_progress=show_progress if show_progress is not None else self.pbar_show_progress,
@@ -872,7 +886,8 @@ class TableProgressBar:
         *,
         table,
         total,
-        color,
+        color_filled,
+        color_empty,
         position,
         static,
         description,
@@ -891,7 +906,8 @@ class TableProgressBar:
         self.position: int = position
         self.static: bool = static
 
-        self.color: str = maybe_convert_to_colorama(color)
+        self.color_filled: str = maybe_convert_to_colorama(color_filled)
+        self.color_empty: str = maybe_convert_to_colorama(color_empty)
         self.table: ProgressTableV1 = table
         self.description: str = description
         self.show_throughput: bool = show_throughput
@@ -998,10 +1014,12 @@ class TableProgressBar:
             [
                 self.table.table_style.vertical,
                 infobar,
-                self.color,
+                self.color_filled,
                 filled_part,
-                Style.RESET_ALL if self.color else "",
+                Style.RESET_ALL if self.color_filled else "",
+                self.color_empty,
                 empty_part,
+                Style.RESET_ALL if self.color_empty else "",
                 self.table.table_style.vertical,
             ]
         )

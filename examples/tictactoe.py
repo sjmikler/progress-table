@@ -7,18 +7,20 @@ from progress_table import ProgressTable
 
 BOARD_SIZE = 10
 STREAK_LENGTH = 5
-SLEEP = 0.05
 
 
-def main(random_seed=random.randint(0, 100), **overrides):
+def main(random_seed=random.randint(0, 100), sleep_duration=0.05, **overrides):
     random.seed(random_seed)
 
     table = ProgressTable(
         pbar_embedded=False,
         default_column_width=1,
         print_header_on_top=False,
+        pbar_style="circle",
+        pbar_color_filled="red",
         **overrides,
     )
+    table.pbar_style.empty = table.pbar_style.filled
 
     print("Two players are playing tic-tac-toe.")
     print(f"The first to get a streak of {STREAK_LENGTH} wins.")
@@ -42,6 +44,7 @@ def main(random_seed=random.randint(0, 100), **overrides):
         sign = 1 - sign
 
         table.at[y, x] = "X" if sign else "O"
+        table.at[y, x, "COLOR"] = "CYAN" if sign else "BLUE"
 
         finished = False
 
@@ -63,7 +66,7 @@ def main(random_seed=random.randint(0, 100), **overrides):
                     finished = True
         if finished:
             break
-        time.sleep(SLEEP)
+        time.sleep(sleep_duration)
     table.close()
 
 

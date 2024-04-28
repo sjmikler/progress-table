@@ -52,6 +52,13 @@ class PbarStyleNormal(PbarStyleBase):
     head = "◩"
 
 
+class PbarStyleShort(PbarStyleBase):
+    name = "short"
+    filled = "▬"
+    empty = "▭"
+    head = "▬"
+
+
 class PbarStyleNormalClean(PbarStyleBase):
     name = "normal clean"
     filled = "■"
@@ -60,7 +67,7 @@ class PbarStyleNormalClean(PbarStyleBase):
 
 
 class PbarStyleCircle(PbarStyleBase):
-    name = "cirlce"
+    name = "circle"
     filled = "●"
     empty = "○"
     head = "◉"
@@ -92,6 +99,13 @@ class PbarStyleEmbed(PbarStyleBase):
     filled = "ꞏ"
     empty = " "
     head = ">"
+
+
+class PbarStyleRich(PbarStyleBase):
+    name = "rich"
+    filled = "━"
+    empty = " "
+    head = "━"
 
 
 class PbarStyleNone(PbarStyleBase):
