@@ -507,6 +507,9 @@ class ProgressTableV1:
         if self._closed:
             return
 
+        for pbar in self._active_pbars:
+            pbar.close()
+
         if "SPLIT TOP" in self._display_rows:
             self._append_or_update_display_row("SPLIT BOT")
 
