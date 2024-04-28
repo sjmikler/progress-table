@@ -29,8 +29,16 @@ table = ProgressTable(
     pbar_show_eta=True,
     default_column_width=8,
     # Modify table styling so that emebedded pbar shows color only
-    pbar_color_filled=colorama.Back.BLUE,
+    pbar_color_filled=colorama.Back.BLACK,
     pbar_style_embed="hidden",
+    pbar_style="normal clean",
+)
+
+main_pbar = pb = table.pbar(
+    NUM_FILES,
+    position=1,
+    color_filled="blue",
+    show_progress=True,
 )
 
 
@@ -66,6 +74,7 @@ def fake_download(idx, file_info):
         if td > file_info["time"]:
             break
     pbar.close()
+    main_pbar.update()
 
 
 table.add_column("name", alignment="right", width=25)
