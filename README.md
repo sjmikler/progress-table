@@ -97,8 +97,8 @@ Progress Table works correctly in most consoles, but there are some exceptions:
 * Some consoles like `PyCharm Python Console` or `IDLE` don't support cursor movement.
   You can still use ProgressTable, but with `interactive=1` option. This mode displays only 1 progress bar at once.
 
-> By default `interactive=2`. You can change the default `interactive` by
-> setting `PTABLE_INTERACTIVE` environment variable, e.g. `PTABLE_INTERACTIVE=1`.
+> By default `interactive=2`. You can change the default `interactive` with an argument when creating the table object
+> or by setting `PTABLE_INTERACTIVE` environment variable, e.g. `PTABLE_INTERACTIVE=1`.
 
 ## Installation
 
