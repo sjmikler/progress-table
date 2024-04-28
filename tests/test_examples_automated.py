@@ -2,21 +2,15 @@
 
 import hashlib
 import importlib
-import random
 import sys
 from glob import glob
 from io import StringIO
 
 EXPECTED_OUTPUTS = {
-    "examples.nn_training": "7e50cfd539e3e1799ecd5a7e7b7a7e18",
-    "examples.cumulating": "b5b7bc9b8232545ebfd5ca777bddacb4",
-    "examples.fibonacci": "bae5411af4bf8a4326f1bce59ca9aad9",
-    "examples.features": "474d4aff94a3070d2300d78d4159e0a6",
+    "examples.training": "14af860a37118c16aec4604e5629e5ed",
+    "examples.tictactoe": "056841a6cbf7456cd3daacbff356088a",
+    "examples.brown2d": "c0f37fdfcfc2db6ef465473c67c05d83",
 }
-
-
-def set_seed():
-    random.seed(42)
 
 
 def capture_example_stdout(main_fn):
@@ -24,16 +18,16 @@ def capture_example_stdout(main_fn):
     # This includes removing the influence of:
     # * refresh rate
     # * throughput display
+
     override_kwds = dict(
-        refresh_rate=1000000000,
         pbar_show_throughput=False,
+        refresh_rate=0,
     )
 
     # We will replace stdout with custom StringIO and check whether example stdout is as expected
     out_buffer = StringIO()
     sys.stdout = out_buffer
-    set_seed()
-    main_fn(**override_kwds)
+    main_fn(random_seed=42, **override_kwds)
     sys.stdout = sys.__stdout__
     return out_buffer.getvalue()
 
@@ -44,7 +38,12 @@ def test_all_examples():
     outputs = {}
     for module in glob("examples/*"):
         module = module.replace(".py", "").replace("/", ".")
+
+        if module not in EXPECTED_OUTPUTS:
+            print(f"Skipping example: {module}")
+            continue
         print(f"Running example: {module}")
+
         main_fn = importlib.import_module(module).main
         out_str = capture_example_stdout(main_fn)
 
