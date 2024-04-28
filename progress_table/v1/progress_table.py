@@ -703,7 +703,6 @@ class ProgressTableV1:
     def _freeze_view(self):
         # Empty the row informations
         self._CURSOR_ROW = 0
-        self._data_rows = []
         self._display_rows = []
         self._pending_display_rows = []
 
