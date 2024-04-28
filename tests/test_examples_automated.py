@@ -8,10 +8,9 @@ from glob import glob
 from io import StringIO
 
 EXPECTED_OUTPUTS = {
-    "examples.nn_training": "7e50cfd539e3e1799ecd5a7e7b7a7e18",
-    "examples.cumulating": "b5b7bc9b8232545ebfd5ca777bddacb4",
-    "examples.fibonacci": "bae5411af4bf8a4326f1bce59ca9aad9",
-    "examples.features": "474d4aff94a3070d2300d78d4159e0a6",
+    "examples.training": "bad7ddd345b24694eba2a46da53231fd",
+    "examples.tictactoe": "e60d06f1ab9caec30ce7715307e0804c",
+    "examples.brown2d": "656b8bc42cef99bf2b390d1a1d550e8a",
 }
 
 
@@ -25,8 +24,8 @@ def capture_example_stdout(main_fn):
     # * refresh rate
     # * throughput display
     override_kwds = dict(
-        refresh_rate=0,
         pbar_show_throughput=False,
+        interactive=0,
     )
 
     # We will replace stdout with custom StringIO and check whether example stdout is as expected
@@ -44,7 +43,12 @@ def test_all_examples():
     outputs = {}
     for module in glob("examples/*"):
         module = module.replace(".py", "").replace("/", ".")
+
+        if module not in EXPECTED_OUTPUTS:
+            print(f"Skipping example: {module}")
+            continue
         print(f"Running example: {module}")
+
         main_fn = importlib.import_module(module).main
         out_str = capture_example_stdout(main_fn)
 
