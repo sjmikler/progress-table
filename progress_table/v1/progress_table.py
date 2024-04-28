@@ -161,7 +161,9 @@ class ProgressTableV1:
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
         custom_cell_format: Callable[[Any], str] | None = None,
-        table_style: str | Type[styles.StyleNormal] = "round",
+        table_style: str | Type[styles.TableStyleBase] = "round",
+        pbar_style: str | Type[styles.PbarStyleBase] = "normal",
+        pbar_style_embed: str | Type[styles.PbarStyleBase] = "embed",
         file=None,
         # Deprecated arguments
         custom_format: None = None,
@@ -219,6 +221,8 @@ class ProgressTableV1:
                                 This function should be universal and work for all datatypes as inputs.
                                 It takes one value as an input and returns string as an output.
             table_style: Change the borders of the table. Cause KeyError to see all the available styles.
+            pbar_style:
+            pbar_style_embed:
             file: Redirect the output to another stream. There can be multiple streams at once passed as list or tuple.
                   Defaults to None, which is interpreted as stdout.
         """
@@ -230,11 +234,9 @@ class ProgressTableV1:
         if print_row_on_update is not None:
             logging.warning("Argument `print_row_on_update` is deprecated. Specify `interactive` instead!")
 
-        if isinstance(table_style, str):
-            assert table_style in styles.PREDEFINED_STYLES, f"Style {table_style} unknown! Available: {' '.join(styles.PREDEFINED_STYLES)}"
-            self.table_style = styles.PREDEFINED_STYLES[table_style]
-        else:
-            self.table_style = table_style
+        self.table_style = styles.figure_table_style(table_style)
+        self.pbar_style = styles.figure_pbar_style(pbar_style)
+        self.pbar_style_embed = styles.figure_pbar_style(pbar_style_embed)
 
         assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"  # type: ignore
         assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"  # type: ignore
@@ -266,6 +268,7 @@ class ProgressTableV1:
         self._pending_display_rows: list[int] = []
 
         self._active_pbars: list[TableProgressBar] = []
+        self._cleaning_pbar_instructions = []
 
         if self._print_header_on_top:
             self._latest_row_decorations: list[str] = ["SPLIT TOP", "HEADER", "SPLIT MID"]
@@ -290,7 +293,6 @@ class ProgressTableV1:
         assert self.interactive in (2, 1, 0)
 
         self._printing_buffer: list[str] = []
-        self._next_printing_buffer: list[str] = []
         self._renderer: Thread | None = None
         self.add_columns(*columns)
 
@@ -616,6 +618,17 @@ class ProgressTableV1:
         self._CURSOR_ROW = row_index
 
     def _print_pending_rows_to_buffer(self):
+        # Clearing progress bars below the table happens here
+        for display_row_idx, cleaning_str in self._cleaning_pbar_instructions:
+            assert self.interactive >= 2, "Should not need to clean pbars when interactive < 2!"
+            self._move_cursor_in_buffer(display_row_idx)
+            self._print_to_buffer(cleaning_str)
+            self._move_cursor_in_buffer(-1)
+            self._cleaning_pbar_instructions.clear()
+
+        # Remove duplicate pending and sort them
+        self._pending_display_rows = sorted(set(self._pending_display_rows))
+
         for display_row_index in self._pending_display_rows:
             item = self._display_rows[display_row_index]
             if isinstance(item, int):
@@ -635,14 +648,14 @@ class ProgressTableV1:
                 raise ValueError(f"Unknown item: {item}")
 
             # Cannot use CURSOR_UP when interactivity is less than 2
-            # Here we ALLOW going down with the cursor
+            # However, here we ALLOW going down with the cursor
             offset = self._CURSOR_ROW - display_row_index
             if self.interactive < 2 and offset > 0:
                 continue
 
             self._move_cursor_in_buffer(display_row_index)
             self._print_to_buffer(row_str)
-        self._pending_display_rows = []
+        self._pending_display_rows.clear()
 
         # Printing progress bars happens here
         for pbar in self._active_pbars:
@@ -673,20 +686,15 @@ class ProgressTableV1:
 
             pbar_str = pbar.display(embed_str=row_str)
 
-            # if pbar_display_row_idx > num_rows:
-            #     self._next_printing_buffer.append("")
+            # We need to take care of clearing pbars that are printed below the table
+            if pbar_display_row_idx > num_rows:
+                self._cleaning_pbar_instructions.append((pbar_display_row_idx, pbar._cleaning_str))
 
             self._print_to_buffer(pbar_str)
         self._move_cursor_in_buffer(-1)
 
     def _set_all_display_rows_as_pending(self):
-        # Only interactivity=2 allows to modify already existing rows
-        if self.interactive == 2:
-            self._pending_display_rows = list(range(len(self._display_rows)))
-        else:
-            last_row_index = len(self._data_rows) - 1
-            if last_row_index not in self._pending_display_rows:
-                self._pending_display_rows.append(last_row_index)
+        self._pending_display_rows = list(range(len(self._display_rows)))
 
     def _freeze_view(self):
         # Empty the row informations
@@ -741,8 +749,7 @@ class ProgressTableV1:
 
     def _flush_buffer(self):
         output = "".join(self._printing_buffer)
-        self._printing_buffer = self._next_printing_buffer
-        self._next_printing_buffer = []
+        self._printing_buffer.clear()
 
         for file in self.files:
             print(output, file=file or sys.stdout, end="")
@@ -892,7 +899,7 @@ class TableProgressBar:
         self.show_percents: bool = show_percents
         self.show_eta: bool = show_eta
         self._is_active: bool = True
-        self._clearing_str: str = ""
+        self._cleaning_str: str = ""
 
         self._modified_rows = []
 
@@ -978,12 +985,14 @@ class TableProgressBar:
 
             filled_part = row_str[:num_filled]
             if len(filled_part) > 0 and filled_part[-1] == " ":
-                filled_part = filled_part[:-1] + self.table.table_style.embedded_pbar_head
-            filled_part = filled_part.replace(" ", self.table.table_style.embedded_pbar_filled)
+                filled_part = filled_part[:-1] + self.table.pbar_style_embed.head
+            filled_part = filled_part.replace(" ", self.table.pbar_style_embed.filled)
             empty_part = row_str[num_filled:-1]
         else:
-            filled_part = self.table.table_style.pbar_filled * num_filled
-            empty_part = self.table.table_style.pbar_empty * num_empty
+            filled_part = self.table.pbar_style.filled * num_filled
+            if len(filled_part) > 0:
+                filled_part = filled_part[:-1] + self.table.pbar_style.head
+            empty_part = self.table.pbar_style.empty * num_empty
 
         pbar_body = "".join(
             [
@@ -997,7 +1006,7 @@ class TableProgressBar:
             ]
         )
         pbar.append(pbar_body)
-        self._clearing_str = " " * len(pbar_body)
+        self._cleaning_str = " " * len(pbar_body)
         return "".join(pbar)
 
     def update(self, n=1):

@@ -26,13 +26,11 @@ table = ProgressTable(
     pbar_show_progress=False,
     pbar_show_throughput=False,
     pbar_show_eta=True,
-    pbar_color=colorama.Back.BLACK,
     default_column_width=8,
+    # Modify table styling so that emebedded pbar shows color only
+    pbar_color=colorama.Back.BLACK,
+    pbar_style_embed="none",
 )
-
-# Modify table styling so that emebedded pbar shows color only
-table.table_style.embedded_pbar_head = " "
-table.table_style.embedded_pbar_filled = " "
 
 
 def fake_download(file_info):
