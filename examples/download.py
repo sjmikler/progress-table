@@ -28,6 +28,7 @@ table = ProgressTable(
     pbar_show_throughput=False,
     pbar_show_eta=True,
     default_column_width=8,
+    default_header_color="bold",
     # Modify table styling so that emebedded pbar shows color only
     pbar_color_filled=colorama.Back.BLACK,
     pbar_style_embed="hidden",

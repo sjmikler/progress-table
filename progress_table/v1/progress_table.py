@@ -151,6 +151,7 @@ class ProgressTableV1:
         default_column_color: ColorFormat = None,
         default_column_alignment: str | None = None,
         default_column_aggregate: str | None = None,
+        default_header_color: ColorFormat = None,
         default_row_color: ColorFormat = None,
         pbar_show_throughput: bool = True,
         pbar_show_progress: bool = False,
@@ -243,6 +244,9 @@ class ProgressTableV1:
 
         assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"  # type: ignore
         assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"  # type: ignore
+        assert isinstance(default_header_color, ColorFormatTuple), "Header color has to be a color format!"  # type: ignore
+        assert isinstance(pbar_color_filled, ColorFormatTuple)
+        assert isinstance(pbar_color_empty, ColorFormatTuple)
 
         # Default values for column and
         self.column_width = default_column_width
@@ -250,6 +254,7 @@ class ProgressTableV1:
         self.column_alignment = default_column_alignment
         self.column_aggregate = default_column_aggregate
         self.row_color = default_row_color
+        self.header_color = default_header_color
 
         # We are storing column configs
         self.column_widths: dict[str, int] = {}
@@ -790,8 +795,10 @@ class ProgressTableV1:
 
     def _get_header(self):
         content = []
+        colors = self.column_colors if self.header_color is None else self._resolve_row_color_dict(self.header_color)
+
         for column in self.column_names:
-            value = self._apply_cell_formatting(column, column, color=self.column_colors[column])
+            value = self._apply_cell_formatting(column, column, color=colors[column])
             content.append(value)
         s = "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
         return s
