@@ -4,10 +4,11 @@
 def figure_pbar_style(pbar_style_name):
     if isinstance(pbar_style_name, str):
         pbar_style_name = pbar_style_name.lower()
-        for name, obj in globals().items():
-            if isinstance(obj, type) and issubclass(obj, PbarStyleBase) and hasattr(obj, "name") and obj.name == pbar_style_name:
+        for obj in available_pbar_styles():
+            if obj.name == pbar_style_name:
                 return obj
-        raise ValueError(f"Progress bar style '{pbar_style_name}' not found.")
+        available_names = ", ".join([obj.name for obj in available_pbar_styles()])
+        raise ValueError(f"Progress bar style '{pbar_style_name}' not found. Available: {available_names}")
     else:
         return pbar_style_name
 
@@ -15,12 +16,21 @@ def figure_pbar_style(pbar_style_name):
 def figure_table_style(table_style_name):
     if isinstance(table_style_name, str):
         table_style_name = table_style_name.lower()
-        for name, obj in globals().items():
-            if isinstance(obj, type) and issubclass(obj, TableStyleBase) and hasattr(obj, "name") and obj.name == table_style_name:
+        for obj in available_table_styles():
+            if obj.name == table_style_name:
                 return obj
-        raise ValueError(f"Table style '{table_style_name}' not found.")
+        available_names = ", ".join([obj.name for obj in available_table_styles()])
+        raise ValueError(f"Table style '{table_style_name}' not found. Available: {available_names}")
     else:
         return table_style_name
+
+
+def available_table_styles():
+    return [obj for name, obj in globals().items() if isinstance(obj, type) and issubclass(obj, TableStyleBase) and hasattr(obj, "name")]
+
+
+def available_pbar_styles():
+    return [obj for name, obj in globals().items() if isinstance(obj, type) and issubclass(obj, PbarStyleBase) and hasattr(obj, "name")]
 
 
 #################

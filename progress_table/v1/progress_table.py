@@ -220,9 +220,9 @@ class ProgressTableV1:
             custom_cell_format: A function that defines how to get str value to display from a cell content.
                                 This function should be universal and work for all datatypes as inputs.
                                 It takes one value as an input and returns string as an output.
-            table_style: Change the borders of the table. Cause KeyError to see all the available styles.
-            pbar_style:
-            pbar_style_embed:
+            table_style: Change the borders of the table. Either a string or 'TableStyleBase' type class.
+            pbar_style: Change the style of the progress bar. Either a string or 'PbarStyleBase' type class.
+            pbar_style_embed: Change the style of the embedded progress bar. Same as pbar_style, but for embedded pbars.
             file: Redirect the output to another stream. There can be multiple streams at once passed as list or tuple.
                   Defaults to None, which is interpreted as stdout.
         """
