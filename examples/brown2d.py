@@ -38,7 +38,9 @@ def shift_rows_up(table, last_row_color):
         table.at[-2, col, "color"] = last_row_color
 
 
-def main(**overrides):
+def main(random_seed=random.randint(0, 100), **overrides):
+    random.seed(random_seed)
+
     table = ProgressTable(
         pbar_embedded=False,
         **overrides,

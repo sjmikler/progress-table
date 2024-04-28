@@ -2,20 +2,15 @@
 
 import hashlib
 import importlib
-import random
 import sys
 from glob import glob
 from io import StringIO
 
 EXPECTED_OUTPUTS = {
-    "examples.training": "bad7ddd345b24694eba2a46da53231fd",
-    "examples.tictactoe": "e60d06f1ab9caec30ce7715307e0804c",
-    "examples.brown2d": "656b8bc42cef99bf2b390d1a1d550e8a",
+    "examples.training": "14af860a37118c16aec4604e5629e5ed",
+    "examples.tictactoe": "056841a6cbf7456cd3daacbff356088a",
+    "examples.brown2d": "c0f37fdfcfc2db6ef465473c67c05d83",
 }
-
-
-def set_seed():
-    random.seed(42)
 
 
 def capture_example_stdout(main_fn):
@@ -23,16 +18,16 @@ def capture_example_stdout(main_fn):
     # This includes removing the influence of:
     # * refresh rate
     # * throughput display
+
     override_kwds = dict(
         pbar_show_throughput=False,
-        interactive=0,
+        refresh_rate=0,
     )
 
     # We will replace stdout with custom StringIO and check whether example stdout is as expected
     out_buffer = StringIO()
     sys.stdout = out_buffer
-    set_seed()
-    main_fn(**override_kwds)
+    main_fn(random_seed=42, **override_kwds)
     sys.stdout = sys.__stdout__
     return out_buffer.getvalue()
 

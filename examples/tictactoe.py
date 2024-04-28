@@ -10,7 +10,9 @@ STREAK_LENGTH = 5
 SLEEP = 0.05
 
 
-def main(**overrides):
+def main(random_seed=random.randint(0, 100), **overrides):
+    random.seed(random_seed)
+
     table = ProgressTable(
         pbar_embedded=False,
         default_column_width=1,

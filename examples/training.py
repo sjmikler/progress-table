@@ -54,15 +54,16 @@ def model_grads(targets, logits, inputs):
     return inputs.T @ cross_entropy_grads
 
 
-def main(**overrides):
+def main(random_seed=random.randint(0, 100), **overrides):
+    random.seed(random_seed)
+    np.random.seed(random_seed)
+
     table = ProgressTable(
         pbar_embedded=False,  # Do not use embedded pbar
         **overrides,
     )
 
     print("Training a simple linear model on the Iris dataset.")
-    random.seed(7)
-    np.random.seed(7)
 
     # Loading dataset
     X, Y = load_iris(return_X_y=True)
