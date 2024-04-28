@@ -17,6 +17,8 @@ def main(random_seed=random.randint(0, 100), **overrides):
         pbar_embedded=False,
         default_column_width=1,
         print_header_on_top=False,
+        pbar_style="angled",
+        pbar_color_filled="red",
         **overrides,
     )
 

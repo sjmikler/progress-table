@@ -94,6 +94,13 @@ class PbarStyleEmbed(PbarStyleBase):
     head = ">"
 
 
+class PbarStyleRich(PbarStyleBase):
+    name = "rich"
+    filled = "━"
+    empty = " "
+    head = "━"
+
+
 class PbarStyleNone(PbarStyleBase):
     name = "hidden"
     filled = " "
