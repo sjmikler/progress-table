@@ -21,6 +21,7 @@ def main(random_seed=random.randint(0, 100), **overrides):
         pbar_color_filled="red",
         **overrides,
     )
+    table.pbar_style.empty = table.pbar_style.filled
 
     print("Two players are playing tic-tac-toe.")
     print(f"The first to get a streak of {STREAK_LENGTH} wins.")
@@ -44,6 +45,7 @@ def main(random_seed=random.randint(0, 100), **overrides):
         sign = 1 - sign
 
         table.at[y, x] = "X" if sign else "O"
+        table.at[y, x, "COLOR"] = "CYAN" if sign else "BLUE"
 
         finished = False
 
