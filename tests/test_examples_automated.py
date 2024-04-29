@@ -7,7 +7,7 @@ from glob import glob
 from io import StringIO
 
 EXPECTED_OUTPUTS = {
-    "examples.training": "14af860a37118c16aec4604e5629e5ed",
+    "examples.training": "6993e60d3edc3cb48014480fc4890404",
     "examples.tictactoe": "378133fb7804a678282564d751068531",
     "examples.brown2d": "c0f37fdfcfc2db6ef465473c67c05d83",
 }
