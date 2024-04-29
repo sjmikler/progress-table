@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Tuple, Union
+
 from progress_table.v1.common import ALL_COLOR_NAME, maybe_convert_to_colorama
 
 
@@ -75,7 +77,7 @@ class PbarStyleBase:
     name: str
     filled: str
     empty: str
-    head: str | tuple[str, ...]
+    head: Union[str, Tuple[str, ...]]
     color: str = ""
     color_empty: str = ""
 
