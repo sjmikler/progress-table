@@ -29,22 +29,19 @@ table = ProgressTable(
     pbar_show_eta=True,
     default_column_width=8,
     default_header_color="bold",
-    # Modify table styling so that emebedded pbar shows color only
-    pbar_color_filled=colorama.Back.BLACK,
-    pbar_style_embed="hidden",
-    pbar_style="normal clean",
 )
 
-main_pbar = pb = table.pbar(
+main_pbar = table.pbar(
     NUM_FILES,
     position=1,
-    color_filled="blue",
     show_progress=True,
+    style="square clean blue",
 )
 
 
 def fake_download(idx, file_info):
-    pbar = table.pbar(1, position=idx, static=True)
+    # Modify pbar styling so that emebedded pbar shows color only
+    pbar = table.pbar(1, position=idx, static=True, style_embed="hidden", color=colorama.Back.BLACK)
 
     # Update table values in a specifc row
     table.update("total size", str(file_info["size int"]) + " " + file_info["size unit"], row=idx)

@@ -1,28 +1,59 @@
 #  Copyright (c) 2022-2024 Szymon Mikler
 
+from progress_table.v1.common import ALL_COLOR_NAME, maybe_convert_to_colorama
 
-def figure_pbar_style(pbar_style_name):
-    if isinstance(pbar_style_name, str):
-        pbar_style_name = pbar_style_name.lower()
+
+def contains_word(short, long):
+    return any([short == word.strip(" ") for word in long.split(" ")])
+
+
+def parse_colors_from_description(description):
+    color = ""
+    color_empty = ""
+    for word in description.split():
+        for color_name in ALL_COLOR_NAME:
+            if color_name.lower() == word.lower():
+                if not color:
+                    color = color_name
+                else:
+                    color_empty = color_name
+                description = description.replace(word, "")
+    return color, color_empty, description
+
+
+def parse_pbar_style(description):
+    if isinstance(description, str):
         for obj in available_pbar_styles():
-            if obj.name == pbar_style_name:
-                return obj
+            if contains_word(obj.name, description):
+                description = description.replace(obj.name, "")
+                color, color_empty, description = parse_colors_from_description(description)
+                is_alt = "alt" in description
+                is_clean = "clean" in description
+                description = description.replace("alt", "").replace("clean", "").strip(" ")
+                if description.strip(" "):
+                    raise ValueError(f"Name '{description}' is not recognized as a part of progress bar style")
+
+                return obj(alt=is_alt, clean=is_clean, color=color, color_empty=color_empty)
+
         available_names = ", ".join([obj.name for obj in available_pbar_styles()])
-        raise ValueError(f"Progress bar style '{pbar_style_name}' not found. Available: {available_names}")
+        raise ValueError(f"Progress bar style '{description}' not found. Available: {available_names}")
     else:
-        return pbar_style_name
+        return description
 
 
-def figure_table_style(table_style_name):
-    if isinstance(table_style_name, str):
-        table_style_name = table_style_name.lower()
+def parse_table_style(description):
+    if isinstance(description, str):
         for obj in available_table_styles():
-            if obj.name == table_style_name:
-                return obj
+            if contains_word(obj.name, description):
+                description = description.replace(obj.name, "").strip(" ")
+                if description:
+                    raise ValueError(f"Name '{description}' is not recognized as a part of table style")
+
+                return obj()
         available_names = ", ".join([obj.name for obj in available_table_styles()])
-        raise ValueError(f"Table style '{table_style_name}' not found. Available: {available_names}")
+        raise ValueError(f"Table style '{description}' not found. Available: {available_names}")
     else:
-        return table_style_name
+        return description
 
 
 def available_table_styles():
@@ -42,14 +73,40 @@ class PbarStyleBase:
     name: str
     filled: str
     empty: str
-    head: str
+    head: str | tuple[str, ...]
+    color: str = ""
+    color_empty: str = ""
+
+    def __init__(self, alt=False, clean=False, color=None, color_empty=None):
+        if color is not None:
+            self.color = maybe_convert_to_colorama(color)
+        if color_empty is not None:
+            self.color_empty = maybe_convert_to_colorama(color_empty)
+        if alt:
+            self.empty = self.filled
+        if clean:
+            self.empty = " "
 
 
-class PbarStyleNormal(PbarStyleBase):
-    name = "normal"
+class PbarStyleSquare(PbarStyleBase):
+    name = "square"
     filled = "■"
     empty = "□"
     head = "◩"
+
+
+class PbarStyleFull(PbarStyleBase):
+    name = "full"
+    filled = "█"
+    empty = " "
+    head = ("▏", "▎", "▍", "▌", "▋", "▊", "▉")
+
+
+class PbarStyleDots(PbarStyleBase):
+    name = "dots"
+    filled = "⣿"
+    empty = "⣀"
+    head = ("⣄", "⣤", "⣦", "⣶", "⣷")
 
 
 class PbarStyleShort(PbarStyleBase):
@@ -59,13 +116,6 @@ class PbarStyleShort(PbarStyleBase):
     head = "▬"
 
 
-class PbarStyleNormalClean(PbarStyleBase):
-    name = "normal clean"
-    filled = "■"
-    empty = " "
-    head = "◩"
-
-
 class PbarStyleCircle(PbarStyleBase):
     name = "circle"
     filled = "●"
@@ -73,24 +123,10 @@ class PbarStyleCircle(PbarStyleBase):
     head = "◉"
 
 
-class PbarStyleCircleClean(PbarStyleBase):
-    name = "circle clean"
-    filled = "●"
-    empty = " "
-    head = "◉"
-
-
 class PbarStyleAngled(PbarStyleBase):
     name = "angled"
     filled = "▰"
     empty = "▱"
-    head = "▰"
-
-
-class PbarStyleAngledClean(PbarStyleBase):
-    name = "angled clean"
-    filled = "▰"
-    empty = " "
     head = "▰"
 
 
@@ -106,6 +142,14 @@ class PbarStyleRich(PbarStyleBase):
     filled = "━"
     empty = " "
     head = "━"
+
+    def __init__(self, *args, **kwds):
+        """Similar to the default progress bar from rich"""
+        super().__init__(*args, **kwds)
+        if not self.color and not self.color_empty:
+            self.color = maybe_convert_to_colorama("red")
+            self.color_empty = maybe_convert_to_colorama("black")
+            self.empty = self.filled
 
 
 class PbarStyleNone(PbarStyleBase):
@@ -136,8 +180,8 @@ class TableStyleBase:
     no_down: str
 
 
-class TableStyleNormal(TableStyleBase):
-    name = "normal"
+class TableStyleModern(TableStyleBase):
+    name = "modern"
     cell_overflow = "…"
     horizontal = "─"
     vertical = "│"
@@ -233,7 +277,7 @@ class TableStyleAscii(TableStyleBase):
 
 
 class TableStyleAsciiBare(TableStyleBase):
-    name = "ascii bare"
+    name = "asciib"
     cell_overflow = "_"
     horizontal = "-"
     vertical = " "

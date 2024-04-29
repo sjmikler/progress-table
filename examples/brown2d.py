@@ -4,8 +4,6 @@ import math
 import random
 import time
 
-import colorama
-
 from progress_table import ProgressTable
 
 
@@ -45,8 +43,7 @@ def main(random_seed=random.randint(0, 100), sleep_duration=0.001, **overrides):
 
     table = ProgressTable(
         pbar_embedded=False,
-        pbar_color_filled=colorama.Back.BLUE,
-        pbar_style="hidden",
+        pbar_style="full clean blue",
         **overrides,
     )
 

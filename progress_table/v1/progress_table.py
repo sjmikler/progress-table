@@ -12,30 +12,13 @@ import sys
 import time
 from dataclasses import dataclass
 from threading import Thread
-from typing import Any, Callable, Iterable, Sized, Type, Union
+from typing import Any, Callable, Iterable, Sized, Type
 
-from colorama import Back, Fore, Style
+from colorama import Style
 
-from . import styles
-
-ALL_COLOR_NAME = [x for x in dir(Fore) if not x.startswith("__")]
-ALL_STYLE_NAME = [x for x in dir(Style) if not x.startswith("__")]
-ALL_COLOR_STYLE_NAME = ALL_COLOR_NAME + ALL_STYLE_NAME
-
-ALL_COLOR = [getattr(Fore, x) for x in ALL_COLOR_NAME] + [getattr(Back, x) for x in ALL_COLOR_NAME]
-ALL_STYLE = [getattr(Style, x) for x in ALL_STYLE_NAME]
-ALL_COLOR_STYLE = ALL_COLOR + ALL_STYLE
-
-COLORAMA_TRANSLATE = {
-    "bold": "bright",
-}
-
-NoneType = type(None)
-ColorFormat = Union[str, tuple, list, NoneType]
-ColorFormatTuple = (str, tuple, list, NoneType)
-
-EPS = 1e-9
-CURSOR_UP = "\033[A"
+from progress_table.v1 import styles
+from progress_table.v1.common import CURSOR_UP, ColorFormat, ColorFormatTuple, maybe_convert_to_colorama
+from progress_table.v1.styles import parse_pbar_style
 
 # Flags that indicate if the warning was already triggered
 WARNED_PBAR_HIDDEN = False
@@ -91,29 +74,6 @@ def get_aggregate_fn(aggregate: None | str | Callable):
         raise ValueError(f"Unknown aggregate type: {type(aggregate)}")
 
 
-def maybe_convert_to_colorama_str(color: str) -> str:
-    # Translation layer to fix unintuitive colorama names
-    color = COLORAMA_TRANSLATE.get(color.lower(), color)
-
-    if isinstance(color, str):
-        if hasattr(Fore, color.upper()):
-            return getattr(Fore, color.upper())
-        if hasattr(Style, color.upper()):
-            return getattr(Style, color.upper())
-
-    assert color in ALL_COLOR_STYLE, f"Color {color!r} incorrect! Available: {' '.join(ALL_COLOR_STYLE_NAME)}"
-    return color
-
-
-def maybe_convert_to_colorama(color: ColorFormat) -> str:
-    if color is None or color == "":
-        return ""
-    if isinstance(color, str):
-        color = color.split(" ")
-    results = [maybe_convert_to_colorama_str(x) for x in color]
-    return "".join(results)
-
-
 def get_default_format_func(decimal_places):
     def fmt(x) -> str:
         if isinstance(x, int):
@@ -158,14 +118,12 @@ class ProgressTableV1:
         pbar_show_percents: bool = False,
         pbar_show_eta: bool = False,
         pbar_embedded: bool = True,
-        pbar_color_filled: ColorFormat = None,
-        pbar_color_empty: ColorFormat = None,
+        pbar_style: str | Type[styles.PbarStyleBase] = "square",
+        pbar_style_embed: str | Type[styles.PbarStyleBase] = "embed",
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
         custom_cell_format: Callable[[Any], str] | None = None,
         table_style: str | Type[styles.TableStyleBase] = "round",
-        pbar_style: str | Type[styles.PbarStyleBase] = "normal",
-        pbar_style_embed: str | Type[styles.PbarStyleBase] = "embed",
         file=None,
         # Deprecated arguments
         custom_format: None = None,
@@ -217,8 +175,6 @@ class ProgressTableV1:
                            Embedded version is more subtle, but does not prevent the current row from being displayed.
                            If False, the progress bar covers the current row, preventing the user from seeing values
                            that are being updated until the progress bar finishes. The default is True.
-            pbar_color_filled: Default color of the filled part of the progress bars.
-            pbar_color_empty: Default color of the empty part of the progress bars.
             print_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
                                        If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
             custom_cell_format: A function that defines how to get str value to display from a cell content.
@@ -238,15 +194,14 @@ class ProgressTableV1:
         if print_row_on_update is not None:
             logging.warning("Argument `print_row_on_update` is deprecated. Specify `interactive` instead!")
 
-        self.table_style = styles.figure_table_style(table_style)
-        self.pbar_style = styles.figure_pbar_style(pbar_style)
-        self.pbar_style_embed = styles.figure_pbar_style(pbar_style_embed)
+        self.table_style = styles.parse_table_style(table_style)
+
+        self.pbar_style = styles.parse_pbar_style(pbar_style)
+        self.pbar_style_embed = styles.parse_pbar_style(pbar_style_embed)
 
         assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"  # type: ignore
         assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"  # type: ignore
         assert isinstance(default_header_color, ColorFormatTuple), "Header color has to be a color format!"  # type: ignore
-        assert isinstance(pbar_color_filled, ColorFormatTuple)
-        assert isinstance(pbar_color_empty, ColorFormatTuple)
 
         # Default values for column and
         self.column_width = default_column_width
@@ -290,8 +245,6 @@ class ProgressTableV1:
         self.pbar_show_percents: bool = pbar_show_percents
         self.pbar_show_eta: bool = pbar_show_eta
         self.pbar_embedded: bool = pbar_embedded
-        self.pbar_color_filled = pbar_color_filled
-        self.pbar_color_empty = pbar_color_empty
 
         self.refresh_rate: int = refresh_rate
 
@@ -813,8 +766,6 @@ class ProgressTableV1:
         *range_args,
         position=None,
         static=False,
-        color_filled="",
-        color_empty="",
         total=None,
         refresh_rate=None,
         description="",
@@ -822,6 +773,10 @@ class ProgressTableV1:
         show_progress=None,
         show_percents=None,
         show_eta=None,
+        style=None,
+        style_embed=None,
+        color=None,
+        color_empty=None,
     ):
         """Create iterable progress bar object.
 
@@ -831,8 +786,6 @@ class ProgressTableV1:
             position: Level of the progress bar. If not provided, it will be set automatically.
             static: If True, the progress bar will stick to the row with index given by position.
                     If False, the position will be interpreted as the offset from the last row.
-            color_filled: Color of the filled part of the progress bar.
-            color_empty: Color of the empty part of the progress bar.
             total: Total number of iterations. If not provided, it will be calculated from the length of the iterable.
             refresh_rate: The maximal number of times per second the progress bar will be refreshed.
             description: Custom description of the progress bar that will be shown as prefix.
@@ -840,6 +793,10 @@ class ProgressTableV1:
             show_progress: If True, the progress will be displayed.
             show_percents: If True, the percentage of the progress will be displayed.
             show_eta: If True, the estimated time of finishing will be displayed.
+            style: Style of the progress bar. If None, the default style will be used.
+            style_embed: Style of the embedded progress bar. If None, the default style will be used.
+            color: Color of the progress bar. This overrides the default color.
+            color_empty: Color of the empty progress bar. This overrides the default color.
         """
         if isinstance(iterable, int):
             iterable = range(iterable, *range_args)
@@ -857,14 +814,19 @@ class ProgressTableV1:
 
         total = total if total is not None else (len(iterable) if isinstance(iterable, Sized) else 0)
 
+        style = parse_pbar_style(style) if style else self.pbar_style
+        style_embed = parse_pbar_style(style_embed) if style_embed else self.pbar_style_embed
+
         pbar = TableProgressBar(
             iterable=iterable,
             table=self,
             total=total,
+            style=style,
+            style_embed=style_embed,
+            color=color,
+            color_empty=color_empty,
             position=position,
             static=static,
-            color_filled=color_filled or self.pbar_color_filled,
-            color_empty=color_empty or self.pbar_color_empty,
             description=description,
             show_throughput=show_throughput if show_throughput is not None else self.pbar_show_throughput,
             show_progress=show_progress if show_progress is not None else self.pbar_show_progress,
@@ -886,7 +848,9 @@ class TableProgressBar:
         *,
         table,
         total,
-        color_filled,
+        style,
+        style_embed,
+        color,
         color_empty,
         position,
         static,
@@ -903,11 +867,21 @@ class TableProgressBar:
         self._creation_time: float = time.perf_counter()
         self._last_refresh_time: float = -float("inf")
 
+        self.style = style
+        self.style_embed = style_embed
+
+        # Modyfing styles
+        if color:
+            color = maybe_convert_to_colorama(color)
+            self.style.color = color
+            self.style_embed.color = color
+        if color_empty:
+            color_empty = maybe_convert_to_colorama(color_empty)
+            self.style.color_empty = color_empty
+            self.style_embed.color_empty = color_empty
+
         self.position: int = position
         self.static: bool = static
-
-        self.color_filled: str = maybe_convert_to_colorama(color_filled)
-        self.color_empty: str = maybe_convert_to_colorama(color_empty)
         self.table: ProgressTableV1 = table
         self.description: str = description
         self.show_throughput: bool = show_throughput
@@ -993,6 +967,7 @@ class TableProgressBar:
             total = tot_width
 
         num_filled = math.ceil(step / total * tot_width)
+        frac_missing = step / total * tot_width - num_filled
         num_empty = tot_width - num_filled
 
         if embed_str is not None:
@@ -1001,25 +976,35 @@ class TableProgressBar:
 
             filled_part = row_str[:num_filled]
             if len(filled_part) > 0 and filled_part[-1] == " ":
-                filled_part = filled_part[:-1] + self.table.pbar_style_embed.head
-            filled_part = filled_part.replace(" ", self.table.pbar_style_embed.filled)
+                head = self.style_embed.head
+                if isinstance(head, (tuple, list)):
+                    head = head[round(frac_missing * len(head))]
+                filled_part = filled_part[:-1] + head
+            filled_part = filled_part.replace(" ", self.style_embed.filled)
             empty_part = row_str[num_filled:-1]
+            color_filled = self.style_embed.color
+            color_empty = self.style_embed.color_empty
         else:
-            filled_part = self.table.pbar_style.filled * num_filled
+            filled_part = self.style.filled * num_filled
             if len(filled_part) > 0:
-                filled_part = filled_part[:-1] + self.table.pbar_style.head
-            empty_part = self.table.pbar_style.empty * num_empty
+                head = self.style.head
+                if isinstance(head, (tuple, list)):
+                    head = head[round(frac_missing * len(head))]
+                filled_part = filled_part[:-1] + head
+            empty_part = self.style.empty * num_empty
+            color_filled = self.style.color
+            color_empty = self.style.color_empty
 
         pbar_body = "".join(
             [
                 self.table.table_style.vertical,
                 infobar,
-                self.color_filled,
+                color_filled,
                 filled_part,
-                Style.RESET_ALL if self.color_filled else "",
-                self.color_empty,
+                Style.RESET_ALL if color_filled else "",
+                color_empty,
                 empty_part,
-                Style.RESET_ALL if self.color_empty else "",
+                Style.RESET_ALL if color_empty else "",
                 self.table.table_style.vertical,
             ]
         )

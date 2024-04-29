@@ -16,11 +16,9 @@ def main(random_seed=random.randint(0, 100), sleep_duration=0.05, **overrides):
         pbar_embedded=False,
         default_column_width=1,
         print_header_on_top=False,
-        pbar_style="circle",
-        pbar_color_filled="red",
+        pbar_style="circle alt red",
         **overrides,
     )
-    table.pbar_style.empty = table.pbar_style.filled
 
     print("Two players are playing tic-tac-toe.")
     print(f"The first to get a streak of {STREAK_LENGTH} wins.")
