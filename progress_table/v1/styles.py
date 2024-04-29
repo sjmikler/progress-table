@@ -1,5 +1,7 @@
 #  Copyright (c) 2022-2024 Szymon Mikler
 
+from __future__ import annotations
+
 from progress_table.v1.common import ALL_COLOR_NAME, maybe_convert_to_colorama
 
 
