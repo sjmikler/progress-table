@@ -21,6 +21,12 @@ def get_version():
 
 long_description = package_relative_path("README.md").read_text(encoding="UTF-8")
 
+
+def with_direct_github_urls(description):
+    github_link = "https://raw.githubusercontent.com/sjmikler/progress-table/main/images"
+    return description.replace("(images", "(" + github_link)
+
+
 setup(
     name="progress-table",
     version=get_version(),
@@ -42,6 +48,6 @@ setup(
         "Programming Language :: Python :: 3.12",
     ],
     install_requires=["colorama"],
-    long_description=long_description,
+    long_description=with_direct_github_urls(long_description),
     long_description_content_type="text/markdown",
 )
