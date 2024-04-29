@@ -16,11 +16,11 @@ Lightweight utility to display the progress of your process as a pretty table in
 
 ### Change this:
 
-![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-before3.gif?raw=true)
+![example](images/progress-before3.gif)
 
 ### Into this:
 
-![example](https://github.com/gahaalt/progress-table/blob/main/images/progress-after4.gif?raw=true)
+![example](images/progress-after4.gif)
 
 ## Examples
 
