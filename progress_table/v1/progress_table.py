@@ -872,9 +872,11 @@ class TableProgressBar:
 
         # Modyfing styles
         if color:
+            color = maybe_convert_to_colorama(color)
             self.style.color = color
             self.style_embed.color = color
         if color_empty:
+            color_empty = maybe_convert_to_colorama(color_empty)
             self.style.color_empty = color_empty
             self.style_embed.color_empty = color_empty
 

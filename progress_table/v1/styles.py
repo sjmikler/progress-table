@@ -140,8 +140,16 @@ class PbarStyleEmbed(PbarStyleBase):
 class PbarStyleRich(PbarStyleBase):
     name = "rich"
     filled = "━"
-    empty = "-"
+    empty = " "
     head = "━"
+
+    def __init__(self, *args, **kwds):
+        """Similar to the default progress bar from rich"""
+        super().__init__(*args, **kwds)
+        if not self.color and not self.color_empty:
+            self.color = maybe_convert_to_colorama("red")
+            self.color_empty = maybe_convert_to_colorama("black")
+            self.empty = self.filled
 
 
 class PbarStyleNone(PbarStyleBase):

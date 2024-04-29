@@ -31,7 +31,7 @@ table = ProgressTable(
     default_header_color="bold",
 )
 
-main_pbar = pb = table.pbar(
+main_pbar = table.pbar(
     NUM_FILES,
     position=1,
     show_progress=True,
