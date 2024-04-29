@@ -64,12 +64,9 @@ def main(random_seed=random.randint(0, 100), sleep_duration=0.025, **overrides):
 
     table = ProgressTable(
         pbar_embedded=False,  # Do not use embedded pbar
-        pbar_style="angled",
-        pbar_color_filled="red",
+        pbar_style="angled alt red blue",
         **overrides,
     )
-    table.pbar_style.empty = table.pbar_style.filled
-
     print("Training a simple linear model on the Iris dataset.")
 
     # Loading dataset
