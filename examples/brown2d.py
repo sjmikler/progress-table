@@ -64,6 +64,7 @@ def main(random_seed=random.randint(0, 100), sleep_duration=0.001, **overrides):
     print(f"Simulation stops when it reaches distance of {TARGET_DISTANCE} from the center.")
 
     tick = 0
+    pbar_momentum = 0
     while calc_distance(current_position) < TARGET_DISTANCE:
         random_direction = random.uniform(0, 2 * 3.1415)
         new_velocity = random.uniform(0, PARTICLE_VELOCITY * 2)
@@ -78,7 +79,9 @@ def main(random_seed=random.randint(0, 100), sleep_duration=0.001, **overrides):
         table["position X"] = current_position[0]
         table["position Y"] = current_position[1]
         table["distance from center"] = distance_from_center
-        distance_pbar.reset(total=int(distance_from_center))
+
+        pbar_momentum = pbar_momentum * 0.95 + int(distance_from_center) * 0.05
+        distance_pbar.reset(total=round(pbar_momentum))
 
         if tick % STEP_SIZE == 0:
             color = get_color_by_distance(distance_from_center)

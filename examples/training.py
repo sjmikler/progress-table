@@ -19,8 +19,8 @@ from progress_table import ProgressTable
 
 # Training parameters
 SGD_LR = 0.01
-NUM_EPOCHS = 20
-SLEEP_DURATION = 0.025
+NUM_EPOCHS = 15
+SLEEP_DURATION = 0.04
 
 
 def softmax(x):
@@ -55,7 +55,7 @@ def model_grads(targets, logits, inputs):
     return inputs.T @ cross_entropy_grads
 
 
-def main(random_seed=random.randint(0, 100), sleep_duration=0.025, **overrides):
+def main(random_seed=random.randint(0, 100), sleep_duration=SLEEP_DURATION, **overrides):
     global SLEEP_DURATION
     SLEEP_DURATION = sleep_duration
 
