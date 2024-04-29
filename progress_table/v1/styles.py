@@ -7,7 +7,7 @@ def contains_word(short, long):
     return any([short == word.strip(" ") for word in long.split(" ")])
 
 
-def figure_out_colors_from_description(description):
+def parse_colors_from_description(description):
     color = ""
     color_empty = ""
     for word in description.split():
@@ -26,7 +26,7 @@ def parse_pbar_style(description):
         for obj in available_pbar_styles():
             if contains_word(obj.name, description):
                 description = description.replace(obj.name, "")
-                color, color_empty, description = figure_out_colors_from_description(description)
+                color, color_empty, description = parse_colors_from_description(description)
                 is_alt = "alt" in description
                 is_clean = "clean" in description
                 description = description.replace("alt", "").replace("clean", "").strip(" ")
