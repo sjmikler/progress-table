@@ -143,7 +143,7 @@ Below we show a sample of available styles for non-embedded progress bars
 |-----------------------------------|
 |   test1  |    1.0    |     42     |
 |   test2  |    2.0    |     37     |
-|■■■■■■■■■■■■■■■■■■■◩□□□□□□□□□□□□□□□|
+|■■■■■■■■■■■■■■■■■■■■□□□□□□□□□□□□□□□|
 ```
 
 `circle`
