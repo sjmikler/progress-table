@@ -1,6 +1,6 @@
 #  Copyright (c) 2022-2024 Szymon Mikler
 
-__version__ = "2.2.2"
+__version__ = "2.2.3"
 
 from progress_table.v0.progress_table import ProgressTableV0
 from progress_table.v1 import styles
