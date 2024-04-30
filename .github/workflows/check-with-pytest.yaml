@@ -32,5 +32,5 @@ jobs:
       # otherwise, the first test will pass and the second will fail
       - name: Test with pytest
         run: |
-          pytest test/test_docs_automated.py --log-cli-level=WARNING
-          pytest test/test_examples_automated.py --log-cli-level=WARNING
+          pytest tests/test_docs_automated.py --log-cli-level=WARNING
+          pytest tests/test_examples_automated.py --log-cli-level=WARNING
