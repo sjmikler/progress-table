@@ -79,12 +79,12 @@ table.close()
 
 ```
 
-> Go to [integrations](https://github.com/sjmikler/progress-table/blob/main/docs/integrations.md)
+> Go to [integrations](docs/integrations.md)
 > page to see examples of integration with deep learning libraries.
 
 ## Advanced usage
 
-Go to [advanced usage](https://github.com/sjmikler/progress-table/blob/main/docs/advanced-usage.md) page for more information.
+Go to [advanced usage](docs/advanced-usage.md) page for more information.
 
 ## Troubleshooting
 
