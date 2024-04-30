@@ -134,13 +134,6 @@ class PbarStyleAngled(PbarStyleBase):
     head = "▰"
 
 
-class PbarStyleEmbed(PbarStyleBase):
-    name = "embed"
-    filled = "ꞏ"
-    empty = " "
-    head = ">"
-
-
 class PbarStyleRich(PbarStyleBase):
     name = "rich"
     filled = "━"
@@ -154,6 +147,34 @@ class PbarStyleRich(PbarStyleBase):
             self.color = maybe_convert_to_colorama("red")
             self.color_empty = maybe_convert_to_colorama("black")
             self.empty = self.filled
+
+
+class PbarStyleCdots(PbarStyleBase):
+    name = "cdots"
+    filled = "ꞏ"
+    empty = " "
+    head = ">"
+
+
+class PbarStyleDash(PbarStyleBase):
+    name = "dash"
+    filled = "-"
+    empty = " "
+    head = ">"
+
+
+class PbarStyleUnder(PbarStyleBase):
+    name = "under"
+    filled = "_"
+    empty = " "
+    head = "_"
+
+
+class PbarStyleDoubleDash(PbarStyleBase):
+    name = "doubledash"
+    filled = "="
+    empty = " "
+    head = ">"
 
 
 class PbarStyleNone(PbarStyleBase):

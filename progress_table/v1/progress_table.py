@@ -119,7 +119,7 @@ class ProgressTableV1:
         pbar_show_eta: bool = False,
         pbar_embedded: bool = True,
         pbar_style: str | Type[styles.PbarStyleBase] = "square",
-        pbar_style_embed: str | Type[styles.PbarStyleBase] = "embed",
+        pbar_style_embed: str | Type[styles.PbarStyleBase] = "cdots",
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
         custom_cell_format: Callable[[Any], str] | None = None,
