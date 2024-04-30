@@ -23,8 +23,12 @@ long_description = package_relative_path("README.md").read_text(encoding="UTF-8"
 
 
 def with_direct_github_urls(description):
-    github_link = "https://raw.githubusercontent.com/sjmikler/progress-table/main/images"
-    return description.replace("(images", "(" + github_link)
+    images_github_link = "https://raw.githubusercontent.com/sjmikler/progress-table/main/images"
+    description = description.replace("(images", "(" + images_github_link)
+
+    docs_github_link = "https://github.com/sjmikler/progress-table/blob/main/docs/"
+    description = description.replace("(docs", "(" + docs_github_link)
+    return description
 
 
 setup(
