@@ -210,7 +210,7 @@ pbar = table.pbar(
 )
 ```
 
-Which result in something like this:
+Which results in something like this:
 
 ```
 │[train epoch, 24.1 it/s, ETA 53s] ●●●●●●●◉○○○○○○○○○○○○○○○│
