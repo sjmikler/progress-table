@@ -87,3 +87,5 @@ for idx, pkg in enumerate(files_to_download):
 
 for thread in threads:
     thread.result()
+
+table.close()
