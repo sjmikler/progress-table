@@ -100,6 +100,10 @@ Progress Table works correctly in most consoles, but there are some exceptions:
 > By default `interactive=2`. You can change the default `interactive` with an argument when creating the table object
 > or by setting `PTABLE_INTERACTIVE` environment variable, e.g. `PTABLE_INTERACTIVE=1`.
 
+### Other problems
+
+If you encounter different messy outputs or other unexpected behavior: please create an issue!
+
 ## Installation
 
 Install Progress Table easily with pip:
