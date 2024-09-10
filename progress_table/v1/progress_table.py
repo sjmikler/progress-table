@@ -263,7 +263,7 @@ class ProgressTableV1:
         self._at_indexer = TableAtIndexer(self)
 
         # Close the table at program exit
-        atexit.register(self.close)
+        # atexit.register(self.close)
 
     def add_column(
         self,
