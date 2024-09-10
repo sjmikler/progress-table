@@ -422,7 +422,8 @@ class ProgressTableV1:
         data_row_index = len(self._data_rows) - 1
 
         # Color is applied to the existing row - not the new one!
-        row.COLORS.update(self._resolve_row_color_dict(color))
+        # Existing colors applied by `update` get the priority over row color
+        row.COLORS = {**self._resolve_row_color_dict(color), **row.COLORS}
 
         # Refreshing the existing row is necessary to apply colors
         # Or - if row is empty, this will cause the first addition to display rows
