@@ -81,7 +81,7 @@ def main(random_seed=random.randint(0, 100), sleep_duration=0.001, **overrides):
         table["distance from center"] = distance_from_center
 
         pbar_momentum = pbar_momentum * 0.95 + int(distance_from_center) * 0.05
-        distance_pbar.reset(total=round(pbar_momentum))
+        distance_pbar.set_step(round(pbar_momentum))
 
         if tick % STEP_SIZE == 0:
             color = get_color_by_distance(distance_from_center)

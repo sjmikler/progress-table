@@ -57,7 +57,7 @@ def fake_download(file_info):
     t0 = time.time()
     td = 0
     while True:
-        pbar.reset(total=td / file_info["time"])  # Set specific pbar progress
+        pbar.set_step(td / file_info["time"])  # Set specific pbar progress
 
         # Maybe add an error to the error counter
         if random.random() < 0.004:
