@@ -1013,10 +1013,39 @@ class TableProgressBar:
         return "".join(pbar)
 
     def update(self, n=1):
+        """Update the progress bar steps.
+
+        Args:
+            n: Number of steps to update the progress bar.
+        """
         self._step += n
 
     def reset(self, total=None):
-        self._step = total or 0
+        """Reset the progress bar.
+
+        Args:
+            total: Modify the total number of iterations. Optional.
+        """
+        self._step = 0
+
+        if total:
+            self._total = total
+
+    def set_step(self, n):
+        """Overwrite the current step.
+
+        Args:
+            n: New value of the current step.
+        """
+        self._step = n
+
+    def set_total(self, total):
+        """Overwrite the total number of iterations.
+
+        Args:
+            total: New value of the total number of iterations
+        """
+        self._total = total
 
     def __iter__(self):
         try:
