@@ -1031,13 +1031,13 @@ class TableProgressBar:
         if total:
             self._total = total
 
-    def set_step(self, n):
+    def set_step(self, step):
         """Overwrite the current step.
 
         Args:
-            n: New value of the current step.
+            step: New value of the current step.
         """
-        self._step = n
+        self._step = step
 
     def set_total(self, total):
         """Overwrite the total number of iterations.
