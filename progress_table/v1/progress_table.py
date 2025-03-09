@@ -220,7 +220,7 @@ class ProgressTableV1:
 
         self.files = (file,) if not isinstance(file, (list, tuple)) else file
 
-        assert print_header_every_n_rows > 0, "Reprint header every n rows has to be positive!"
+        assert print_header_every_n_rows >= 0, "Value must be non-negative!"
         self._print_header_on_top = print_header_on_top
         self._print_header_every_n_rows = print_header_every_n_rows
         self._previous_header_row_number = 0
@@ -412,7 +412,11 @@ class ProgressTableV1:
         """End the current row."""
 
         # Force header if it wasn't printed for a long enough time
-        if header is None and len(self._data_rows) - self._previous_header_row_number >= self._print_header_every_n_rows:
+        if (
+            header is None
+            and len(self._data_rows) - self._previous_header_row_number >= self._print_header_every_n_rows
+            and self._print_header_every_n_rows > 0
+        ):
             header = True
         header = header or False
         split = split or False
@@ -431,7 +435,7 @@ class ProgressTableV1:
         self._append_new_empty_data_row()
         # Add decorations and a new row
         if header:
-            self._previous_header_row_number = len(self._data_rows)
+            self._previous_header_row_number = len(self._data_rows) - 1
             self._latest_row_decorations.extend(["SPLIT MID", "HEADER", "SPLIT MID"])
         elif split:
             self._latest_row_decorations.append("SPLIT MID")
