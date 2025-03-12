@@ -1,11 +1,7 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
 
-__version__ = "2.3.2"
+__version__ = "3.0.0"
 
-from progress_table.v0.progress_table import ProgressTableV0
-from progress_table.v1 import styles
-from progress_table.v1.progress_table import ProgressTableV1
+from progress_table.progress_table import ProgressTable
 
-ProgressTable = ProgressTableV1
-
-__all__ = ["ProgressTable", "ProgressTableV0", "ProgressTableV1", "styles"]
+__all__ = ["ProgressTable", "styles"]

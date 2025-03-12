@@ -15,9 +15,8 @@ from typing import Any, Callable, Iterable, Sized, Type
 
 from colorama import Style
 
-from progress_table.v1 import styles
-from progress_table.v1.common import CURSOR_UP, ColorFormat, ColorFormatTuple, maybe_convert_to_colorama
-from progress_table.v1.styles import parse_pbar_style
+from progress_table import styles
+from progress_table.common import CURSOR_UP, ColorFormat, ColorFormatTuple, maybe_convert_to_colorama
 
 # Flags that indicate if the warning was already triggered
 WARNED_PBAR_HIDDEN = False
@@ -93,7 +92,7 @@ class DATA_ROW:
     COLORS: dict[str, str]
 
 
-class ProgressTableV1:
+class ProgressTable:
     DEFAULT_COLUMN_WIDTH = 8
     DEFAULT_COLUMN_COLOR = None
     DEFAULT_COLUMN_ALIGNMENT = "center"
@@ -135,7 +134,7 @@ class ProgressTableV1:
         Use `next_row` method to display the current row and reset the values for the next row.
 
         Example:
-            >>> table = ProgressTableV1()
+            >>> table = ProgressTable()
             >>> table.add_column("b", width=10)
             >>> table["a"] = 1
             >>> table["b"] = "xyz"
@@ -816,8 +815,8 @@ class ProgressTableV1:
 
         total = total if total is not None else (len(iterable) if isinstance(iterable, Sized) else 0)
 
-        style = parse_pbar_style(style) if style else self.pbar_style
-        style_embed = parse_pbar_style(style_embed) if style_embed else self.pbar_style_embed
+        style = styles.parse_pbar_style(style) if style else self.pbar_style
+        style_embed = styles.parse_pbar_style(style_embed) if style_embed else self.pbar_style_embed
 
         pbar = TableProgressBar(
             iterable=iterable,
@@ -884,7 +883,7 @@ class TableProgressBar:
 
         self.position: int = position
         self.static: bool = static
-        self.table: ProgressTableV1 = table
+        self.table: ProgressTable = table
         self.description: str = description
         self.show_throughput: bool = show_throughput
         self.show_progress: bool = show_progress
@@ -1064,7 +1063,7 @@ class TableProgressBar:
 
 
 class TableAtIndexer:
-    def __init__(self, table: ProgressTableV1):
+    def __init__(self, table: ProgressTable):
         self.table = table
         self.edit_mode_prefix_map = {}
         for word in ("VALUES", "WEIGHTS", "COLORS"):
