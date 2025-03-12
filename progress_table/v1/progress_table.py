@@ -80,7 +80,7 @@ def get_default_format_func(decimal_places):
         else:
             try:
                 return format(x, f".{decimal_places}f")
-            except Exception:
+            except ValueError:
                 return str(x)
 
     return fmt
@@ -344,14 +344,14 @@ class ProgressTableV1:
         self._set_all_display_rows_as_pending()
 
     def update(self, name, value, *, row=-1, weight=1, cell_color=None, **column_kwds):
-        """Update value in the current row. This is extends capabilities of __setitem__.
+        """Update value in the current row. This extends capabilities of __setitem__.
 
         Args:
             name: Name of the column.
             value: Value to be set.
             row: Index of the row. By default, it's the last row.
             weight: Weight of the value. This is used for aggregation.
-            cell_color: Optionally override color for specific cell, independent from rows and columns.
+            cell_color: Optionally override color for specific cell, independent of rows and columns.
             column_kwds: Additional arguments for the column. They will be only used for column creation.
                          If column already exists, they will have no effect.
         """
@@ -667,7 +667,7 @@ class ProgressTableV1:
         self._pending_display_rows = list(range(len(self._display_rows)))
 
     def _freeze_view(self):
-        # Empty the row informations
+        # Empty the row information
         self._CURSOR_ROW = 0
         self._display_rows = []
         self._pending_display_rows = []
@@ -771,7 +771,6 @@ class ProgressTableV1:
         position=None,
         static=False,
         total=None,
-        refresh_rate=None,
         description="",
         show_throughput=None,
         show_progress=None,
@@ -791,7 +790,6 @@ class ProgressTableV1:
             static: If True, the progress bar will stick to the row with index given by position.
                     If False, the position will be interpreted as the offset from the last row.
             total: Total number of iterations. If not provided, it will be calculated from the length of the iterable.
-            refresh_rate: The maximal number of times per second the progress bar will be refreshed.
             description: Custom description of the progress bar that will be shown as prefix.
             show_throughput: If True, the throughput will be displayed.
             show_progress: If True, the progress will be displayed.
