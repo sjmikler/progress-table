@@ -1,4 +1,4 @@
-#  Copyright (c) 2022-2024 Szymon Mikler
+#  Copyright (c) 2022-2025 Szymon Mikler
 
 import hashlib
 import importlib
