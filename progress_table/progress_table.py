@@ -151,7 +151,7 @@ class ProgressTable:
                          On level 1 you can only operate on the current row, the old rows are frozen, but you still get
                          to use a progress bar, albeit not nested. On level 0 there are no progress bars and rows are only
                          printed after calling `next_row`.
-            refresh_rate: The maximal number of times per second the renderer will render updates in the table.
+            refresh_rate: The maximal number of times per second to render the updates in the table.
             num_decimal_places: This is only applicable when using the default formatting.
                                 This won't be used if `custom_cell_repr` is set.
                                 If applicable, for every displayed value except integers there will be an attempt to round it.
@@ -227,6 +227,7 @@ class ProgressTable:
         self._data_rows: list[DATA_ROW] = []
         self._display_rows: list[str | int] = []
         self._pending_display_rows: list[int] = []
+        self._refresh_pending: bool = False
 
         self._active_pbars: list[TableProgressBar] = []
         self._cleaning_pbar_instructions: list[tuple[int, str]] = []
@@ -245,16 +246,15 @@ class ProgressTable:
         self.pbar_embedded: bool = pbar_embedded
 
         self.refresh_rate: int = refresh_rate
+        self._frame_time: float = 1 / self.refresh_rate if self.refresh_rate else 0.0
 
         self._CURSOR_ROW = 0
-        self._RENDERER_RUNNING = False
 
         # Interactivity settings
         self.interactive = interactive
         assert self.interactive in (2, 1, 0)
 
         self._printing_buffer: list[str] = []
-        self._renderer: Thread | None = None
         self.add_columns(*columns)
 
         self._append_new_empty_data_row()
@@ -332,10 +332,6 @@ class ProgressTable:
         """Reorder columns in the table."""
         if all(x == y for x, y in zip(column_names, self.column_names)):
             return
-
-        if self.interactive < 2 and self._RENDERER_RUNNING:
-            msg = "Cannot reorder columns when table display started if interactive < 2!"
-            raise Exception(msg)
 
         assert isinstance(column_names, (list, tuple))
         assert all(x in self.column_names for x in column_names), f"Columns {column_names} not in {self.column_names}"
@@ -457,11 +453,6 @@ class ProgressTable:
         elif split:
             self._latest_row_decorations.append("SPLIT MID")
 
-        # There's no renderer thread when interactive==0, so we force refresh after every row
-        if self.interactive == 0:
-            self._print_pending_rows_to_buffer()
-            self._flush_buffer()
-
     def add_row(self, *values, **kwds) -> None:
         """Mimicking rich.table behavior for adding whole rows in one call without providing names."""
         for key, value in zip(self.column_names, values):
@@ -486,7 +477,7 @@ class ProgressTable:
         return len(self.column_names)
 
     def close(self) -> None:
-        """Closes the table visually, removes the renderer thread. Closed table cannot be updated anymore."""
+        """Closes the table gracefully. Closed table cannot be updated anymore."""
         if self._closed:
             return
 
@@ -495,11 +486,6 @@ class ProgressTable:
 
         if "SPLIT TOP" in self._display_rows:
             self._append_or_update_display_row("SPLIT BOT")
-
-        self._RENDERER_RUNNING = False
-        if self._renderer is not None and self._renderer.is_alive():
-            self._renderer.join(timeout=1 / self.refresh_rate)
-        self._renderer = None
 
         self._print_pending_rows_to_buffer()
         self._print_to_buffer(end="\n")
@@ -547,21 +533,28 @@ class ProgressTable:
     ## PRIVATE METHODS ##
     #####################
 
-    def _rendering_loop(self) -> None:
-        idle_time: float = 1 / self.refresh_rate
-        while self._RENDERER_RUNNING:
-            if self._display_rows:
-                self._print_pending_rows_to_buffer()
-                self._flush_buffer()
-            time.sleep(idle_time)
+    def _trigger_refresh(self):
+        if self._refresh_pending:
+            return
 
-    def _start_rendering(self) -> None:
-        # Rendering should start when
-        # * User enters the first value into the table
-        self._RENDERER_RUNNING = True
-        if self.interactive > 0 and self.refresh_rate > 0:
-            self._renderer = Thread(target=self._rendering_loop, daemon=True)
-            self._renderer.start()
+        if self.refresh_rate > 0:
+            self._refresh_pending = True
+            Thread(target=self._refreshing_daemon, daemon=True).start()
+        else:
+            self._refresh()
+
+    def _refreshing_daemon(self):
+        while True:
+            time.sleep(self._frame_time)
+            if not self._refresh_pending:
+                break
+            self._refresh_pending = False
+            self._refresh()
+
+    def _refresh(self):
+        if self._display_rows:
+            self._print_pending_rows_to_buffer()
+            self._flush_buffer()
 
     def _append_or_update_display_row(self, element) -> None:
         """For integer - this adds the corresponding existing data row as pending.
@@ -570,10 +563,6 @@ class ProgressTable:
         if self._closed:
             msg = "Table was closed! Updating closed tables is not supported."
             raise Exception(msg)
-
-        # Renderer starts on first update
-        if not self._RENDERER_RUNNING:
-            self._start_rendering()
 
         if isinstance(element, int):
             if element not in self._display_rows:
@@ -592,6 +581,12 @@ class ProgressTable:
         else:
             self._display_rows.append(element)
             self._pending_display_rows.append(len(self._display_rows) - 1)
+
+        self._trigger_refresh()
+
+    def _set_all_display_rows_as_pending(self) -> None:
+        self._pending_display_rows = list(range(len(self._display_rows)))
+        self._trigger_refresh()
 
     def _append_new_empty_data_row(self) -> None:
         # Add a new data row - but don't add it as display row yet
@@ -684,9 +679,6 @@ class ProgressTable:
 
             self._print_to_buffer(pbar_str)
         self._move_cursor_in_buffer(-1)
-
-    def _set_all_display_rows_as_pending(self) -> None:
-        self._pending_display_rows = list(range(len(self._display_rows)))
 
     def _freeze_view(self) -> None:
         # Empty the row information
@@ -926,9 +918,9 @@ class TableProgressBar:
             self.style.color_empty = color_empty
             self.style_embed.color_empty = color_empty
 
+        self.table: ProgressTable = table
         self.position: int = position
         self.static: bool = static
-        self.table: ProgressTable = table
         self.description: str = description
         self.show_throughput: bool = show_throughput
         self.show_progress: bool = show_progress
@@ -1066,6 +1058,7 @@ class TableProgressBar:
 
         """
         self._step += n
+        self.table._trigger_refresh()
 
     def reset(self, total=None) -> None:
         """Reset the progress bar.
@@ -1078,6 +1071,7 @@ class TableProgressBar:
 
         if total:
             self._total = total
+        self.table._trigger_refresh()
 
     def set_step(self, step) -> None:
         """Overwrite the current step.
@@ -1087,6 +1081,7 @@ class TableProgressBar:
 
         """
         self._step = step
+        self.table._trigger_refresh()
 
     def set_total(self, total) -> None:
         """Overwrite the total number of iterations.
@@ -1096,6 +1091,7 @@ class TableProgressBar:
 
         """
         self._total = total
+        self.table._trigger_refresh()
 
     def __iter__(self):
         try:
