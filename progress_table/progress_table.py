@@ -9,9 +9,10 @@ import os
 import shutil
 import sys
 import time
+from collections.abc import Iterable, Sized
 from dataclasses import dataclass
 from threading import Thread
-from typing import Any, Callable, Iterable, Sized, Type
+from typing import Any, Callable
 
 from colorama import Style
 
@@ -48,7 +49,6 @@ def aggregate_min(value, old_value, weight, old_weight):
 
 def get_aggregate_fn(aggregate: None | str | Callable):
     """Get the aggregate function from the provided value."""
-
     if aggregate is None:
         return aggregate_dont
 
@@ -60,27 +60,26 @@ def get_aggregate_fn(aggregate: None | str | Callable):
     if isinstance(aggregate, str):
         if aggregate == "mean":
             return aggregate_mean
-        elif aggregate == "sum":
+        if aggregate == "sum":
             return aggregate_sum
-        elif aggregate == "max":
+        if aggregate == "max":
             return aggregate_max
-        elif aggregate == "min":
+        if aggregate == "min":
             return aggregate_min
-        else:
-            raise ValueError(f"Unknown aggregate type string: {aggregate}")
-    else:
-        raise ValueError(f"Unknown aggregate type: {type(aggregate)}")
+        msg = f"Unknown aggregate type string: {aggregate}"
+        raise ValueError(msg)
+    msg = f"Unknown aggregate type: {type(aggregate)}"
+    raise ValueError(msg)
 
 
 def get_default_format_func(decimal_places):
     def fmt(x) -> str:
         if isinstance(x, int):
             return str(x)
-        else:
-            try:
-                return format(x, f".{decimal_places}f")
-            except ValueError:
-                return str(x)
+        try:
+            return format(x, f".{decimal_places}f")
+        except ValueError:
+            return str(x)
 
     return fmt
 
@@ -116,18 +115,18 @@ class ProgressTable:
         pbar_show_percents: bool = False,
         pbar_show_eta: bool = False,
         pbar_embedded: bool = True,
-        pbar_style: str | Type[styles.PbarStyleBase] = "square",
-        pbar_style_embed: str | Type[styles.PbarStyleBase] = "cdots",
+        pbar_style: str | type[styles.PbarStyleBase] = "square",
+        pbar_style_embed: str | type[styles.PbarStyleBase] = "cdots",
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
         custom_cell_format: Callable[[Any], str] | None = None,
-        table_style: str | Type[styles.TableStyleBase] = "round",
+        table_style: str | type[styles.TableStyleBase] = "round",
         file=None,
         # Deprecated arguments
         custom_format: None = None,
         embedded_progress_bar: None = None,
         print_row_on_update: None = None,
-    ):
+    ) -> None:
         """Progress Table instance.
 
         Columns can be specified using `add_column` method, but they can be added on the fly as well.
@@ -183,6 +182,7 @@ class ProgressTable:
             pbar_style_embed: Change the style of the embedded progress bar. Same as pbar_style, but for embedded pbars.
             file: Redirect the output to another stream. There can be multiple streams at once passed as list or tuple.
                   Defaults to None, which is interpreted as stdout.
+
         """
         # Deprecation handling
         if custom_format is not None:
@@ -260,9 +260,6 @@ class ProgressTable:
         self._append_new_empty_data_row()
         self._at_indexer = TableAtIndexer(self)
 
-        # Close the table at program exit
-        # atexit.register(self.close)
-
     def add_column(
         self,
         name: str,
@@ -271,7 +268,7 @@ class ProgressTable:
         color=None,
         alignment=None,
         aggregate=None,
-    ):
+    ) -> None:
         """Add column to the table.
 
         You can re-add existing columns to modify their properties.
@@ -286,6 +283,7 @@ class ProgressTable:
             aggregate: By default, there's no aggregation. But if this is for example 'mean', then
                        after every update in the current row, the mean of the provided values will be
                        displayed. Aggregated values is reset at every new row.
+
         """
         assert isinstance(name, str), f"Column name has to be a string, not {type(name)}!"
         if name in self.column_names:
@@ -302,7 +300,7 @@ class ProgressTable:
         self.column_aggregates[name] = get_aggregate_fn(aggregate or self.column_aggregate or self.DEFAULT_COLUMN_AGGREGATE)
         self._set_all_display_rows_as_pending()
 
-    def add_columns(self, *columns, **kwds):
+    def add_columns(self, *columns, **kwds) -> None:
         """Add multiple columns to the table.
 
         This can be an integer - then the given number of columns will be created.
@@ -310,6 +308,7 @@ class ProgressTable:
         Args:
             columns: Names of the columns or a number of columns to create.
             kwds: Additional arguments for the columns. Column properties will be identical for all added columns.
+
         """
         # Create the given number of columns
         if len(columns) == 1 and isinstance(columns[0], int):
@@ -325,16 +324,17 @@ class ProgressTable:
             for column in columns:
                 self.add_column(column, **kwds)
 
-    def reorder_columns(self, *column_names):
+    def reorder_columns(self, *column_names) -> None:
         """Reorder columns in the table."""
         if all(x == y for x, y in zip(column_names, self.column_names)):
             return
 
         if self.interactive < 2 and self._RENDERER_RUNNING:
-            raise Exception("Cannot reorder columns when table display started if interactive < 2!")
+            msg = "Cannot reorder columns when table display started if interactive < 2!"
+            raise Exception(msg)
 
         assert isinstance(column_names, (list, tuple))
-        assert all([x in self.column_names for x in column_names]), f"Columns {column_names} not in {self.column_names}"
+        assert all(x in self.column_names for x in column_names), f"Columns {column_names} not in {self.column_names}"
         self.column_names = list(column_names)
         self.column_widths = {k: self.column_widths[k] for k in column_names}
         self.column_colors = {k: self.column_colors[k] for k in column_names}
@@ -342,7 +342,7 @@ class ProgressTable:
         self.column_aggregates = {k: self.column_aggregates[k] for k in column_names}
         self._set_all_display_rows_as_pending()
 
-    def update(self, name, value, *, row=-1, weight=1, cell_color=None, **column_kwds):
+    def update(self, name, value, *, row=-1, weight=1, cell_color=None, **column_kwds) -> None:
         """Update value in the current row. This extends capabilities of __setitem__.
 
         Args:
@@ -353,13 +353,15 @@ class ProgressTable:
             cell_color: Optionally override color for specific cell, independent of rows and columns.
             column_kwds: Additional arguments for the column. They will be only used for column creation.
                          If column already exists, they will have no effect.
+
         """
         if name not in self.column_names:
             self.add_column(name, **column_kwds)
 
         data_row_index = row if row >= 0 else len(self._data_rows) + row
         if data_row_index >= len(self._data_rows):
-            raise ValueError(f"Row {data_row_index} out of range! Number of rows: {len(self._data_rows)}")
+            msg = f"Row {data_row_index} out of range! Number of rows: {len(self._data_rows)}"
+            raise ValueError(msg)
 
         # Set default values for new rows
         data_row = self._data_rows[row]
@@ -374,7 +376,7 @@ class ProgressTable:
             data_row.COLORS[name] = maybe_convert_to_colorama(cell_color)
         self._append_or_update_display_row(data_row_index)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, tuple):
             name, row = key
             if isinstance(name, int) and isinstance(row, str):
@@ -397,7 +399,7 @@ class ProgressTable:
         assert isinstance(row, int), f"Row {row} has to be an integer, not {type(row)}!"
         return self._data_rows[row].VALUES.get(key, None)
 
-    def update_from_dict(self, dictionary):
+    def update_from_dict(self, dictionary) -> None:
         """Update multiple values in the current row."""
         for key, value in dictionary.items():
             self.update(key, value)
@@ -412,9 +414,8 @@ class ProgressTable:
         color: ColorFormat | dict[str, ColorFormat] = None,
         split: bool | None = None,
         header: bool | None = None,
-    ):
+    ) -> None:
         """End the current row."""
-
         # Force header if it wasn't printed for a long enough time
         if (
             header is None
@@ -449,13 +450,13 @@ class ProgressTable:
             self._print_pending_rows_to_buffer()
             self._flush_buffer()
 
-    def add_row(self, *values, **kwds):
+    def add_row(self, *values, **kwds) -> None:
         """Mimicking rich.table behavior for adding whole rows in one call without providing names."""
         for key, value in zip(self.column_names, values):
             self.update(key, value)
         self.next_row(**kwds)
 
-    def add_rows(self, *rows, **kwds):
+    def add_rows(self, *rows, **kwds) -> None:
         """Like `add_row`, but for multiple rows at once.
 
         Optionally, it accepts an integer as the first argument, which will create that number of empty rows.
@@ -472,7 +473,7 @@ class ProgressTable:
     def num_columns(self):
         return len(self.column_names)
 
-    def close(self):
+    def close(self) -> None:
         """Closes the table visually, removes the renderer thread. Closed table cannot be updated anymore."""
         if self._closed:
             return
@@ -494,7 +495,7 @@ class ProgressTable:
         self._freeze_view()
         self._closed = True
 
-    def write(self, *args, sep=" "):
+    def write(self, *args, sep=" ") -> None:
         """Write a message gracefully when the table is opened."""
         full_message = []
         for arg in args:
@@ -514,6 +515,7 @@ class ProgressTable:
         Numpy library is required.
         """
         import numpy as np
+
         return np.array(self.to_list())
 
     def to_df(self):
@@ -522,13 +524,14 @@ class ProgressTable:
         Pandas library is required.
         """
         import pandas as pd
+
         return pd.DataFrame(self.to_list(), columns=self.column_names)
 
     #####################
     ## PRIVATE METHODS ##
     #####################
 
-    def _rendering_loop(self):
+    def _rendering_loop(self) -> None:
         idle_time: float = 1 / self.refresh_rate
         while self._RENDERER_RUNNING:
             if self._display_rows:
@@ -536,7 +539,7 @@ class ProgressTable:
                 self._flush_buffer()
             time.sleep(idle_time)
 
-    def _start_rendering(self):
+    def _start_rendering(self) -> None:
         # Rendering should start when
         # * User enters the first value into the table
         self._RENDERER_RUNNING = True
@@ -544,13 +547,13 @@ class ProgressTable:
             self._renderer = Thread(target=self._rendering_loop, daemon=True)
             self._renderer.start()
 
-    def _append_or_update_display_row(self, element):
-        """
-        For integer - this adds the corresponding existing data row as pending.
+    def _append_or_update_display_row(self, element) -> None:
+        """For integer - this adds the corresponding existing data row as pending.
         For string or tuple - this appends a new row decoration.
         """
         if self._closed:
-            raise Exception("Table was closed! Updating closed tables is not supported.")
+            msg = "Table was closed! Updating closed tables is not supported."
+            raise Exception(msg)
 
         # Renderer starts on first update
         if not self._RENDERER_RUNNING:
@@ -574,12 +577,12 @@ class ProgressTable:
             self._display_rows.append(element)
             self._pending_display_rows.append(len(self._display_rows) - 1)
 
-    def _append_new_empty_data_row(self):
+    def _append_new_empty_data_row(self) -> None:
         # Add a new data row - but don't add it as display row yet
         row = DATA_ROW(VALUES={}, WEIGHTS={}, COLORS={})
         self._data_rows.append(row)
 
-    def _move_cursor_in_buffer(self, row_index):
+    def _move_cursor_in_buffer(self, row_index) -> None:
         if row_index < 0:
             row_index = len(self._display_rows) + row_index
         offset = self._CURSOR_ROW - row_index
@@ -591,7 +594,7 @@ class ProgressTable:
             self._print_to_buffer("\n" * offset)
         self._CURSOR_ROW = row_index
 
-    def _print_pending_rows_to_buffer(self):
+    def _print_pending_rows_to_buffer(self) -> None:
         # Clearing progress bars below the table happens here
         for display_row_idx, cleaning_str in self._cleaning_pbar_instructions:
             assert self.interactive >= 2, "Should not need to clean pbars when interactive < 2!"
@@ -619,7 +622,8 @@ class ProgressTable:
             elif isinstance(item, tuple) and len(item) == 2 and item[0] == "USER WRITE":
                 row_str = item[1]
             else:
-                raise ValueError(f"Unknown item: {item}")
+                msg = f"Unknown item: {item}"
+                raise ValueError(msg)
 
             # Cannot use CURSOR_UP when interactivity is less than 2
             # However, here we ALLOW going down with the cursor
@@ -635,10 +639,7 @@ class ProgressTable:
         for pbar in self._active_pbars:
             num_rows = len(self._display_rows)
 
-            if pbar.static:
-                pbar_display_row_idx = self._display_rows.index(pbar.position)
-            else:
-                pbar_display_row_idx = num_rows + pbar.position - 1
+            pbar_display_row_idx = self._display_rows.index(pbar.position) if pbar.static else num_rows + pbar.position - 1
 
             # We add the display row to pending if we were writing over so in next tick it will be cleared
             if pbar_display_row_idx < num_rows:
@@ -667,10 +668,10 @@ class ProgressTable:
             self._print_to_buffer(pbar_str)
         self._move_cursor_in_buffer(-1)
 
-    def _set_all_display_rows_as_pending(self):
+    def _set_all_display_rows_as_pending(self) -> None:
         self._pending_display_rows = list(range(len(self._display_rows)))
 
-    def _freeze_view(self):
+    def _freeze_view(self) -> None:
         # Empty the row information
         self._CURSOR_ROW = 0
         self._display_rows = []
@@ -679,14 +680,13 @@ class ProgressTable:
     def _resolve_row_color_dict(self, color: ColorFormat | dict[str, ColorFormat] = None):
         color = color or self.row_color or {}
         if isinstance(color, ColorFormatTuple):
-            color = {column: color for column in self.column_names}
+            color = dict.fromkeys(self.column_names, color)
 
         color = {column: color.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
         color_colorama = {column: maybe_convert_to_colorama(color) for column, color in color.items()}
-        color_colorama = {col: self.column_colors[col] + color_colorama[col] for col in color}
-        return color_colorama
+        return {col: self.column_colors[col] + color_colorama[col] for col in color}
 
-    def _apply_cell_formatting(self, value: Any, column_name: str, color: str):
+    def _apply_cell_formatting(self, value: Any, column_name: str, color: str) -> str:
         str_value = self.custom_cell_format(value)
         width = self.column_widths[column_name]
         alignment = self.column_alignments[column_name]
@@ -699,7 +699,8 @@ class ProgressTable:
             str_value = str_value.rjust(width)
         else:
             allowed_alignments = ["center", "left", "right"]
-            raise KeyError(f"Alignment '{alignment}' not in {allowed_alignments}!")
+            msg = f"Alignment '{alignment}' not in {allowed_alignments}!"
+            raise KeyError(msg)
 
         clipped = len(str_value) > width
         str_value = "".join(
@@ -707,20 +708,19 @@ class ProgressTable:
                 " ",  # space at the beginning of the row
                 str_value[:width].center(width),
                 self.table_style.cell_overflow if clipped else " ",
-            ]
+            ],
         )
         reset = Style.RESET_ALL if color else ""
-        str_value = f"{color}{str_value}{reset}"
-        return str_value
+        return f"{color}{str_value}{reset}"
 
     #####################
     ## DISPLAY HELPERS ##
     #####################
 
-    def _print_to_buffer(self, msg="", end="\r"):
+    def _print_to_buffer(self, msg="", end="\r") -> None:
         self._printing_buffer.append(msg + end)
 
-    def _flush_buffer(self):
+    def _flush_buffer(self) -> None:
         output = "".join(self._printing_buffer)
         self._printing_buffer.clear()
 
@@ -740,7 +740,7 @@ class ProgressTable:
                 self.table_style.vertical,
                 self.table_style.vertical.join(content),
                 self.table_style.vertical,
-            ]
+            ],
         )
 
     def _get_bar(self, left: str, center: str, right: str):
@@ -776,15 +776,14 @@ class ProgressTable:
         for column in self.column_names:
             value = self._apply_cell_formatting(column, column, color=colors[column])
             content.append(value)
-        s = "".join(
+        return "".join(
             [
                 "\r",
                 self.table_style.vertical,
                 self.table_style.vertical.join(content),
                 self.table_style.vertical,
-            ]
+            ],
         )
-        return s
 
     ##################
     ## PROGRESS BAR ##
@@ -825,6 +824,7 @@ class ProgressTable:
             style_embed: Style of the embedded progress bar. If None, the default style will be used.
             color: Color of the progress bar. This overrides the default color.
             color_empty: Color of the empty progress bar. This overrides the default color.
+
         """
         if isinstance(iterable, int):
             iterable = range(iterable, *range_args)
@@ -836,7 +836,8 @@ class ProgressTable:
             WARNED_PBAR_HIDDEN = True
 
         if static is True and position is None:
-            raise ValueError("For static pbar position cannot be None!")
+            msg = "For static pbar position cannot be None!"
+            raise ValueError(msg)
         if position is None:
             position = 0 if self.interactive < 2 else len(self._active_pbars) + 1 - self.pbar_embedded
 
@@ -887,7 +888,7 @@ class TableProgressBar:
         show_progress,
         show_percents,
         show_eta,
-    ):
+    ) -> None:
         self.iterable: Iterable | None = iterable
 
         self._step: int = 0
@@ -1034,44 +1035,48 @@ class TableProgressBar:
                 empty_part,
                 Style.RESET_ALL if color_empty else "",
                 self.table.table_style.vertical,
-            ]
+            ],
         )
         pbar.append(pbar_body)
         self._cleaning_str = " " * len(pbar_body)
         return "".join(pbar)
 
-    def update(self, n=1):
+    def update(self, n=1) -> None:
         """Update the progress bar steps.
 
         Args:
             n: Number of steps to update the progress bar.
+
         """
         self._step += n
 
-    def reset(self, total=None):
+    def reset(self, total=None) -> None:
         """Reset the progress bar.
 
         Args:
             total: Modify the total number of iterations. Optional.
+
         """
         self._step = 0
 
         if total:
             self._total = total
 
-    def set_step(self, step):
+    def set_step(self, step) -> None:
         """Overwrite the current step.
 
         Args:
             step: New value of the current step.
+
         """
         self._step = step
 
-    def set_total(self, total):
+    def set_total(self, total) -> None:
         """Overwrite the total number of iterations.
 
         Args:
             total: New value of the total number of iterations
+
         """
         self._total = total
 
@@ -1084,13 +1089,13 @@ class TableProgressBar:
         finally:
             self.close()
 
-    def close(self):
+    def close(self) -> None:
         self.table._active_pbars.remove(self)
         self._is_active = False
 
 
 class TableAtIndexer:
-    def __init__(self, table: ProgressTable):
+    def __init__(self, table: ProgressTable) -> None:
         self.table = table
         self.edit_mode_prefix_map = {}
         for word in ("VALUES", "WEIGHTS", "COLORS"):
@@ -1115,13 +1120,13 @@ class TableAtIndexer:
         else:
             raise Exception
 
-        assert isinstance(rows, slice) or isinstance(rows, int), f"Rows have to be a slice or an integer, not {type(rows)}!"
-        assert isinstance(cols, slice) or isinstance(cols, int), f"Columns have to be a slice or an integer, not {type(cols)}!"
+        assert isinstance(rows, (slice, int)), f"Rows have to be a slice or an integer, not {type(rows)}!"
+        assert isinstance(cols, (slice, int)), f"Columns have to be a slice or an integer, not {type(cols)}!"
         data_rows = self.table._data_rows[rows] if isinstance(rows, slice) else [self.table._data_rows[rows]]
         column_names = self.table.column_names[cols] if isinstance(cols, slice) else [self.table.column_names[cols]]
         return data_rows, column_names, mode
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         data_rows, column_names, edit_mode = self.parse_index(key)
         if edit_mode == "COLORS":
             value = maybe_convert_to_colorama(value)

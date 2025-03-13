@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Tuple, Union
-
 from progress_table.common import ALL_COLOR_NAME, maybe_convert_to_colorama
 
 
 def contains_word(short, long):
-    return any([short == word.strip(" ") for word in long.split(" ")])
+    return any(short == word.strip(" ") for word in long.split(" "))
 
 
 def parse_colors_from_description(description):
@@ -35,14 +33,15 @@ def parse_pbar_style(description):
                 is_clean = "clean" in description
                 description = description.replace("alt", "").replace("clean", "").strip(" ")
                 if description.strip(" "):
-                    raise ValueError(f"Name '{description}' is not recognized as a part of progress bar style")
+                    msg = f"Name '{description}' is not recognized as a part of progress bar style"
+                    raise ValueError(msg)
 
                 return obj(alt=is_alt, clean=is_clean, color=color, color_empty=color_empty)
 
         available_names = ", ".join([obj.name for obj in available_pbar_styles()])
-        raise ValueError(f"Progress bar style '{description}' not found. Available: {available_names}")
-    else:
-        return description
+        msg = f"Progress bar style '{description}' not found. Available: {available_names}"
+        raise ValueError(msg)
+    return description
 
 
 def parse_table_style(description):
@@ -51,13 +50,14 @@ def parse_table_style(description):
             if contains_word(obj.name, description):
                 description = description.replace(obj.name, "").strip(" ")
                 if description:
-                    raise ValueError(f"Name '{description}' is not recognized as a part of table style")
+                    msg = f"Name '{description}' is not recognized as a part of table style"
+                    raise ValueError(msg)
 
                 return obj()
         available_names = ", ".join([obj.name for obj in available_table_styles()])
-        raise ValueError(f"Table style '{description}' not found. Available: {available_names}")
-    else:
-        return description
+        msg = f"Table style '{description}' not found. Available: {available_names}"
+        raise ValueError(msg)
+    return description
 
 
 def available_table_styles():
@@ -77,11 +77,11 @@ class PbarStyleBase:
     name: str
     filled: str
     empty: str
-    head: Union[str, Tuple[str, ...]]
+    head: str | tuple[str, ...]
     color: str = ""
     color_empty: str = ""
 
-    def __init__(self, alt=False, clean=False, color=None, color_empty=None):
+    def __init__(self, alt=False, clean=False, color=None, color_empty=None) -> None:
         if color is not None:
             self.color = maybe_convert_to_colorama(color)
         if color_empty is not None:
@@ -140,8 +140,8 @@ class PbarStyleRich(PbarStyleBase):
     empty = " "
     head = "━"
 
-    def __init__(self, *args, **kwds):
-        """Similar to the default progress bar from rich"""
+    def __init__(self, *args, **kwds) -> None:
+        """Similar to the default progress bar from rich."""
         super().__init__(*args, **kwds)
         if not self.color and not self.color_empty:
             self.color = maybe_convert_to_colorama("red")
