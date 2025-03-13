@@ -5,15 +5,15 @@ import time
 
 try:
     import numpy as np
-except ImportError:
-    raise ImportError("Numpy is required to run the example!")
+except ImportError as ex:
+    raise ImportError("Numpy is required to run the example!") from ex
 
 try:
     from sklearn.datasets import load_iris
     from sklearn.model_selection import train_test_split
     from sklearn.utils import shuffle
-except ImportError:
-    raise ImportError("Scikit-learn is required to run the example!")
+except ImportError as ex:
+    raise ImportError("Scikit-learn is required to run the example!") from ex
 
 from progress_table import ProgressTable
 
