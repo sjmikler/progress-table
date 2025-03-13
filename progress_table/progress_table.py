@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import atexit
 import inspect
 import logging
 import math
@@ -259,6 +260,8 @@ class ProgressTable:
 
         self._append_new_empty_data_row()
         self._at_indexer = TableAtIndexer(self)
+
+        atexit.register(self.close)
 
     def add_column(
         self,
