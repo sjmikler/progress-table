@@ -227,7 +227,9 @@ class ProgressTable:
         self._data_rows: list[DATA_ROW] = []
         self._display_rows: list[str | int] = []
         self._pending_display_rows: list[int] = []
+
         self._refresh_pending: bool = False
+        self._renderer_active: bool = False
 
         self._active_pbars: list[TableProgressBar] = []
         self._cleaning_pbar_instructions: list[tuple[int, str]] = []
@@ -490,7 +492,6 @@ class ProgressTable:
         self._print_pending_rows_to_buffer()
         self._print_to_buffer(end="\n")
         self._flush_buffer()
-        self._freeze_view()
         self._closed = True
 
     def write(self, *args, sep=" ") -> None:
@@ -533,25 +534,34 @@ class ProgressTable:
     ## PRIVATE METHODS ##
     #####################
 
-    def _trigger_refresh(self):
-        if self._refresh_pending:
-            return
+    def _trigger_refresh(self) -> None:
+        if self.refresh_rate == 0:
+            return self._refresh()
 
-        if self.refresh_rate > 0:
-            self._refresh_pending = True
-            Thread(target=self._refreshing_daemon, daemon=True).start()
-        else:
-            self._refresh()
+        self._refresh_pending = True
+        if not self._renderer_active:
+            self._renderer_active = True
+            Thread(target=self._rendering_loop, daemon=True).start()
+            return None
+        return None
 
-    def _refreshing_daemon(self):
+    def _rendering_loop(self) -> None:
         while True:
             time.sleep(self._frame_time)
+
             if not self._refresh_pending:
-                break
+                # No triggers during wait time.
+                # Waiting some more to be sure...
+
+                time.sleep(self._frame_time)
+                if not self._refresh_pending:
+                    self._renderer_active = False
+                    break
+
             self._refresh_pending = False
             self._refresh()
 
-    def _refresh(self):
+    def _refresh(self) -> None:
         if self._display_rows:
             self._print_pending_rows_to_buffer()
             self._flush_buffer()
@@ -679,12 +689,6 @@ class ProgressTable:
 
             self._print_to_buffer(pbar_str)
         self._move_cursor_in_buffer(-1)
-
-    def _freeze_view(self) -> None:
-        # Empty the row information
-        self._CURSOR_ROW = 0
-        self._display_rows = []
-        self._pending_display_rows = []
 
     def _resolve_row_color_dict(self, color: ColorFormat | dict[str, ColorFormat] = None):
         color = color or self.row_color or {}
