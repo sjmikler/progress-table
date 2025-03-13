@@ -197,9 +197,9 @@ class ProgressTable:
         self.pbar_style = styles.parse_pbar_style(pbar_style)
         self.pbar_style_embed = styles.parse_pbar_style(pbar_style_embed)
 
-        assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"  # type: ignore
-        assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"  # type: ignore
-        assert isinstance(default_header_color, ColorFormatTuple), "Header color has to be a color format!"  # type: ignore
+        assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"
+        assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"
+        assert isinstance(default_header_color, ColorFormatTuple), "Header color has to be a color format!"
 
         # Default values for column and
         self.column_width = default_column_width
@@ -407,7 +407,12 @@ class ProgressTable:
         """Advanced indexing for the table."""
         return self._at_indexer
 
-    def next_row(self, color: ColorFormat | dict[str, ColorFormat] = None, split: bool | None = None, header: bool | None = None):
+    def next_row(
+        self,
+        color: ColorFormat | dict[str, ColorFormat] = None,
+        split: bool | None = None,
+        header: bool | None = None,
+    ):
         """End the current row."""
 
         # Force header if it wasn't printed for a long enough time
@@ -504,19 +509,19 @@ class ProgressTable:
         return [[row.VALUES.get(col, None) for col in self.column_names] for row in self._data_rows]
 
     def to_numpy(self):
-        """Convert to numpy array."""
-        try:
-            import numpy as np
-        except ImportError:
-            raise ImportError("Numpy is not installed!")
+        """Convert to numpy array.
+
+        Numpy library is required.
+        """
+        import numpy as np
         return np.array(self.to_list())
 
     def to_df(self):
-        """Convert to pandas DataFrame."""
-        try:
-            import pandas as pd
-        except ImportError:
-            raise ImportError("Pandas is not installed!")
+        """Convert to pandas DataFrame.
+
+        Pandas library is required.
+        """
+        import pandas as pd
         return pd.DataFrame(self.to_list(), columns=self.column_names)
 
     #####################
@@ -729,7 +734,14 @@ class ProgressTable:
             color = row.COLORS.get(column, "") if colored else ""
             value = self._apply_cell_formatting(value=value, column_name=column, color=color)
             content.append(value)
-        return "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
+        return "".join(
+            [
+                "\r",
+                self.table_style.vertical,
+                self.table_style.vertical.join(content),
+                self.table_style.vertical,
+            ]
+        )
 
     def _get_bar(self, left: str, center: str, right: str):
         content_list: list[str] = []
@@ -741,10 +753,18 @@ class ProgressTable:
         return "".join(content)
 
     def _get_bar_top(self):
-        return self._get_bar(self.table_style.down_right, self.table_style.no_up, self.table_style.down_left)
+        return self._get_bar(
+            self.table_style.down_right,
+            self.table_style.no_up,
+            self.table_style.down_left,
+        )
 
     def _get_bar_bot(self):
-        return self._get_bar(self.table_style.up_right, self.table_style.no_down, self.table_style.up_left)
+        return self._get_bar(
+            self.table_style.up_right,
+            self.table_style.no_down,
+            self.table_style.up_left,
+        )
 
     def _get_bar_mid(self):
         return self._get_bar(self.table_style.no_left, self.table_style.all, self.table_style.no_right)
@@ -756,7 +776,14 @@ class ProgressTable:
         for column in self.column_names:
             value = self._apply_cell_formatting(column, column, color=colors[column])
             content.append(value)
-        s = "".join(["\r", self.table_style.vertical, self.table_style.vertical.join(content), self.table_style.vertical])
+        s = "".join(
+            [
+                "\r",
+                self.table_style.vertical,
+                self.table_style.vertical.join(content),
+                self.table_style.vertical,
+            ]
+        )
         return s
 
     ##################
@@ -829,9 +856,9 @@ class ProgressTable:
             position=position,
             static=static,
             description=description,
-            show_throughput=show_throughput if show_throughput is not None else self.pbar_show_throughput,
-            show_progress=show_progress if show_progress is not None else self.pbar_show_progress,
-            show_percents=show_percents if show_percents is not None else self.pbar_show_percents,
+            show_throughput=(show_throughput if show_throughput is not None else self.pbar_show_throughput),
+            show_progress=(show_progress if show_progress is not None else self.pbar_show_progress),
+            show_percents=(show_percents if show_percents is not None else self.pbar_show_percents),
             show_eta=show_eta if show_eta is not None else self.pbar_show_eta,
         )
         self._active_pbars.append(pbar)
@@ -1090,8 +1117,8 @@ class TableAtIndexer:
 
         assert isinstance(rows, slice) or isinstance(rows, int), f"Rows have to be a slice or an integer, not {type(rows)}!"
         assert isinstance(cols, slice) or isinstance(cols, int), f"Columns have to be a slice or an integer, not {type(cols)}!"
-        data_rows = self.table._data_rows[rows] if isinstance(rows, slice) else [self.table._data_rows[rows]]  # type: ignore
-        column_names = self.table.column_names[cols] if isinstance(cols, slice) else [self.table.column_names[cols]]  # type: ignore
+        data_rows = self.table._data_rows[rows] if isinstance(rows, slice) else [self.table._data_rows[rows]]
+        column_names = self.table.column_names[cols] if isinstance(cols, slice) else [self.table.column_names[cols]]
         return data_rows, column_names, mode
 
     def __setitem__(self, key, value):
