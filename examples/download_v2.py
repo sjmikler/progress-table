@@ -32,7 +32,7 @@ table = ProgressTable(
 )
 
 main_pbar = table.pbar(
-    0,  # We might now know how many downloads we'll get, so we use 0 to mark the unknown value
+    0,  # We might not know how many downloads we'll get, so we use 0 to mark the unknown value
     position=1,
     show_progress=True,
     style="square clean blue",
