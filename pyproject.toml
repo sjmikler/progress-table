@@ -48,7 +48,7 @@ typeCheckingMode = "standard"
 exclude = ["devel", "build", "dist"]
 
 [tool.ruff]
-line-length = 140
+line-length = 120
 fix = true
 
 [tool.ruff.lint]

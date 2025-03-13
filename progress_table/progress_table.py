@@ -300,7 +300,9 @@ class ProgressTable:
         self.column_widths[name] = resolved_width
         self.column_colors[name] = maybe_convert_to_colorama(color or self.column_color or self.DEFAULT_COLUMN_COLOR)
         self.column_alignments[name] = alignment or self.column_alignment or self.DEFAULT_COLUMN_ALIGNMENT
-        self.column_aggregates[name] = get_aggregate_fn(aggregate or self.column_aggregate or self.DEFAULT_COLUMN_AGGREGATE)
+        self.column_aggregates[name] = get_aggregate_fn(
+            aggregate or self.column_aggregate or self.DEFAULT_COLUMN_AGGREGATE
+        )
         self._set_all_display_rows_as_pending()
 
     def add_columns(self, *columns, **kwds) -> None:
@@ -649,7 +651,9 @@ class ProgressTable:
         for pbar in self._active_pbars:
             num_rows = len(self._display_rows)
 
-            pbar_display_row_idx = self._display_rows.index(pbar.position) if pbar.static else num_rows + pbar.position - 1
+            pbar_display_row_idx = (
+                self._display_rows.index(pbar.position) if pbar.static else num_rows + pbar.position - 1
+            )
 
             # We add the display row to pending if we were writing over so in next tick it will be cleared
             if pbar_display_row_idx < num_rows:

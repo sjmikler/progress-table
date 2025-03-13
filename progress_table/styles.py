@@ -1,10 +1,10 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
 
-"""
-This module defines styles for progress bars and tables,
+"""This module defines styles for progress bars and tables,
 including parsing functions to interpret style descriptions
 and convert them into style objects.
 """
+from __future__ import annotations
 
 from progress_table.common import ALL_COLOR_NAME, maybe_convert_to_colorama
 
@@ -99,9 +99,9 @@ class PbarStyleBase:
 
 
 class PbarStyleSquare(PbarStyleBase):
-    """
-    Example:
-        >>> ■■■■■◩□□□□□
+    """Example:
+    >>> ■■■■■◩□□□□□.
+
     """
 
     name = "square"
@@ -111,9 +111,9 @@ class PbarStyleSquare(PbarStyleBase):
 
 
 class PbarStyleFull(PbarStyleBase):
-    """
-    Example:
-        >>> █████▌
+    """Example:
+    >>> █████▌.
+
     """
 
     name = "full"
@@ -123,9 +123,9 @@ class PbarStyleFull(PbarStyleBase):
 
 
 class PbarStyleDots(PbarStyleBase):
-    """
-    Example:
-        >>> ⣿⣿⣿⣿⣿⣦⣀⣀⣀⣀⣀
+    """Example:
+    >>> ⣿⣿⣿⣿⣿⣦⣀⣀⣀⣀⣀.
+
     """
 
     name = "dots"
@@ -135,9 +135,9 @@ class PbarStyleDots(PbarStyleBase):
 
 
 class PbarStyleShort(PbarStyleBase):
-    """
-    Example:
-        >>> ▬▬▬▬▬▬▭▭▭▭▭
+    """Example:
+    >>> ▬▬▬▬▬▬▭▭▭▭▭.
+
     """
 
     name = "short"
@@ -147,9 +147,9 @@ class PbarStyleShort(PbarStyleBase):
 
 
 class PbarStyleCircle(PbarStyleBase):
-    """
-    Example:
-        >>> ●●●●●◉○○○○
+    """Example:
+    >>> ●●●●●◉○○○○.
+
     """
 
     name = "circle"
@@ -159,9 +159,9 @@ class PbarStyleCircle(PbarStyleBase):
 
 
 class PbarStyleAngled(PbarStyleBase):
-    """
-    Example:
-        >>> ▰▰▰▰▰▰▱▱▱▱
+    """Example:
+    >>> ▰▰▰▰▰▰▱▱▱▱.
+
     """
 
     name = "angled"
@@ -171,9 +171,9 @@ class PbarStyleAngled(PbarStyleBase):
 
 
 class PbarStyleRich(PbarStyleBase):
-    """
-    Example:
-        >>> ━━━━━━━━
+    """Example:
+    >>> ━━━━━━━━.
+
     """
 
     name = "rich"
@@ -191,9 +191,9 @@ class PbarStyleRich(PbarStyleBase):
 
 
 class PbarStyleCdots(PbarStyleBase):
-    """
-    Example:
-        >>> ꞏꞏꞏꞏꞏꞏꞏꞏ>
+    """Example:
+    >>> ꞏꞏꞏꞏꞏꞏꞏꞏ>.
+
     """
 
     name = "cdots"
@@ -203,9 +203,9 @@ class PbarStyleCdots(PbarStyleBase):
 
 
 class PbarStyleDash(PbarStyleBase):
-    """
-    Example:
-        >>> ----->
+    """Example:
+    >>> ----->.
+
     """
 
     name = "dash"
@@ -215,9 +215,9 @@ class PbarStyleDash(PbarStyleBase):
 
 
 class PbarStyleUnder(PbarStyleBase):
-    """
-    Example:
-        >>> ________
+    """Example:
+    >>> ________.
+
     """
 
     name = "under"
@@ -227,9 +227,9 @@ class PbarStyleUnder(PbarStyleBase):
 
 
 class PbarStyleDoubleDash(PbarStyleBase):
-    """
-    Example:
-        >>> ========>
+    """Example:
+    >>> ========>.
+
     """
 
     name = "doubledash"
@@ -239,9 +239,9 @@ class PbarStyleDoubleDash(PbarStyleBase):
 
 
 class PbarStyleNone(PbarStyleBase):
-    """
-    Example:
-        >>>
+    """Example:
+    >>>.
+
     """
 
     name = "hidden"
@@ -274,14 +274,14 @@ class TableStyleBase:
 
 
 class TableStyleModern(TableStyleBase):
-    """
-    Example:
-        >>> ┌─────────┬─────────┐
-        >>> │ H1      │ H2      │
-        >>> ├─────────┼─────────┤
-        >>> │ V1      │ V2      │
-        >>> │ V3      │ V4      │
-        >>> └─────────┴─────────┘
+    """Example:
+    >>> ┌─────────┬─────────┐
+    >>> │ H1      │ H2      │
+    >>> ├─────────┼─────────┤
+    >>> │ V1      │ V2      │
+    >>> │ V3      │ V4      │
+    >>> └─────────┴─────────┘.
+
     """
 
     name = "modern"
@@ -300,14 +300,14 @@ class TableStyleModern(TableStyleBase):
 
 
 class TableStyleUnicodeBare(TableStyleBase):
-    """
-    Example:
-        >>> ────────── ──────────
-        >>> H1         H2
-        >>> ────────── ──────────
-        >>> V1         V2
-        >>> V3         V4
-        >>> ────────── ──────────
+    """Example:
+    >>> ────────── ──────────
+    >>> H1         H2
+    >>> ────────── ──────────
+    >>> V1         V2
+    >>> V3         V4
+    >>> ────────── ──────────.
+
     """
 
     name = "bare"
@@ -326,14 +326,14 @@ class TableStyleUnicodeBare(TableStyleBase):
 
 
 class TableStyleUnicodeRound(TableStyleBase):
-    """
-    Example:
-        >>> ╭─────────┬─────────╮
-        >>> │ H1      │ H2      │
-        >>> ├─────────┼─────────┤
-        >>> │ V1      │ V2      │
-        >>> │ V3      │ V4      │
-        >>> ╰─────────┴─────────╯
+    """Example:
+    >>> ╭─────────┬─────────╮
+    >>> │ H1      │ H2      │
+    >>> ├─────────┼─────────┤
+    >>> │ V1      │ V2      │
+    >>> │ V3      │ V4      │
+    >>> ╰─────────┴─────────╯.
+
     """
 
     name = "round"
@@ -352,14 +352,14 @@ class TableStyleUnicodeRound(TableStyleBase):
 
 
 class TableStyleUnicodeDouble(TableStyleBase):
-    """
-    Example:
-        >>> ╔═════════╦═════════╗
-        >>> ║ H1      ║ H2      ║
-        >>> ╠═════════╬═════════╣
-        >>> ║ V1      ║ V2      ║
-        >>> ║ V3      ║ V4      ║
-        >>> ╚═════════╩═════════╝
+    """Example:
+    >>> ╔═════════╦═════════╗
+    >>> ║ H1      ║ H2      ║
+    >>> ╠═════════╬═════════╣
+    >>> ║ V1      ║ V2      ║
+    >>> ║ V3      ║ V4      ║
+    >>> ╚═════════╩═════════╝.
+
     """
 
     name = "double"
@@ -378,14 +378,14 @@ class TableStyleUnicodeDouble(TableStyleBase):
 
 
 class TableStyleUnicodeBold(TableStyleBase):
-    """
-    Example:
-        >>> ┏━━━━━━━━━┳━━━━━━━━━┓
-        >>> ┃ H1      ┃ H2      ┃
-        >>> ┣━━━━━━━━━╋━━━━━━━━━┫
-        >>> ┃ V1      ┃ V2      ┃
-        >>> ┃ V3      ┃ V4      ┃
-        >>> ┗━━━━━━━━━┻━━━━━━━━━┛
+    """Example:
+    >>> ┏━━━━━━━━━┳━━━━━━━━━┓
+    >>> ┃ H1      ┃ H2      ┃
+    >>> ┣━━━━━━━━━╋━━━━━━━━━┫
+    >>> ┃ V1      ┃ V2      ┃
+    >>> ┃ V3      ┃ V4      ┃
+    >>> ┗━━━━━━━━━┻━━━━━━━━━┛.
+
     """
 
     name = "bold"
@@ -404,14 +404,14 @@ class TableStyleUnicodeBold(TableStyleBase):
 
 
 class TableStyleAscii(TableStyleBase):
-    """
-    Example:
-        >>> +---------+---------+
-        >>> | H1      | H2      |
-        >>> +---------+---------+
-        >>> | V1      | V2      |
-        >>> | V3      | V4      |
-        >>> +---------+---------+
+    """Example:
+    >>> +---------+---------+
+    >>> | H1      | H2      |
+    >>> +---------+---------+
+    >>> | V1      | V2      |
+    >>> | V3      | V4      |
+    >>> +---------+---------+.
+
     """
 
     name = "ascii"
@@ -430,14 +430,14 @@ class TableStyleAscii(TableStyleBase):
 
 
 class TableStyleAsciiBare(TableStyleBase):
-    """
-    Example:
-        >>> --------- ---------
-        >>> H1        H2
-        >>> --------- ---------
-        >>> V1        V2
-        >>> V3        V4
-        >>> --------- ---------
+    """Example:
+    >>> --------- ---------
+    >>> H1        H2
+    >>> --------- ---------
+    >>> V1        V2
+    >>> V3        V4
+    >>> --------- ---------.
+
     """
 
     name = "asciib"
@@ -456,14 +456,14 @@ class TableStyleAsciiBare(TableStyleBase):
 
 
 class TableStyleHidden(TableStyleBase):
-    """
-    Example:
-        >>>
-        >>> H1        H2
-        >>>
-        >>> V1        V2
-        >>> V3        V4
-        >>>
+    """Example:
+    >>>
+    >>> H1        H2
+    >>>
+    >>> V1        V2
+    >>> V3        V4
+    >>>.
+
     """
 
     name = "hidden"
