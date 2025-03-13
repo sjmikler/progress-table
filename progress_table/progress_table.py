@@ -589,9 +589,8 @@ class ProgressTable:
 
         if offset > 0:
             self._print_to_buffer(CURSOR_UP * offset)
-        else:
-            offset = -offset
-            self._print_to_buffer("\n" * offset)
+        elif offset < 0:
+            self._print_to_buffer("\n" * (-offset))
         self._CURSOR_ROW = row_index
 
     def _print_pending_rows_to_buffer(self) -> None:
@@ -626,7 +625,7 @@ class ProgressTable:
                 raise ValueError(msg)
 
             # Cannot use CURSOR_UP when interactivity is less than 2
-            # However, here we ALLOW going down with the cursor
+            # However, we can ALLOW going down with the cursor
             offset = self._CURSOR_ROW - display_row_index
             if self.interactive < 2 and offset > 0:
                 continue
