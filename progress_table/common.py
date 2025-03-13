@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Union
-
 from colorama import Back, Fore, Style
 
 ALL_COLOR_NAME = [x for x in dir(Fore) if not x.startswith("__")]
@@ -18,9 +16,7 @@ COLORAMA_TRANSLATE = {
 }
 
 NoneType = type(None)
-ColorFormat = Union[str, tuple, list, NoneType]
-ColorFormatTuple = (str, tuple, list, NoneType)
-
+ColorFormat = str | tuple | list | None
 CURSOR_UP = "\033[A"
 
 

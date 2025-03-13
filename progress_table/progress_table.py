@@ -13,12 +13,12 @@ import time
 from collections.abc import Iterable, Sized
 from dataclasses import dataclass
 from threading import Thread
-from typing import Any, Callable
+from typing import Callable
 
 from colorama import Style
 
 from progress_table import styles
-from progress_table.common import CURSOR_UP, ColorFormat, ColorFormatTuple, maybe_convert_to_colorama
+from progress_table.common import CURSOR_UP, ColorFormat, maybe_convert_to_colorama
 
 # Flags that indicate if the warning was already triggered
 WARNED_PBAR_HIDDEN = False
@@ -87,7 +87,7 @@ def get_default_format_func(decimal_places):
 
 @dataclass
 class DATA_ROW:
-    VALUES: dict[str, Any]
+    VALUES: dict[str, object]
     WEIGHTS: dict[str, float]
     COLORS: dict[str, str]
 
@@ -120,7 +120,7 @@ class ProgressTable:
         pbar_style_embed: str | type[styles.PbarStyleBase] = "cdots",
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
-        custom_cell_format: Callable[[Any], str] | None = None,
+        custom_cell_format: Callable[[object], str] | None = None,
         table_style: str | type[styles.TableStyleBase] = "round",
         file=None,
         # Deprecated arguments
@@ -193,10 +193,10 @@ class ProgressTable:
         if print_row_on_update is not None:
             logging.warning("Argument `print_row_on_update` is deprecated. Specify `interactive` instead!")
 
-        self.table_style = styles.parse_table_style(table_style)
+        self.table_style = styles._parse_table_style(table_style)
 
-        self.pbar_style = styles.parse_pbar_style(pbar_style)
-        self.pbar_style_embed = styles.parse_pbar_style(pbar_style_embed)
+        self.pbar_style = styles._parse_pbar_style(pbar_style)
+        self.pbar_style_embed = styles._parse_pbar_style(pbar_style_embed)
 
         assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"
         assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"
@@ -409,7 +409,15 @@ class ProgressTable:
 
     @property
     def at(self):
-        """Advanced indexing for the table."""
+        """Advanced indexing for the table.
+
+        Example:
+            >>> table.at[:] = 0.0  # Initialize all values to 0.0
+            >>> table.at[0, :] = 2.0  # Set all values in the first row to 2.0
+            >>> table.at[:, 1] = 2.0  # Set all values in the second column to 2.0
+            >>> table.at[-2, 0] = 3.0  # Set the first column in the second-to-last row to 3.0
+
+        """
         return self._at_indexer
 
     def next_row(
@@ -681,14 +689,14 @@ class ProgressTable:
 
     def _resolve_row_color_dict(self, color: ColorFormat | dict[str, ColorFormat] = None):
         color = color or self.row_color or {}
-        if isinstance(color, ColorFormatTuple):
+        if isinstance(color, ColorFormat):
             color = dict.fromkeys(self.column_names, color)
 
         color = {column: color.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
         color_colorama = {column: maybe_convert_to_colorama(color) for column, color in color.items()}
         return {col: self.column_colors[col] + color_colorama[col] for col in color}
 
-    def _apply_cell_formatting(self, value: Any, column_name: str, color: str) -> str:
+    def _apply_cell_formatting(self, value: object, column_name: str, color: str) -> str:
         str_value = self.custom_cell_format(value)
         width = self.column_widths[column_name]
         alignment = self.column_alignments[column_name]
@@ -845,8 +853,8 @@ class ProgressTable:
 
         total = total if total is not None else (len(iterable) if isinstance(iterable, Sized) else 0)
 
-        style = styles.parse_pbar_style(style) if style else self.pbar_style
-        style_embed = styles.parse_pbar_style(style_embed) if style_embed else self.pbar_style_embed
+        style = styles._parse_pbar_style(style) if style else self.pbar_style
+        style_embed = styles._parse_pbar_style(style_embed) if style_embed else self.pbar_style_embed
 
         pbar = TableProgressBar(
             iterable=iterable,
@@ -1099,12 +1107,12 @@ class TableProgressBar:
 class TableAtIndexer:
     def __init__(self, table: ProgressTable) -> None:
         self.table = table
-        self.edit_mode_prefix_map = {}
+        self.edit_mode_prefix_map: dict[str, str] = {}
         for word in ("VALUES", "WEIGHTS", "COLORS"):
             self.edit_mode_prefix_map.update({word[:i]: word for i in range(1, len(word))})
             self.edit_mode_prefix_map.update({word[:i].lower(): word for i in range(1, len(word))})
 
-    def parse_index(self, key) -> tuple[Any, Any, str]:
+    def parse_index(self, key: slice | tuple) -> tuple:
         if isinstance(key, slice):
             rows = key
             cols = slice(None)
