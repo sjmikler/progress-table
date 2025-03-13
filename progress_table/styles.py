@@ -1,6 +1,10 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
 
-from __future__ import annotations
+"""
+This module defines styles for progress bars and tables,
+including parsing functions to interpret style descriptions
+and convert them into style objects.
+"""
 
 from progress_table.common import ALL_COLOR_NAME, maybe_convert_to_colorama
 
@@ -9,7 +13,7 @@ def contains_word(short, long):
     return any(short == word.strip(" ") for word in long.split(" "))
 
 
-def parse_colors_from_description(description):
+def _parse_colors_from_description(description):
     color = ""
     color_empty = ""
     for word in description.split():
@@ -23,12 +27,12 @@ def parse_colors_from_description(description):
     return color, color_empty, description
 
 
-def parse_pbar_style(description):
+def _parse_pbar_style(description):
     if isinstance(description, str):
         for obj in available_pbar_styles():
             if contains_word(obj.name, description):
                 description = description.replace(obj.name, "")
-                color, color_empty, description = parse_colors_from_description(description)
+                color, color_empty, description = _parse_colors_from_description(description)
                 is_alt = "alt" in description
                 is_clean = "clean" in description
                 description = description.replace("alt", "").replace("clean", "").strip(" ")
@@ -44,7 +48,7 @@ def parse_pbar_style(description):
     return description
 
 
-def parse_table_style(description):
+def _parse_table_style(description):
     if isinstance(description, str):
         for obj in available_table_styles():
             if contains_word(obj.name, description):
@@ -74,6 +78,8 @@ def available_pbar_styles():
 
 
 class PbarStyleBase:
+    """Base class for progress bar styles."""
+
     name: str
     filled: str
     empty: str
@@ -93,6 +99,11 @@ class PbarStyleBase:
 
 
 class PbarStyleSquare(PbarStyleBase):
+    """
+    Example:
+        >>> ■■■■■◩□□□□□
+    """
+
     name = "square"
     filled = "■"
     empty = "□"
@@ -100,6 +111,11 @@ class PbarStyleSquare(PbarStyleBase):
 
 
 class PbarStyleFull(PbarStyleBase):
+    """
+    Example:
+        >>> █████▌
+    """
+
     name = "full"
     filled = "█"
     empty = " "
@@ -107,6 +123,11 @@ class PbarStyleFull(PbarStyleBase):
 
 
 class PbarStyleDots(PbarStyleBase):
+    """
+    Example:
+        >>> ⣿⣿⣿⣿⣿⣦⣀⣀⣀⣀⣀
+    """
+
     name = "dots"
     filled = "⣿"
     empty = "⣀"
@@ -114,6 +135,11 @@ class PbarStyleDots(PbarStyleBase):
 
 
 class PbarStyleShort(PbarStyleBase):
+    """
+    Example:
+        >>> ▬▬▬▬▬▬▭▭▭▭▭
+    """
+
     name = "short"
     filled = "▬"
     empty = "▭"
@@ -121,6 +147,11 @@ class PbarStyleShort(PbarStyleBase):
 
 
 class PbarStyleCircle(PbarStyleBase):
+    """
+    Example:
+        >>> ●●●●●◉○○○○
+    """
+
     name = "circle"
     filled = "●"
     empty = "○"
@@ -128,6 +159,11 @@ class PbarStyleCircle(PbarStyleBase):
 
 
 class PbarStyleAngled(PbarStyleBase):
+    """
+    Example:
+        >>> ▰▰▰▰▰▰▱▱▱▱
+    """
+
     name = "angled"
     filled = "▰"
     empty = "▱"
@@ -135,6 +171,11 @@ class PbarStyleAngled(PbarStyleBase):
 
 
 class PbarStyleRich(PbarStyleBase):
+    """
+    Example:
+        >>> ━━━━━━━━
+    """
+
     name = "rich"
     filled = "━"
     empty = " "
@@ -150,6 +191,11 @@ class PbarStyleRich(PbarStyleBase):
 
 
 class PbarStyleCdots(PbarStyleBase):
+    """
+    Example:
+        >>> ꞏꞏꞏꞏꞏꞏꞏꞏ>
+    """
+
     name = "cdots"
     filled = "ꞏ"
     empty = " "
@@ -157,6 +203,11 @@ class PbarStyleCdots(PbarStyleBase):
 
 
 class PbarStyleDash(PbarStyleBase):
+    """
+    Example:
+        >>> ----->
+    """
+
     name = "dash"
     filled = "-"
     empty = " "
@@ -164,6 +215,11 @@ class PbarStyleDash(PbarStyleBase):
 
 
 class PbarStyleUnder(PbarStyleBase):
+    """
+    Example:
+        >>> ________
+    """
+
     name = "under"
     filled = "_"
     empty = " "
@@ -171,6 +227,11 @@ class PbarStyleUnder(PbarStyleBase):
 
 
 class PbarStyleDoubleDash(PbarStyleBase):
+    """
+    Example:
+        >>> ========>
+    """
+
     name = "doubledash"
     filled = "="
     empty = " "
@@ -178,6 +239,11 @@ class PbarStyleDoubleDash(PbarStyleBase):
 
 
 class PbarStyleNone(PbarStyleBase):
+    """
+    Example:
+        >>>
+    """
+
     name = "hidden"
     filled = " "
     empty = " "
@@ -190,6 +256,8 @@ class PbarStyleNone(PbarStyleBase):
 
 
 class TableStyleBase:
+    """Base class for table styles."""
+
     name: str
     cell_overflow: str
     horizontal: str
@@ -206,6 +274,16 @@ class TableStyleBase:
 
 
 class TableStyleModern(TableStyleBase):
+    """
+    Example:
+        >>> ┌─────────┬─────────┐
+        >>> │ H1      │ H2      │
+        >>> ├─────────┼─────────┤
+        >>> │ V1      │ V2      │
+        >>> │ V3      │ V4      │
+        >>> └─────────┴─────────┘
+    """
+
     name = "modern"
     cell_overflow = "…"
     horizontal = "─"
@@ -222,6 +300,16 @@ class TableStyleModern(TableStyleBase):
 
 
 class TableStyleUnicodeBare(TableStyleBase):
+    """
+    Example:
+        >>> ────────── ──────────
+        >>> H1         H2
+        >>> ────────── ──────────
+        >>> V1         V2
+        >>> V3         V4
+        >>> ────────── ──────────
+    """
+
     name = "bare"
     cell_overflow = "…"
     horizontal = "─"
@@ -238,6 +326,16 @@ class TableStyleUnicodeBare(TableStyleBase):
 
 
 class TableStyleUnicodeRound(TableStyleBase):
+    """
+    Example:
+        >>> ╭─────────┬─────────╮
+        >>> │ H1      │ H2      │
+        >>> ├─────────┼─────────┤
+        >>> │ V1      │ V2      │
+        >>> │ V3      │ V4      │
+        >>> ╰─────────┴─────────╯
+    """
+
     name = "round"
     cell_overflow = "…"
     horizontal = "─"
@@ -254,6 +352,16 @@ class TableStyleUnicodeRound(TableStyleBase):
 
 
 class TableStyleUnicodeDouble(TableStyleBase):
+    """
+    Example:
+        >>> ╔═════════╦═════════╗
+        >>> ║ H1      ║ H2      ║
+        >>> ╠═════════╬═════════╣
+        >>> ║ V1      ║ V2      ║
+        >>> ║ V3      ║ V4      ║
+        >>> ╚═════════╩═════════╝
+    """
+
     name = "double"
     cell_overflow = "…"
     horizontal = "═"
@@ -270,6 +378,16 @@ class TableStyleUnicodeDouble(TableStyleBase):
 
 
 class TableStyleUnicodeBold(TableStyleBase):
+    """
+    Example:
+        >>> ┏━━━━━━━━━┳━━━━━━━━━┓
+        >>> ┃ H1      ┃ H2      ┃
+        >>> ┣━━━━━━━━━╋━━━━━━━━━┫
+        >>> ┃ V1      ┃ V2      ┃
+        >>> ┃ V3      ┃ V4      ┃
+        >>> ┗━━━━━━━━━┻━━━━━━━━━┛
+    """
+
     name = "bold"
     cell_overflow = "…"
     horizontal = "━"
@@ -286,6 +404,16 @@ class TableStyleUnicodeBold(TableStyleBase):
 
 
 class TableStyleAscii(TableStyleBase):
+    """
+    Example:
+        >>> +---------+---------+
+        >>> | H1      | H2      |
+        >>> +---------+---------+
+        >>> | V1      | V2      |
+        >>> | V3      | V4      |
+        >>> +---------+---------+
+    """
+
     name = "ascii"
     cell_overflow = "_"
     horizontal = "-"
@@ -302,6 +430,16 @@ class TableStyleAscii(TableStyleBase):
 
 
 class TableStyleAsciiBare(TableStyleBase):
+    """
+    Example:
+        >>> --------- ---------
+        >>> H1        H2
+        >>> --------- ---------
+        >>> V1        V2
+        >>> V3        V4
+        >>> --------- ---------
+    """
+
     name = "asciib"
     cell_overflow = "_"
     horizontal = "-"
@@ -318,6 +456,16 @@ class TableStyleAsciiBare(TableStyleBase):
 
 
 class TableStyleHidden(TableStyleBase):
+    """
+    Example:
+        >>>
+        >>> H1        H2
+        >>>
+        >>> V1        V2
+        >>> V3        V4
+        >>>
+    """
+
     name = "hidden"
     cell_overflow = " "
     horizontal = " "
