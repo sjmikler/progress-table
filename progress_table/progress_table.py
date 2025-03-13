@@ -197,9 +197,9 @@ class ProgressTable:
         self.table_style = styles.parse_table_style(table_style)
         self.pbar_style_embed = styles.parse_pbar_style(pbar_style_embed)
 
-        assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"
-        assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"
-        assert isinstance(default_header_color, ColorFormatTuple), "Header color has to be a color format!"
+        assert isinstance(default_row_color, ColorFormat), "Row color has to be a color format!"
+        assert isinstance(default_column_color, ColorFormat), "Column color has to be a color format!"
+        assert isinstance(default_header_color, ColorFormat), "Header color has to be a color format!"
 
         # Default values for column and
         self.column_width = default_column_width
@@ -538,6 +538,10 @@ class ProgressTable:
         import pandas as pd
 
         return pd.DataFrame(self.to_list(), columns=self.column_names)
+
+    def show(self) -> None:
+        """Show the full table in the console."""
+        self._set_all_display_rows_as_pending()
 
     #####################
     ## PRIVATE METHODS ##
@@ -1108,6 +1112,8 @@ class TableProgressBar:
 
 
 class TableAtIndexer:
+    """Advanced indexing for the table."""
+
     def __init__(self, table: ProgressTable) -> None:
         self.table = table
         self.edit_mode_prefix_map: dict[str, str] = {}
