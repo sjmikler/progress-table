@@ -1,19 +1,19 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
 
-"""This module defines styles for progress bars and tables,
-including parsing functions to interpret style descriptions
-and convert them into style objects.
+"""Module defining styles for progress bars and tables.
+
+Also includes functions to interpret style descriptions and converting them into style objects.
 """
 from __future__ import annotations
 
-from progress_table.common import ALL_COLOR_NAME, maybe_convert_to_colorama
+from progress_table.common import ALL_COLOR_NAME, ColorFormat, maybe_convert_to_colorama
 
 
-def contains_word(short, long):
+def _contains_word(short: str, long: str) -> bool:
     return any(short == word.strip(" ") for word in long.split(" "))
 
 
-def _parse_colors_from_description(description):
+def _parse_colors_from_description(description: str) -> tuple[str, str, str]:
     color = ""
     color_empty = ""
     for word in description.split():
@@ -27,10 +27,16 @@ def _parse_colors_from_description(description):
     return color, color_empty, description
 
 
-def _parse_pbar_style(description):
+def parse_pbar_style(description: str | PbarStyleBase) -> PbarStyleBase:
+    """Parse progress bar style description and return a style object.
+
+    Example:
+        >>> parse_pbar_style("square alt clean")
+
+    """
     if isinstance(description, str):
         for obj in available_pbar_styles():
-            if contains_word(obj.name, description):
+            if _contains_word(obj.name, description):
                 description = description.replace(obj.name, "")
                 color, color_empty, description = _parse_colors_from_description(description)
                 is_alt = "alt" in description
@@ -48,10 +54,16 @@ def _parse_pbar_style(description):
     return description
 
 
-def _parse_table_style(description):
+def parse_table_style(description: str | TableStyleBase) -> TableStyleBase:
+    """Parse table style description and return a style object.
+
+    Example:
+        >>> parse_table_style("modern")
+
+    """
     if isinstance(description, str):
         for obj in available_table_styles():
-            if contains_word(obj.name, description):
+            if _contains_word(obj.name, description):
                 description = description.replace(obj.name, "").strip(" ")
                 if description:
                     msg = f"Name '{description}' is not recognized as a part of table style"
@@ -64,12 +76,22 @@ def _parse_table_style(description):
     return description
 
 
-def available_table_styles():
-    return [obj for name, obj in globals().items() if isinstance(obj, type) and issubclass(obj, TableStyleBase) and hasattr(obj, "name")]
+def available_table_styles() -> list[type[TableStyleBase]]:
+    """Return a list of available table styles."""
+    return [
+        obj
+        for name, obj in globals().items()
+        if isinstance(obj, type) and issubclass(obj, TableStyleBase) and hasattr(obj, "name")
+    ]
 
 
-def available_pbar_styles():
-    return [obj for name, obj in globals().items() if isinstance(obj, type) and issubclass(obj, PbarStyleBase) and hasattr(obj, "name")]
+def available_pbar_styles() -> list[type[PbarStyleBase]]:
+    """Return a list of available progress bar styles."""
+    return [
+        obj
+        for name, obj in globals().items()
+        if isinstance(obj, type) and issubclass(obj, PbarStyleBase) and hasattr(obj, "name")
+    ]
 
 
 #################
@@ -87,7 +109,23 @@ class PbarStyleBase:
     color: str = ""
     color_empty: str = ""
 
-    def __init__(self, alt=False, clean=False, color=None, color_empty=None) -> None:
+    def __init__(
+        self,
+        *,
+        alt: bool = False,
+        clean: bool = False,
+        color: ColorFormat = None,
+        color_empty: ColorFormat = None,
+    ) -> None:
+        """Initialize progress bar style.
+
+        Args:
+            alt: Use the same character for filled and empty parts.
+            clean: Use space for empty parts.
+            color: Color of the filled part.
+            color_empty: Color of the empty part.
+
+        """
         if color is not None:
             self.color = maybe_convert_to_colorama(color)
         if color_empty is not None:
@@ -99,8 +137,10 @@ class PbarStyleBase:
 
 
 class PbarStyleSquare(PbarStyleBase):
-    """Example:
-    >>> ■■■■■◩□□□□□.
+    """Progress bar style.
+
+    Example:
+        >>> ■■■■■◩□□□□□
 
     """
 
@@ -111,8 +151,10 @@ class PbarStyleSquare(PbarStyleBase):
 
 
 class PbarStyleFull(PbarStyleBase):
-    """Example:
-    >>> █████▌.
+    """Progress bar style.
+
+    Example:
+        >>> █████▌
 
     """
 
@@ -123,8 +165,10 @@ class PbarStyleFull(PbarStyleBase):
 
 
 class PbarStyleDots(PbarStyleBase):
-    """Example:
-    >>> ⣿⣿⣿⣿⣿⣦⣀⣀⣀⣀⣀.
+    """Progress bar style.
+
+    Example:
+        >>> ⣿⣿⣿⣿⣿⣦⣀⣀⣀⣀⣀
 
     """
 
@@ -135,8 +179,10 @@ class PbarStyleDots(PbarStyleBase):
 
 
 class PbarStyleShort(PbarStyleBase):
-    """Example:
-    >>> ▬▬▬▬▬▬▭▭▭▭▭.
+    """Progress bar style.
+
+    Example:
+        >>> ▬▬▬▬▬▬▭▭▭▭▭
 
     """
 
@@ -147,8 +193,10 @@ class PbarStyleShort(PbarStyleBase):
 
 
 class PbarStyleCircle(PbarStyleBase):
-    """Example:
-    >>> ●●●●●◉○○○○.
+    """Progress bar style.
+
+    Example:
+        >>> ●●●●●◉○○○○
 
     """
 
@@ -159,8 +207,10 @@ class PbarStyleCircle(PbarStyleBase):
 
 
 class PbarStyleAngled(PbarStyleBase):
-    """Example:
-    >>> ▰▰▰▰▰▰▱▱▱▱.
+    """Progress bar style.
+
+    Example:
+        >>> ▰▰▰▰▰▰▱▱▱▱
 
     """
 
@@ -171,8 +221,10 @@ class PbarStyleAngled(PbarStyleBase):
 
 
 class PbarStyleRich(PbarStyleBase):
-    """Example:
-    >>> ━━━━━━━━.
+    """Progress bar style.
+
+    Example:
+        >>> ━━━━━━━━
 
     """
 
@@ -191,8 +243,10 @@ class PbarStyleRich(PbarStyleBase):
 
 
 class PbarStyleCdots(PbarStyleBase):
-    """Example:
-    >>> ꞏꞏꞏꞏꞏꞏꞏꞏ>.
+    """Progress bar style.
+
+    Example:
+        >>> ꞏꞏꞏꞏꞏꞏꞏꞏ>
 
     """
 
@@ -203,8 +257,10 @@ class PbarStyleCdots(PbarStyleBase):
 
 
 class PbarStyleDash(PbarStyleBase):
-    """Example:
-    >>> ----->.
+    """Progress bar style.
+
+    Example:
+        >>> ----->
 
     """
 
@@ -215,8 +271,10 @@ class PbarStyleDash(PbarStyleBase):
 
 
 class PbarStyleUnder(PbarStyleBase):
-    """Example:
-    >>> ________.
+    """Progress bar style.
+
+    Example:
+        >>> ________
 
     """
 
@@ -227,8 +285,10 @@ class PbarStyleUnder(PbarStyleBase):
 
 
 class PbarStyleDoubleDash(PbarStyleBase):
-    """Example:
-    >>> ========>.
+    """Progress bar style.
+
+    Example:
+        >>> ========>
 
     """
 
@@ -239,8 +299,10 @@ class PbarStyleDoubleDash(PbarStyleBase):
 
 
 class PbarStyleNone(PbarStyleBase):
-    """Example:
-    >>>.
+    """Progress bar style.
+
+    Example:
+        >>>
 
     """
 
@@ -274,13 +336,15 @@ class TableStyleBase:
 
 
 class TableStyleModern(TableStyleBase):
-    """Example:
-    >>> ┌─────────┬─────────┐
-    >>> │ H1      │ H2      │
-    >>> ├─────────┼─────────┤
-    >>> │ V1      │ V2      │
-    >>> │ V3      │ V4      │
-    >>> └─────────┴─────────┘.
+    """Table style.
+
+    Example:
+        >>> ┌─────────┬─────────┐
+        >>> │ H1      │ H2      │
+        >>> ├─────────┼─────────┤
+        >>> │ V1      │ V2      │
+        >>> │ V3      │ V4      │
+        >>> └─────────┴─────────┘
 
     """
 
@@ -300,13 +364,15 @@ class TableStyleModern(TableStyleBase):
 
 
 class TableStyleUnicodeBare(TableStyleBase):
-    """Example:
-    >>> ────────── ──────────
-    >>> H1         H2
-    >>> ────────── ──────────
-    >>> V1         V2
-    >>> V3         V4
-    >>> ────────── ──────────.
+    """Table style.
+
+    Example:
+        >>> ────────── ──────────
+        >>> H1         H2
+        >>> ────────── ──────────
+        >>> V1         V2
+        >>> V3         V4
+        >>> ────────── ──────────
 
     """
 
@@ -326,13 +392,15 @@ class TableStyleUnicodeBare(TableStyleBase):
 
 
 class TableStyleUnicodeRound(TableStyleBase):
-    """Example:
-    >>> ╭─────────┬─────────╮
-    >>> │ H1      │ H2      │
-    >>> ├─────────┼─────────┤
-    >>> │ V1      │ V2      │
-    >>> │ V3      │ V4      │
-    >>> ╰─────────┴─────────╯.
+    """Table style.
+
+    Example:
+        >>> ╭─────────┬─────────╮
+        >>> │ H1      │ H2      │
+        >>> ├─────────┼─────────┤
+        >>> │ V1      │ V2      │
+        >>> │ V3      │ V4      │
+        >>> ╰─────────┴─────────╯
 
     """
 
@@ -352,13 +420,15 @@ class TableStyleUnicodeRound(TableStyleBase):
 
 
 class TableStyleUnicodeDouble(TableStyleBase):
-    """Example:
-    >>> ╔═════════╦═════════╗
-    >>> ║ H1      ║ H2      ║
-    >>> ╠═════════╬═════════╣
-    >>> ║ V1      ║ V2      ║
-    >>> ║ V3      ║ V4      ║
-    >>> ╚═════════╩═════════╝.
+    """Table style.
+
+    Example:
+        >>> ╔═════════╦═════════╗
+        >>> ║ H1      ║ H2      ║
+        >>> ╠═════════╬═════════╣
+        >>> ║ V1      ║ V2      ║
+        >>> ║ V3      ║ V4      ║
+        >>> ╚═════════╩═════════╝
 
     """
 
@@ -378,13 +448,15 @@ class TableStyleUnicodeDouble(TableStyleBase):
 
 
 class TableStyleUnicodeBold(TableStyleBase):
-    """Example:
-    >>> ┏━━━━━━━━━┳━━━━━━━━━┓
-    >>> ┃ H1      ┃ H2      ┃
-    >>> ┣━━━━━━━━━╋━━━━━━━━━┫
-    >>> ┃ V1      ┃ V2      ┃
-    >>> ┃ V3      ┃ V4      ┃
-    >>> ┗━━━━━━━━━┻━━━━━━━━━┛.
+    """Table style.
+
+    Example:
+        >>> ┏━━━━━━━━━┳━━━━━━━━━┓
+        >>> ┃ H1      ┃ H2      ┃
+        >>> ┣━━━━━━━━━╋━━━━━━━━━┫
+        >>> ┃ V1      ┃ V2      ┃
+        >>> ┃ V3      ┃ V4      ┃
+        >>> ┗━━━━━━━━━┻━━━━━━━━━┛
 
     """
 
@@ -404,13 +476,15 @@ class TableStyleUnicodeBold(TableStyleBase):
 
 
 class TableStyleAscii(TableStyleBase):
-    """Example:
-    >>> +---------+---------+
-    >>> | H1      | H2      |
-    >>> +---------+---------+
-    >>> | V1      | V2      |
-    >>> | V3      | V4      |
-    >>> +---------+---------+.
+    """Table style.
+
+    Example:
+        >>> +---------+---------+
+        >>> | H1      | H2      |
+        >>> +---------+---------+
+        >>> | V1      | V2      |
+        >>> | V3      | V4      |
+        >>> +---------+---------+
 
     """
 
@@ -430,13 +504,15 @@ class TableStyleAscii(TableStyleBase):
 
 
 class TableStyleAsciiBare(TableStyleBase):
-    """Example:
-    >>> --------- ---------
-    >>> H1        H2
-    >>> --------- ---------
-    >>> V1        V2
-    >>> V3        V4
-    >>> --------- ---------.
+    """Table style.
+
+    Example:
+        >>> --------- ---------
+        >>> H1        H2
+        >>> --------- ---------
+        >>> V1        V2
+        >>> V3        V4
+        >>> --------- ---------
 
     """
 
@@ -456,13 +532,15 @@ class TableStyleAsciiBare(TableStyleBase):
 
 
 class TableStyleHidden(TableStyleBase):
-    """Example:
-    >>>
-    >>> H1        H2
-    >>>
-    >>> V1        V2
-    >>> V3        V4
-    >>>.
+    """Table style.
+
+    Example:
+        >>>
+        >>> H1        H2
+        >>>
+        >>> V1        V2
+        >>> V3        V4
+        >>>
 
     """
 

@@ -116,12 +116,12 @@ class ProgressTable:
         pbar_show_percents: bool = False,
         pbar_show_eta: bool = False,
         pbar_embedded: bool = True,
-        pbar_style: str | type[styles.PbarStyleBase] = "square",
-        pbar_style_embed: str | type[styles.PbarStyleBase] = "cdots",
+        pbar_style: str | styles.PbarStyleBase = "square",
+        pbar_style_embed: str | styles.PbarStyleBase = "cdots",
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
         custom_cell_format: Callable[[object], str] | None = None,
-        table_style: str | type[styles.TableStyleBase] = "round",
+        table_style: str | styles.TableStyleBase = "round",
         file=None,
         # Deprecated arguments
         custom_format: None = None,
@@ -193,10 +193,9 @@ class ProgressTable:
         if print_row_on_update is not None:
             logging.warning("Argument `print_row_on_update` is deprecated. Specify `interactive` instead!")
 
-        self.table_style = styles._parse_table_style(table_style)
-
-        self.pbar_style = styles._parse_pbar_style(pbar_style)
-        self.pbar_style_embed = styles._parse_pbar_style(pbar_style_embed)
+        self.pbar_style = styles.parse_pbar_style(pbar_style)
+        self.table_style = styles.parse_table_style(table_style)
+        self.pbar_style_embed = styles.parse_pbar_style(pbar_style_embed)
 
         assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"
         assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"
@@ -301,7 +300,7 @@ class ProgressTable:
         self.column_colors[name] = maybe_convert_to_colorama(color or self.column_color or self.DEFAULT_COLUMN_COLOR)
         self.column_alignments[name] = alignment or self.column_alignment or self.DEFAULT_COLUMN_ALIGNMENT
         self.column_aggregates[name] = get_aggregate_fn(
-            aggregate or self.column_aggregate or self.DEFAULT_COLUMN_AGGREGATE
+            aggregate or self.column_aggregate or self.DEFAULT_COLUMN_AGGREGATE,
         )
         self._set_all_display_rows_as_pending()
 
@@ -857,8 +856,8 @@ class ProgressTable:
 
         total = total if total is not None else (len(iterable) if isinstance(iterable, Sized) else 0)
 
-        style = styles._parse_pbar_style(style) if style else self.pbar_style
-        style_embed = styles._parse_pbar_style(style_embed) if style_embed else self.pbar_style_embed
+        style = styles.parse_pbar_style(style) if style else self.pbar_style
+        style_embed = styles.parse_pbar_style(style_embed) if style_embed else self.pbar_style_embed
 
         pbar = TableProgressBar(
             iterable=iterable,
