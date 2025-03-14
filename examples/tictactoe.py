@@ -72,7 +72,7 @@ def main(random_seed=random.randint(0, 100), sleep_duration=0.05, **overrides):
         time.sleep(sleep_duration)
 
     # Flashing the winner
-    for color in  ["bold white", "bold red"] * 8:
+    for color in ["bold white", "bold red"] * 8:
         table.at[win_row_slice, win_col_slice, "COLOR"] = color
         time.sleep(0.1)
 
