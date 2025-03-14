@@ -117,7 +117,7 @@ class ProgressTable:
     def __init__(
         self,
         *cols: str,
-        columns: tuple[str] | list[str] = (),
+        columns: Iterable[str] = (),
         interactive: int = int(os.environ.get("PTABLE_INTERACTIVE", "2")),
         refresh_rate: int = 20,
         num_decimal_places: int = 4,
@@ -157,31 +157,34 @@ class ProgressTable:
             >>> table.next_row()
 
         Args:
-            cols: Columns that will be displayed in the header. Columns can be provided directly in `__init__` or through methods
-                  `add_column` and `add_columns`. Columns added through `__init__` will have default settings like alignment,
-                  color and width, while columns added through methods can have those customized.
+            cols: Columns that will be displayed in the header. Columns can be provided directly in `__init__` or
+                  through methods `add_column` and `add_columns`. Columns added through `__init__` will have default
+                  settings like alignment, color and width, while columns added through methods can have those
+                  customized.
             columns: Alias for `cols`.
             interactive: Three interactivity levels are available: 2, 1 and 0. It's recommended to use 2, but some
                          terminal environments might not all features. When using decreased interactivity, some features
-                         will be supressed. If something doesn't look right in your terminal, try to decrease the interactivity.
+                         will be supressed. If something doesn't look right in your terminal, try to decrease the
+                         interactivity.
                          On level 2 you can modify all rows, including the rows above the current one.
-                         On level 2 you can add columns on-the-fly or reorder them. You can use nested progress bars.
+                         You can also add columns on-the-fly or reorder them. You can use nested progress bars.
                          On level 1 you can only operate on the current row, the old rows are frozen, but you still get
-                         to use a progress bar, albeit not nested. On level 0 there are no progress bars and rows are only
-                         printed after calling `next_row`.
+                         to use a progress bar, albeit not nested. On level 0 there are no progress bars and rows are
+                         only printed after calling `next_row`.
             refresh_rate: The maximal number of times per second to render the updates in the table.
-            num_decimal_places: This is only applicable when using the default formatting.
-                                This won't be used if `custom_cell_repr` is set.
-                                If applicable, for every displayed value except integers there will be an attempt to round it.
+            num_decimal_places: This is only applicable when using the default formatting. This won't be used if
+                                `custom_cell_repr` is set. If applicable, for every displayed value except integers
+                                there will be an attempt to round it.
             default_column_color: Color of the header and the data in the column.
                                   This can be overwritten in columns by using an argument in `add_column` method.
             default_column_width: Width of the column excluding cell padding.
                                   This can be overwritten in columns by using an argument in `add_column` method.
-            default_column_alignment: Alignment in the column. Can be aligned either to `left`, `right` or `center` (default).
+            default_column_alignment: Alignment in the column. Can be aligned either to `left`, `right` or `center`.
                                       This can be overwritten by columns by using an argument in `add_column` method.
-            default_column_aggregate: By default, there's no aggregation. But if this is for example 'mean', then after every update in
-                                      the current row, the mean of the provided values will be displayed. Aggregated values is reset at
-                                      every new row. This can be overwritten by columns by using an argument in `add_column` method.
+            default_column_aggregate: By default, there's no aggregation. But if this is for example 'mean', then after
+                                      every update in the current row, the mean of the provided values will be
+                                      displayed. Aggregated values is reset at every new row. This can be overwritten
+                                      by columns by using an argument in `add_column` method.
             default_header_color: Color of the header. This can be overwritten by column-specific color.
             default_row_color: Color of the row. This can be overwritten by using an argument in `next_row` method.
             pbar_show_throughput: Show throughput in the progress bar, for example `3.55 it/s`. Defaults to True.
@@ -195,8 +198,9 @@ class ProgressTable:
             pbar_style: Change the style of the progress bar. Either a string or 'PbarStyleBase' type class.
             pbar_style_embed: Change the style of the embedded progress bar. Same as pbar_style, but for embedded pbars.
             print_header_on_top: If True, header will be displayed as the first row in the table.
-            print_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the header is.
-                                       If True, hedaer will be displayed periodically after the selected number of rows. 0 to supress.
+            print_header_every_n_rows: 30 by default. When table has a lot of rows, it can be useful to remind what the
+                                       header is. If True, hedaer will be displayed periodically after the selected
+                                       number of rows. 0 to supress.
             custom_cell_format: A function that defines how to get str value to display from a cell content.
                                 This function should be universal and work for all datatypes as inputs.
                                 It takes one value as an input and returns string as an output.
@@ -431,7 +435,7 @@ class ProgressTable:
         assert isinstance(row, int), f"Row {row} has to be an integer, not {type(row)}!"
         self.update(name, value, row=row, weight=1)
 
-    def __getitem__(self, key: str | tuple[str, int]):
+    def __getitem__(self, key: str | tuple[str, int]) -> object | None:
         """Get the value from the current row in table."""
         if isinstance(key, tuple):
             name, row = key
@@ -442,7 +446,7 @@ class ProgressTable:
             row = -1
         assert name in self.column_names, f"Column {name} not in {self.column_names}"
         assert isinstance(row, int), f"Row {row} has to be an integer, not {type(row)}!"
-        return self._data_rows[row].values.get(key, None)
+        return self._data_rows[row].values.get(name, None)
 
     def update_from_dict(self, dictionary: dict[str, object]) -> None:
         """Update multiple values in the current row."""
@@ -584,7 +588,7 @@ class ProgressTable:
         """
         import pandas as pd
 
-        return pd.DataFrame(self.to_list(), columns=self.column_names)
+        return pd.DataFrame(self.to_list(), columns=pd.Series(self.column_names))
 
     def show(self) -> None:
         """Show the full table in the console."""
@@ -1265,6 +1269,7 @@ class TableAtIndexer:
         """Set the values, colors, or weights of a slice in the table."""
         row_indices, column_names, edit_mode = self._parse_index(key)
         if edit_mode == "colors":
+            assert isinstance(value, ColorFormat), f"Color must be compatible with ColorFormat, not {type(value)}!"
             value = maybe_convert_to_colorama(value)
 
         for row_idx in row_indices:
