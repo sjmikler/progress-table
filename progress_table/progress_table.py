@@ -365,7 +365,7 @@ class ProgressTable:
         self._set_all_display_rows_as_pending()
 
     def update(self, name, value, *, row=-1, weight=1, cell_color=None, **column_kwds) -> None:
-        """Update value in the current row. This extends capabilities of __setitem__.
+        """Update value in the current row. More powerful than __setitem__.
 
         Args:
             name: Name of the column.
@@ -396,7 +396,9 @@ class ProgressTable:
 
         if cell_color is not None:
             data_row.COLORS[name] = maybe_convert_to_colorama(cell_color)
-        self._append_or_update_display_row(data_row_index)
+
+        if self.interactive > 0:
+            self._append_or_update_display_row(data_row_index)
 
     def __setitem__(self, key, value) -> None:
         if isinstance(key, tuple):
@@ -659,6 +661,11 @@ class ProgressTable:
         row = DATA_ROW(VALUES={}, WEIGHTS={}, COLORS={})
         self._data_rows.append(row)
 
+    def _get_cursor_offset(self, row_index) -> int:
+        if row_index < 0:
+            row_index = len(self._display_rows) + row_index
+        return self._CURSOR_ROW - row_index
+
     def _move_cursor_in_buffer(self, row_index) -> None:
         if row_index < 0:
             row_index = len(self._display_rows) + row_index
@@ -695,7 +702,7 @@ class ProgressTable:
         for display_row_idx, cleaning_str in self._cleaning_pbar_instructions:
             assert self.interactive >= 2, "Should not need to clean pbars when interactive < 2!"
             self._move_cursor_in_buffer(display_row_idx)
-            self._print_to_buffer(cleaning_str)
+            self._print_to_buffer(cleaning_str, prefix="\r")
             self._move_cursor_in_buffer(-1)
             self._cleaning_pbar_instructions.clear()
 
@@ -703,39 +710,46 @@ class ProgressTable:
         self._pending_display_rows = sorted(set(self._pending_display_rows))
 
         for display_row_index in self._pending_display_rows:
+            offset = self._get_cursor_offset(display_row_index)
+
             # Cannot use CURSOR_UP when interactivity is less than 2
             # However, we can ALLOW going down with the cursor
-            offset = self._CURSOR_ROW - display_row_index
             if self.interactive < 2 and offset > 0:
                 continue
 
-            row_str = self._get_item_str(display_row_index)
             self._move_cursor_in_buffer(display_row_index)
-            self._print_to_buffer(row_str)
+
+            # We don't need to print carriage return if cursor was moved DOWN.
+            # After moving, cursor is in the right position to overwrite text.
+            prefix = "" if offset < 0 else "\r"
+            row_str = self._get_item_str(display_row_index)
+            self._print_to_buffer(row_str, prefix=prefix)
         self._pending_display_rows.clear()
 
         # Printing progress bars happens here
         for pbar in self._active_pbars:
             if self.interactive == 0:
-                break
+                break  # No progress bars in non-interactive mode
 
             num_rows = len(self._display_rows)
-
             pbar_display_row_idx = (
                 self._display_rows.index(pbar.position) if pbar.static else num_rows + pbar.position - 1
             )
 
-            # We add the display row to pending if we were writing over so in next tick it will be cleared
+            # We add the display row to pending if we were writing over a row
+            # So in next tick the row will be printed again
             if pbar_display_row_idx < num_rows:
                 self._pending_display_rows.append(pbar_display_row_idx)
 
             # Cannot use CURSOR_UP when interactivity is less than 2
             # Here we DON'T ALLOW going down with the cursor
-            offset = self._CURSOR_ROW - pbar_display_row_idx
+            # offset = self._CURSOR_ROW - pbar_display_row_idx
+            offset = self._get_cursor_offset(pbar_display_row_idx)
             if self.interactive < 2 and offset != 0:
                 continue
 
             self._move_cursor_in_buffer(pbar_display_row_idx)
+
             row_str = None
             if self.pbar_embedded and pbar_display_row_idx < num_rows:
                 data_row_idx = self._display_rows[pbar_display_row_idx]
@@ -749,7 +763,7 @@ class ProgressTable:
             if pbar_display_row_idx > num_rows:
                 self._cleaning_pbar_instructions.append((pbar_display_row_idx, pbar._cleaning_str))
 
-            self._print_to_buffer(pbar_str)
+            self._print_to_buffer(pbar_str, prefix="\r")
         self._move_cursor_in_buffer(-1)
 
     def _resolve_row_color_dict(self, color: ColorFormat | dict[str, ColorFormat] = None):
@@ -798,17 +812,19 @@ class ProgressTable:
     ## DISPLAY HELPERS ##
     #####################
 
-    def _print_to_buffer(self, msg="", end="\r") -> None:
+    def _print_to_buffer(self, msg="", prefix="", suffix="") -> None:
         """Prints to table's buffer.
 
         Not displayed to stdout yet.
         """
-        self._printing_buffer.append(msg + end)
+        self._printing_buffer.append(prefix + msg + suffix)
 
     def _flush_buffer(self) -> None:
         """The only place where table meets stdout."""
         output = "".join(self._printing_buffer)
-        self._printing_buffer.clear()
+
+        # Start by clearing the existing line
+        self._printing_buffer = []
 
         for file in self.files:
             print(output, file=file or sys.stdout, end="")
@@ -823,7 +839,6 @@ class ProgressTable:
             content.append(value)
         return "".join(
             [
-                "\r",
                 self.table_style.vertical,
                 self.table_style.vertical.join(content),
                 self.table_style.vertical,
@@ -836,7 +851,11 @@ class ProgressTable:
             content_list.append(self.table_style.horizontal * (self.column_widths[column_name] + 2))
 
         center = center.join(content_list)
-        content = ["\r", left, center, right]
+        content = [
+            left,
+            center,
+            right,
+        ]
         return "".join(content)
 
     def _get_bar_top(self) -> str:
@@ -865,7 +884,6 @@ class ProgressTable:
             content.append(value)
         return "".join(
             [
-                "\r",
                 self.table_style.vertical,
                 self.table_style.vertical.join(content),
                 self.table_style.vertical,
@@ -1057,10 +1075,10 @@ class TableProgressBar:
         if self.show_eta:
             if eta is None:
                 inside_infobar.append("ETA ?")
-            elif eta < 60:
+            elif eta < 100:
                 eta_str = f"ETA {eta:>2.0f}s"
                 inside_infobar.append(eta_str)
-            elif eta < 3600:
+            elif round(eta / 60) < 100:
                 eta_str = f"ETA {eta / 60:>2.0f}m"
                 inside_infobar.append(eta_str)
             else:
@@ -1087,8 +1105,7 @@ class TableProgressBar:
         num_empty = inner_width - num_filled
 
         if embed_str is not None:
-            row_str = embed_str
-            row_str = row_str[2 + len(infobar) :]
+            row_str = embed_str[1 + len(infobar) :]
 
             filled_part = row_str[:num_filled]
             if len(filled_part) > 0 and filled_part[-1] == " ":
@@ -1124,6 +1141,9 @@ class TableProgressBar:
                 self.table.table_style.vertical,
             ],
         )
+        # if embed_str is not None:
+        #     assert len(embed_str) == len(pbar_body), f"Length mismatch: {len(embed_str)} != {len(pbar_body)}"
+
         pbar.append(pbar_body)
         self._cleaning_str = " " * len(pbar_body)
         return "".join(pbar)
