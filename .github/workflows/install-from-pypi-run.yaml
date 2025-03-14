@@ -12,8 +12,6 @@ on:
 
 jobs:
   build:
-
-    runs-on: ubuntu-22.04
     strategy:
       matrix:
         python-version: [
@@ -25,6 +23,12 @@ jobs:
           "3.12",
           "3.13" ,
         ]
+        os: [
+          "ubuntu-22.04",
+          "windows-latest",
+        ]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Set up Python ${{ matrix.python-version }}

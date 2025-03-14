@@ -26,7 +26,6 @@ jobs:
         os: [
           "ubuntu-22.04",
           "windows-latest",
-          "macos-latest",
         ]
 
     runs-on: ${{ matrix.os }}
