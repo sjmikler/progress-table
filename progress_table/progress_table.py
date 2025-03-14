@@ -21,7 +21,7 @@ from typing import TextIO
 from colorama import Style
 
 from progress_table import styles
-from progress_table.common import CURSOR_UP, ColorFormat, maybe_convert_to_colorama
+from progress_table.common import CURSOR_UP, ColorFormat, ColorFormatTuple, maybe_convert_to_colorama
 
 ######################
 ## HELPER FUNCTIONS ##
@@ -226,9 +226,9 @@ class ProgressTable:
         self.table_style = styles.parse_table_style(table_style)
         self.pbar_style_embed = styles.parse_pbar_style(pbar_style_embed)
 
-        assert isinstance(default_row_color, ColorFormat), "Row color has to be a color format!"
-        assert isinstance(default_column_color, ColorFormat), "Column color has to be a color format!"
-        assert isinstance(default_header_color, ColorFormat), "Header color has to be a color format!"
+        assert isinstance(default_row_color, ColorFormatTuple), "Row color has to be a color format!"
+        assert isinstance(default_column_color, ColorFormatTuple), "Column color has to be a color format!"
+        assert isinstance(default_header_color, ColorFormatTuple), "Header color has to be a color format!"
 
         # Default values for column and
         self.column_width = default_column_width
@@ -798,7 +798,7 @@ class ProgressTable:
 
     def _resolve_row_color_dict(self, color: ColorFormat | dict[str, ColorFormat] = None) -> dict[str, str]:
         color = color or self.row_color or {}
-        if isinstance(color, ColorFormat):
+        if isinstance(color, ColorFormatTuple):
             color = dict.fromkeys(self.column_names, color)
 
         color = {column: color.get(column) or self.DEFAULT_ROW_COLOR for column in self.column_names}
@@ -1284,7 +1284,7 @@ class TableAtIndexer:
         """Set the values, colors, or weights of a slice in the table."""
         row_indices, column_names, edit_mode = self._parse_index(key)
         if edit_mode == "colors":
-            assert isinstance(value, ColorFormat), f"Color must be compatible with ColorFormat, not {type(value)}!"
+            assert isinstance(value, ColorFormatTuple), f"Color must be compatible with ColorFormat, not {type(value)}!"
             value = maybe_convert_to_colorama(value)
 
         for row_idx in row_indices:
