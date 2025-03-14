@@ -82,7 +82,7 @@ def get_aggregate_fn(aggregate: None | str | Callable):
     raise ValueError(msg)
 
 
-def get_default_format_func(decimal_places):
+def get_default_format_fn(decimal_places):
     def fmt(x) -> str:
         if isinstance(x, int):
             return str(x)
@@ -132,7 +132,7 @@ class ProgressTable:
         custom_cell_format: Callable[[object], str] | None = None,
         table_style: str | styles.TableStyleBase = "round",
         file=None,
-        # Deprecated arguments
+        # DEPRECATED ARGUMENTS
         custom_format: None = None,
         embedded_progress_bar: None = None,
         print_row_on_update: None = None,
@@ -250,7 +250,7 @@ class ProgressTable:
         else:
             self._latest_row_decorations = ["SPLIT TOP"]
 
-        self.custom_cell_format = custom_cell_format or get_default_format_func(num_decimal_places)
+        self.custom_cell_format = custom_cell_format or get_default_format_fn(num_decimal_places)
         self.pbar_show_throughput: bool = pbar_show_throughput
         self.pbar_show_progress: bool = pbar_show_progress
         self.pbar_show_percents: bool = pbar_show_percents
@@ -428,7 +428,10 @@ class ProgressTable:
 
     @property
     def at(self):
-        """Advanced indexing for the table.
+        """Advanced indexing and splicing for the table.
+
+        Indexing with respect to data rows.
+        Headers and decorations are ignored.
 
         Example:
             >>> table.at[:] = 0.0  # Initialize all values to 0.0
@@ -509,9 +512,7 @@ class ProgressTable:
         if "SPLIT TOP" in self._display_rows:
             self._append_or_update_display_row("SPLIT BOT")
 
-        self._print_pending_rows_to_buffer()
-        self._print_to_buffer(end="\n")
-        self._flush_buffer()
+        self._refresh()
         self._closed = True
 
     def write(self, *args, sep=" ") -> None:
@@ -567,6 +568,7 @@ class ProgressTable:
 
     def show(self) -> None:
         """Show the full table in the console."""
+        self._CURSOR_ROW = 0
         self._set_all_display_rows_as_pending()
 
     #####################
@@ -587,7 +589,7 @@ class ProgressTable:
         if not self._RENDERER_RUNNING:
             # Spawn the renderer thread
             self._RENDERER_RUNNING = True
-            Thread(target=self._rendering_loop, daemon=True).start()
+            Thread(target=self._rendering_loop).start()
             return None
         return None
 
@@ -634,7 +636,7 @@ class ProgressTable:
                 self._latest_row_decorations.clear()
                 self._display_rows.append(element)
             elif element != len(self._data_rows) - 1 and self.interactive < 2:
-                # Won't refresh other rows for interactive<2
+                # Won't refresh non-current rows for interactive<2
                 return
 
             display_index = self._display_rows.index(element)
@@ -681,7 +683,7 @@ class ProgressTable:
         elif item == "SPLIT TOP":
             row_str = self._get_bar_top()
         elif item == "SPLIT BOT":
-            row_str = self._get_bar_bot()
+            row_str = self._get_bar_bot() + "\n"
         elif item == "SPLIT MID":
             row_str = self._get_bar_mid()
         elif item.startswith("USER WRITE"):
@@ -717,6 +719,9 @@ class ProgressTable:
 
         # Printing progress bars happens here
         for pbar in self._active_pbars:
+            if self.interactive == 0:
+                break
+
             num_rows = len(self._display_rows)
 
             pbar_display_row_idx = (
@@ -797,9 +802,14 @@ class ProgressTable:
     #####################
 
     def _print_to_buffer(self, msg="", end="\r") -> None:
+        """Prints to table's buffer.
+
+        Not displayed to stdout yet.
+        """
         self._printing_buffer.append(msg + end)
 
     def _flush_buffer(self) -> None:
+        """The only place where table meets stdout."""
         output = "".join(self._printing_buffer)
         self._printing_buffer.clear()
 
@@ -807,6 +817,7 @@ class ProgressTable:
             print(output, file=file or sys.stdout, end="")
 
     def _get_row_str(self, row: DATA_ROW, colored=True) -> str:
+        """Get the string representation of the data row."""
         content = []
         for column in self.column_names:
             value = row.VALUES.get(column, "")
@@ -884,7 +895,7 @@ class ProgressTable:
         style_embed=None,
         color=None,
         color_empty=None,
-    ):
+    ) -> TableProgressBar:
         """Create iterable progress bar object.
 
         Args:
@@ -1207,31 +1218,31 @@ class TableAtIndexer:
 
         assert isinstance(rows, (slice, int)), f"Rows have to be a slice or an integer, not {type(rows)}!"
         assert isinstance(cols, (slice, int)), f"Columns have to be a slice or an integer, not {type(cols)}!"
-        data_rows = self.table._data_rows[rows] if isinstance(rows, slice) else [self.table._data_rows[rows]]
+        row_indices = [rows] if isinstance(rows, int) else list(range(len(self.table._data_rows)))[rows]
         column_names = self.table.column_names[cols] if isinstance(cols, slice) else [self.table.column_names[cols]]
-        return data_rows, column_names, mode
+        return row_indices, column_names, mode
 
-    def __setitem__(self, key, value) -> None:
-        data_rows, column_names, edit_mode = self.parse_index(key)
+    def __setitem__(self, key: slice | tuple, value: object) -> None:
+        row_indices, column_names, edit_mode = self.parse_index(key)
         if edit_mode == "COLORS":
             value = maybe_convert_to_colorama(value)
 
-        for row in data_rows:
+        for row_idx in row_indices:
+            data_row = self.table._data_rows[row_idx]
+
             for column in column_names:
-                row.__getattribute__(edit_mode)[column] = value
+                data_row.__getattribute__(edit_mode)[column] = value
 
             # Displaying the update
-            data_row_index = self.table._data_rows.index(row)
-            self.table._append_or_update_display_row(data_row_index)
+            self.table._append_or_update_display_row(row_idx)
 
-    def __getitem__(self, key):
-        data_rows, column_names, edit_mode = self.parse_index(key)
+    def __getitem__(self, key: slice | tuple):
+        row_indices, column_names, edit_mode = self.parse_index(key)
         gathered_values = []
 
-        for row in data_rows:
-            row_values = []
-            for column in column_names:
-                row_values.append(row.__getattribute__(edit_mode).get(column, None))
+        for row_idx in row_indices:
+            row = self.table._data_rows[row_idx]
+            row_values = [row.__getattribute__(edit_mode).get(c, None) for c in column_names]
             gathered_values.append(row_values)
 
         # Flattening outputs
