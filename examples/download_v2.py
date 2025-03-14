@@ -1,4 +1,5 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
+#  Licensed under the MIT License
 import random
 import time
 from concurrent.futures import ThreadPoolExecutor

@@ -1,4 +1,14 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
+#  Licensed under the MIT License
+
+"""Progress Table provides an easy and pretty way to track your process.
+
+Supported features:
+    - Styling and coloring
+    - Modifying existing cells
+    - Progress bars integrated into the table
+"""
+
 from __future__ import annotations  # for PEP 563
 
 import atexit
