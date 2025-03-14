@@ -33,9 +33,9 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
 
-      # For some reason, we need to run pytest separately for each test to pass
-      # otherwise, the first test will pass and the second will fail
-      - name: Test with pytest
-        run: |
-          pytest tests/test_docs_auto.py --log-cli-level=WARNING
-          pytest tests/test_examples_auto.py --log-cli-level=WARNING
+      # For some reason it is necessary to run pytest separately for each test.
+      # Otherwise tests might fail.
+      - name: Test with pytest 1
+        run: pytest tests/test_docs_auto.py --log-cli-level=WARNING
+      - name: Test with pytest 2
+        run: pytest tests/test_examples_auto.py --log-cli-level=WARNING
