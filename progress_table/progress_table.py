@@ -96,6 +96,11 @@ def get_default_format_fn(decimal_places: int) -> Callable[[object], str]:
     return fmt
 
 
+################
+## MAIN CLASS ##
+################
+
+
 @dataclass
 class DataRow:
     """Basic unit of data storage for the table."""
