@@ -3,7 +3,6 @@
 
 import hashlib
 import importlib
-import sys
 from glob import glob
 from io import StringIO
 
