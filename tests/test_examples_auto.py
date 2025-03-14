@@ -35,7 +35,7 @@ def test_all_examples():
 
     outputs = {}
     for module in glob("examples/*"):
-        module = module.replace(".py", "").replace("/", ".")
+        module = module.replace(".py", "").replace("/", ".").replace("\\", ".")
 
         if module not in EXPECTED_OUTPUTS:
             print(f"Skipping example: {module}")
