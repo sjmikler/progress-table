@@ -154,8 +154,9 @@ class ProgressTable:
                      `add_column` and `add_columns`. Columns added through `__init__` will have default settings like alignment,
                      color and width, while columns added through methods can have those customized.
             interactive: Three interactivity levels are available: 2, 1 and 0. It's recommended to use 2, but some
-                         terminal environments might not support it. If something breaks, try to decrease the interactivity.
-                         On levels 2 and 1 a separate display thread is spawned. On level 2 you can modify rows above the current one.
+                         terminal environments might not all features. When using decreased interactivity, some features
+                         will be supressed. If something doesn't look right in your terminal, try to decrease the interactivity.
+                         On level 2 you can modify all rows, including the rows above the current one.
                          On level 2 you can add columns on-the-fly or reorder them. You can use nested progress bars.
                          On level 1 you can only operate on the current row, the old rows are frozen, but you still get
                          to use a progress bar, albeit not nested. On level 0 there are no progress bars and rows are only
@@ -273,6 +274,10 @@ class ProgressTable:
 
         atexit.register(self.close)
 
+    ####################
+    ## PUBLIC METHODS ##
+    ####################
+
     def add_column(
         self,
         name: str,
@@ -287,7 +292,7 @@ class ProgressTable:
         You can re-add existing columns to modify their properties.
 
         Args:
-            name: Name of the column. Will be displayed in the header.
+            name: Name of the column. Will be displayed in the header. Must be unique.
             width: Width of the column. If width is smaller than the name, width will be automatically
                    increased to the smallest possible value. This means setting `width=0` will set the column
                    to the smallest possible width allowed by `name`.
@@ -319,6 +324,7 @@ class ProgressTable:
         """Add multiple columns to the table.
 
         This can be an integer - then the given number of columns will be created.
+        In this case their names will be integers starting from 0.
 
         Args:
             columns: Names of the columns or a number of columns to create.
@@ -340,7 +346,12 @@ class ProgressTable:
                 self.add_column(column, **kwds)
 
     def reorder_columns(self, *column_names) -> None:
-        """Reorder columns in the table."""
+        """Reorder columns in the table.
+
+        Args:
+            column_names: Names of the columns in the desired order.
+
+        """
         if all(x == y for x, y in zip(column_names, self.column_names)):
             return
 
@@ -504,14 +515,33 @@ class ProgressTable:
         self._closed = True
 
     def write(self, *args, sep=" ") -> None:
-        """Write a message gracefully when the table is opened."""
+        """Write a text message gracefully when the table is opened.
+
+        Example:
+            >>> ┌─────────┬─────────┐
+            >>> │ H1      │ H2      │
+            >>> ├─────────┼─────────┤
+            >>> │ V1      │ V2      │
+            >>> │ Your message here │
+            >>> │ V3      │ V4      │
+            >>> └─────────┴─────────┘
+
+        """
         full_message = []
         for arg in args:
             full_message.append(str(arg))
         full_message_str = sep.join(full_message)
         message_lines = full_message_str.split("\n")
+
+        tot_width = self._get_outer_inner_width()
         for line in message_lines:
-            self._append_or_update_display_row(("USER WRITE", line))
+            line = self.table_style.vertical + line
+
+            if len(line) < tot_width:
+                n_spaces = tot_width - len(line) - 1
+                line += " " * n_spaces + self.table_style.vertical
+
+            self._append_or_update_display_row("USER WRITE " + line)
 
     def to_list(self):
         """Convert to Python nested list."""
@@ -544,6 +574,10 @@ class ProgressTable:
     #####################
 
     def _trigger_refresh(self) -> None:
+        """Trigger refresh event.
+
+        If fps>0 the refresh won't happen immediately.
+        """
         if self.refresh_rate == 0:
             return self._refresh()
 
@@ -558,6 +592,10 @@ class ProgressTable:
         return None
 
     def _rendering_loop(self) -> None:
+        """Renderer loop that runs as long as there's something to display.
+
+        If no external events happen, the rendering will stop after a while.
+        """
         while True:
             time.sleep(self._frame_time)
 
@@ -574,6 +612,7 @@ class ProgressTable:
             self._refresh()
 
     def _refresh(self) -> None:
+        """Immediate refresh of the table."""
         if self._display_rows:
             self._print_pending_rows_to_buffer()
             self._flush_buffer()
@@ -582,7 +621,7 @@ class ProgressTable:
         """Basic function to refresh or append a row.
 
         For integer - this adds the corresponding existing data row as pending.
-        For string or tuple - this appends a new row decoration.
+        For string - this appends a new row decoration.
         """
         if self._closed:
             msg = "Table was closed! Updating closed tables is not supported."
@@ -595,7 +634,7 @@ class ProgressTable:
                 self._latest_row_decorations.clear()
                 self._display_rows.append(element)
             elif element != len(self._data_rows) - 1 and self.interactive < 2:
-                # Won't refresh existing rows for interactive<2
+                # Won't refresh other rows for interactive<2
                 return
 
             display_index = self._display_rows.index(element)
@@ -609,6 +648,10 @@ class ProgressTable:
         self._trigger_refresh()
 
     def _set_all_display_rows_as_pending(self) -> None:
+        """Set all display rows as pending.
+
+        This will refresh all rows in the next tick.
+        """
         self._pending_display_rows = list(range(len(self._display_rows)))
         self._trigger_refresh()
 
@@ -628,6 +671,26 @@ class ProgressTable:
             self._print_to_buffer("\n" * (-offset))
         self._CURSOR_ROW = row_index
 
+    def _get_item_str(self, display_row_index: int) -> str:
+        item: str | int = self._display_rows[display_row_index]
+        if isinstance(item, int):
+            row = self._data_rows[item]  # item is the data row index
+            row_str = self._get_row_str(row)  # here we pass the row item, not index
+        elif item == "HEADER":
+            row_str = self._get_header()
+        elif item == "SPLIT TOP":
+            row_str = self._get_bar_top()
+        elif item == "SPLIT BOT":
+            row_str = self._get_bar_bot()
+        elif item == "SPLIT MID":
+            row_str = self._get_bar_mid()
+        elif item.startswith("USER WRITE"):
+            row_str = item.split("USER WRITE", 1)[1].strip()
+        else:
+            msg = f"Unknown item: {item}"
+            raise ValueError(msg)
+        return row_str
+
     def _print_pending_rows_to_buffer(self) -> None:
         # Clearing progress bars below the table happens here
         for display_row_idx, cleaning_str in self._cleaning_pbar_instructions:
@@ -641,30 +704,13 @@ class ProgressTable:
         self._pending_display_rows = sorted(set(self._pending_display_rows))
 
         for display_row_index in self._pending_display_rows:
-            item = self._display_rows[display_row_index]
-            if isinstance(item, int):
-                row = self._data_rows[item]  # item is the data row index
-                row_str = self._get_row_str(row)  # here we pass the row item, not index
-            elif item == "HEADER":
-                row_str = self._get_header()
-            elif item == "SPLIT TOP":
-                row_str = self._get_bar_top()
-            elif item == "SPLIT BOT":
-                row_str = self._get_bar_bot()
-            elif item == "SPLIT MID":
-                row_str = self._get_bar_mid()
-            elif isinstance(item, tuple) and len(item) == 2 and item[0] == "USER WRITE":
-                row_str = item[1]
-            else:
-                msg = f"Unknown item: {item}"
-                raise ValueError(msg)
-
             # Cannot use CURSOR_UP when interactivity is less than 2
             # However, we can ALLOW going down with the cursor
             offset = self._CURSOR_ROW - display_row_index
             if self.interactive < 2 and offset > 0:
                 continue
 
+            row_str = self._get_item_str(display_row_index)
             self._move_cursor_in_buffer(display_row_index)
             self._print_to_buffer(row_str)
         self._pending_display_rows.clear()
@@ -740,6 +786,12 @@ class ProgressTable:
         reset = Style.RESET_ALL if color else ""
         return f"{color}{str_value}{reset}"
 
+    def _get_outer_inner_width(self) -> int:
+        return sum(self.column_widths.values()) + 3 * len(self.column_widths) + 1
+
+    def _get_inner_table_width(self) -> int:
+        return sum(self.column_widths.values()) + 3 * len(self.column_widths) - 1
+
     #####################
     ## DISPLAY HELPERS ##
     #####################
@@ -754,7 +806,7 @@ class ProgressTable:
         for file in self.files:
             print(output, file=file or sys.stdout, end="")
 
-    def _get_row_str(self, row: DATA_ROW, colored=True):
+    def _get_row_str(self, row: DATA_ROW, colored=True) -> str:
         content = []
         for column in self.column_names:
             value = row.VALUES.get(column, "")
@@ -770,7 +822,7 @@ class ProgressTable:
             ],
         )
 
-    def _get_bar(self, left: str, center: str, right: str):
+    def _get_bar(self, left: str, center: str, right: str) -> str:
         content_list: list[str] = []
         for column_name in self.column_names:
             content_list.append(self.table_style.horizontal * (self.column_widths[column_name] + 2))
@@ -779,24 +831,24 @@ class ProgressTable:
         content = ["\r", left, center, right]
         return "".join(content)
 
-    def _get_bar_top(self):
+    def _get_bar_top(self) -> str:
         return self._get_bar(
             self.table_style.down_right,
             self.table_style.no_up,
             self.table_style.down_left,
         )
 
-    def _get_bar_bot(self):
+    def _get_bar_bot(self) -> str:
         return self._get_bar(
             self.table_style.up_right,
             self.table_style.no_down,
             self.table_style.up_left,
         )
 
-    def _get_bar_mid(self):
+    def _get_bar_mid(self) -> str:
         return self._get_bar(self.table_style.no_left, self.table_style.all, self.table_style.no_right)
 
-    def _get_header(self):
+    def _get_header(self) -> str:
         content = []
         colors = self.column_colors if self.header_color is None else self._resolve_row_color_dict(self.header_color)
 
@@ -1010,21 +1062,21 @@ class TableProgressBar:
         infobar = "[" + ", ".join(inside_infobar) + "] " if inside_infobar else ""
         pbar = []
 
-        tot_width = sum(self.table.column_widths.values()) + 3 * (len(self.table.column_widths) - 1) + 2
-        if tot_width >= terminal_width - 1:
-            tot_width = terminal_width - 2
+        inner_width = self.table._get_inner_table_width()
+        if inner_width >= terminal_width - 1:
+            inner_width = terminal_width - 2
 
-        if len(infobar) > tot_width:
+        if len(infobar) > inner_width:
             infobar = "[…] "
 
-        tot_width = tot_width - len(infobar)
+        inner_width = inner_width - len(infobar)
         if not total:
-            step = self._step % tot_width
-            total = tot_width
+            step = self._step % inner_width
+            total = inner_width
 
-        num_filled = math.ceil(step / total * tot_width)
-        frac_missing = step / total * tot_width - num_filled
-        num_empty = tot_width - num_filled
+        num_filled = math.ceil(step / total * inner_width)
+        frac_missing = step / total * inner_width - num_filled
+        num_empty = inner_width - num_filled
 
         if embed_str is not None:
             row_str = embed_str
