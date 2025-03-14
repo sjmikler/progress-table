@@ -13,7 +13,7 @@ import os
 import shutil
 import sys
 import time
-from collections.abc import Callable, Iterable, Sized
+from collections.abc import Callable, Iterable, Iterator, Sized
 from dataclasses import dataclass
 from threading import Thread
 from typing import TextIO
@@ -1219,7 +1219,7 @@ class TableProgressBar:
         self._total = total
         self.table._trigger_refresh()
 
-    def __iter__(self) -> Iterable:
+    def __iter__(self) -> Iterator:
         """Iterate over iterable while updating the progress bar."""
         try:
             assert self.iterable is not None, "No iterable provided!"

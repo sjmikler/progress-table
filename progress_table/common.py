@@ -3,9 +3,9 @@
 
 """Common utilities for progress_table."""
 
-from colorama import Back, Fore, Style
-
 from typing import Union
+
+from colorama import Back, Fore, Style
 
 ALL_COLOR_NAME = [x for x in dir(Fore) if not x.startswith("__")]
 ALL_STYLE_NAME = [x for x in dir(Style) if not x.startswith("__")]
