@@ -56,7 +56,9 @@ def model_grads(targets, logits, inputs):
     return inputs.T @ cross_entropy_grads
 
 
-def main(random_seed=random.randint(0, 100), sleep_duration=SLEEP_DURATION, **overrides):
+def main(random_seed=None, sleep_duration=SLEEP_DURATION, **overrides):
+    if random_seed is None:
+        random_seed = random.randint(0, 100)
     global SLEEP_DURATION
     SLEEP_DURATION = sleep_duration
 

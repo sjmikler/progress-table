@@ -10,7 +10,9 @@ BOARD_SIZE = 10
 STREAK_LENGTH = 5
 
 
-def main(random_seed=random.randint(0, 100), sleep_duration=0.05, **overrides):
+def main(random_seed=None, sleep_duration=0.05, **overrides):
+    if random_seed is None:
+        random_seed = random.randint(0, 100)
     random.seed(random_seed)
 
     table = ProgressTable(
@@ -37,7 +39,7 @@ def main(random_seed=random.randint(0, 100), sleep_duration=0.05, **overrides):
 
     win_row_slice = None
     win_col_slice = None
-    for i in table(BOARD_SIZE * BOARD_SIZE, show_throughput=False, show_progress=True):
+    for _i in table(BOARD_SIZE * BOARD_SIZE, show_throughput=False, show_progress=True):
         current_symbol = True
         while current_symbol:
             x = random.randint(0, BOARD_SIZE - 1)

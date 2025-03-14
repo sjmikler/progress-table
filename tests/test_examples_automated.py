@@ -57,4 +57,4 @@ def test_all_examples():
     err_msg = "\n".join(err_msg)
 
     if err_msg:
-        assert False, f"Errors in example outputs\n{err_msg}"
+        raise AssertionError(f"Errors in example outputs\n{err_msg}")

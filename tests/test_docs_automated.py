@@ -43,7 +43,7 @@ def test_all_code_blobs():
     # Testing whether code blobs from the documentation run without errors
     all_code_blobs = []
 
-    for root, dirs, files in os.walk("."):
+    for root, _dirs, files in os.walk("."):
         for file in files:
             path = pathlib.Path(os.path.join(root, file))
             if path.suffix == ".md":

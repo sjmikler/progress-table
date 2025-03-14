@@ -85,7 +85,7 @@ table.add_columns("total size", "downloaded", "seeds", "peers", "warnings")
 threads = []
 executor = ThreadPoolExecutor()
 
-for idx, pkg in enumerate(files_to_download):
+for _idx, pkg in enumerate(files_to_download):
     threads.append(executor.submit(fake_download, pkg))
     random_wait_time = random.randint(1, 10)
     time.sleep(random_wait_time / 10)
