@@ -228,8 +228,8 @@ class ProgressTable:
         self._display_rows: list[str | int] = []
         self._pending_display_rows: list[int] = []
 
-        self._refresh_pending: bool = False
-        self._renderer_active: bool = False
+        self._REFRESH_PENDING: bool = False
+        self._RENDERER_RUNNING: bool = False
 
         self._active_pbars: list[TableProgressBar] = []
         self._cleaning_pbar_instructions: list[tuple[int, str]] = []
@@ -538,9 +538,12 @@ class ProgressTable:
         if self.refresh_rate == 0:
             return self._refresh()
 
-        self._refresh_pending = True
-        if not self._renderer_active:
-            self._renderer_active = True
+        # Inform the renderer to refresh
+        self._REFRESH_PENDING = True
+
+        if not self._RENDERER_RUNNING:
+            # Spawn the renderer thread
+            self._RENDERER_RUNNING = True
             Thread(target=self._rendering_loop, daemon=True).start()
             return None
         return None
@@ -549,16 +552,16 @@ class ProgressTable:
         while True:
             time.sleep(self._frame_time)
 
-            if not self._refresh_pending:
+            if not self._REFRESH_PENDING:
                 # No triggers during wait time.
                 # Waiting some more to be sure...
 
                 time.sleep(self._frame_time)
-                if not self._refresh_pending:
-                    self._renderer_active = False
-                    break
+                if not self._REFRESH_PENDING:
+                    self._RENDERER_RUNNING = False
+                    return  # Kill the unused renderer
 
-            self._refresh_pending = False
+            self._REFRESH_PENDING = False
             self._refresh()
 
     def _refresh(self) -> None:
@@ -567,7 +570,9 @@ class ProgressTable:
             self._flush_buffer()
 
     def _append_or_update_display_row(self, element) -> None:
-        """For integer - this adds the corresponding existing data row as pending.
+        """Basic function to refresh or append a row.
+
+        For integer - this adds the corresponding existing data row as pending.
         For string or tuple - this appends a new row decoration.
         """
         if self._closed:
