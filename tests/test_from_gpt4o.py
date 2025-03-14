@@ -1,5 +1,6 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
 #  Licensed under the MIT License
+
 import colorama
 import pytest
 
