@@ -1,7 +1,5 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
 
-from __future__ import annotations
-
 from colorama import Back, Fore, Style
 
 ALL_COLOR_NAME = [x for x in dir(Fore) if not x.startswith("__")]

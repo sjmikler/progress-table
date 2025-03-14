@@ -1,6 +1,5 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
-
-from __future__ import annotations
+from __future__ import annotations  # for PEP 563
 
 import atexit
 import inspect
