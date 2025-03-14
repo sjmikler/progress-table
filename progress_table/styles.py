@@ -5,6 +5,7 @@
 
 Also includes functions to interpret style descriptions and converting them into style objects.
 """
+
 from __future__ import annotations
 
 from progress_table.common import ALL_COLOR_NAME, ColorFormat, maybe_convert_to_colorama

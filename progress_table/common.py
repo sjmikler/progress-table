@@ -1,6 +1,8 @@
 #  Copyright (c) 2022-2025 Szymon Mikler
 #  Licensed under the MIT License
 
+"""Common utilities for progress_table."""
+
 from colorama import Back, Fore, Style
 
 ALL_COLOR_NAME = [x for x in dir(Fore) if not x.startswith("__")]
@@ -20,7 +22,7 @@ CURSOR_UP = "\033[A"
 
 
 def maybe_convert_to_colorama_str(color: str) -> str:
-    # Translation layer to fix unintuitive colorama names
+    """Convert color from string to colorama string."""
     color = COLORAMA_TRANSLATE.get(color.lower(), color)
 
     if isinstance(color, str):
@@ -34,6 +36,10 @@ def maybe_convert_to_colorama_str(color: str) -> str:
 
 
 def maybe_convert_to_colorama(color: ColorFormat) -> str:
+    """Fix unintuitive colorama names.
+
+    Translation layer from user-passed to colorama-compatible names.
+    """
     if color is None or color == "":
         return ""
     if isinstance(color, str):
