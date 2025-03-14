@@ -109,6 +109,10 @@ class DataRow:
     weights: dict[str, float]
     colors: dict[str, str]
 
+    def is_empty(self) -> bool:
+        """Check if the row is empty."""
+        return not any(self.values)
+
 
 class ProgressTable:
     """Provides an easy and pretty way to track your process."""
@@ -411,7 +415,7 @@ class ProgressTable:
         data_row_index = row if row >= 0 else len(self._data_rows) + row
         if data_row_index >= len(self._data_rows):
             msg = f"Row {data_row_index} out of range! Number of rows: {len(self._data_rows)}"
-            raise ValueError(msg)
+            raise IndexError(msg)
 
         # Set default values for new rows
         data_row = self._data_rows[row]
@@ -575,7 +579,10 @@ class ProgressTable:
 
     def to_list(self) -> list[list[object]]:
         """Convert to Python nested list."""
-        return [[row.values.get(col, None) for col in self.column_names] for row in self._data_rows]
+        values = [[row.values.get(col, None) for col in self.column_names] for row in self._data_rows]
+        if self._data_rows[-1].is_empty():
+            values.pop(-1)
+        return values
 
     def to_numpy(self) -> object:
         """Convert to numpy array.
@@ -1252,8 +1259,8 @@ class TableAtIndexer:
         self.table = table
         self.edit_mode_prefix_map: dict[str, str] = {}
         for word in ("values", "weights", "colors"):
-            self.edit_mode_prefix_map.update({word[:i].lower(): word for i in range(1, len(word))})
-            self.edit_mode_prefix_map.update({word[:i].upper(): word for i in range(1, len(word))})
+            self.edit_mode_prefix_map.update({word[:i].lower(): word for i in range(1, len(word) + 1)})
+            self.edit_mode_prefix_map.update({word[:i].upper(): word for i in range(1, len(word) + 1)})
 
     def _parse_index(self, key: slice | tuple) -> tuple:
         if isinstance(key, slice):

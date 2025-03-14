@@ -29,6 +29,12 @@ def _parse_colors_from_description(description: str) -> tuple[str, str, str]:
     return color, color_empty, description
 
 
+class UnknownStyleError(ValueError):
+    """Raised when style description is not recognized."""
+
+    pass
+
+
 def parse_pbar_style(description: str | PbarStyleBase) -> PbarStyleBase:
     """Parse progress bar style description and return a style object.
 
@@ -46,13 +52,13 @@ def parse_pbar_style(description: str | PbarStyleBase) -> PbarStyleBase:
                 description = description.replace("alt", "").replace("clean", "").strip(" ")
                 if description.strip(" "):
                     msg = f"Name '{description}' is not recognized as a part of progress bar style"
-                    raise ValueError(msg)
+                    raise UnknownStyleError(msg)
 
                 return obj(alt=is_alt, clean=is_clean, color=color, color_empty=color_empty)
 
         available_names = ", ".join([obj.name for obj in available_pbar_styles()])
         msg = f"Progress bar style '{description}' not found. Available: {available_names}"
-        raise ValueError(msg)
+        raise UnknownStyleError(msg)
     return description
 
 
@@ -69,12 +75,12 @@ def parse_table_style(description: str | TableStyleBase) -> TableStyleBase:
                 description = description.replace(obj.name, "").strip(" ")
                 if description:
                     msg = f"Name '{description}' is not recognized as a part of table style"
-                    raise ValueError(msg)
+                    raise UnknownStyleError(msg)
 
                 return obj()
         available_names = ", ".join([obj.name for obj in available_table_styles()])
         msg = f"Table style '{description}' not found. Available: {available_names}"
-        raise ValueError(msg)
+        raise UnknownStyleError(msg)
     return description
 
 
