@@ -40,8 +40,8 @@ def test_all_examples():
         if module not in EXPECTED_OUTPUTS:
             print(f"Skipping example: {module}")
             continue
-        print(f"Running example: {module}")
 
+        print(f"Running example: {module}")
         main_fn = importlib.import_module(module).main
         out_str = capture_example_stdout(main_fn)
 
