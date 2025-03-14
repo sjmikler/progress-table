@@ -994,6 +994,11 @@ class ProgressTable:
         return self.pbar(*args, **kwds)
 
 
+##################
+## PROGRESS BAR ##
+##################
+
+
 class TableProgressBar:
     def __init__(
         self,
@@ -1223,6 +1228,11 @@ class TableProgressBar:
         """Close the progress bar."""
         self.table._active_pbars.remove(self)
         self._is_active = False
+
+
+#############
+## INDEXER ##
+#############
 
 
 class BadKeyError(Exception):
