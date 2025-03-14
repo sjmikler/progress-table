@@ -92,13 +92,11 @@ Go to [advanced usage](docs/advanced-usage.md) page for more information.
 
 Progress Table works correctly in most consoles, but there are some exceptions:
 
-* Some cloud logging consoles (e.g. kubernetes) don't support `\r` properly.
-  You can still use ProgressTable, but with `interactive=0` option. This mode will not display progress bars.
-* Some consoles like `PyCharm Python Console` or `IDLE` don't support cursor movement.
-  You can still use ProgressTable, but with `interactive=1` option. This mode displays only 1 progress bar at once.
+* Some cloud logging consoles (e.g. kubernetes) don't support `\r` properly. You can still use ProgressTable, but with `interactive=0` option. This mode will not display progress bars.
 
-> By default `interactive=2`. You can change the default `interactive` with an argument when creating the table object
-> or by setting `PTABLE_INTERACTIVE` environment variable, e.g. `PTABLE_INTERACTIVE=1`.
+* Some consoles like 'PyCharm Python Console' or 'IDLE' don't support cursor movement. You can still use ProgressTable, but with `interactive=1` option. In this mode, you can display only a single progress bar.
+
+> By default `interactive=2`. You can change the default 'interactive' with an argument when creating the table object or by setting 'PTABLE_INTERACTIVE' environment variable, e.g. `PTABLE_INTERACTIVE=1`.
 
 ### Other problems
 
