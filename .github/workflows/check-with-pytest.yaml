@@ -29,6 +29,7 @@ jobs:
           pip install .
           pip install pytest numpy pandas scikit-learn
 
+      # Fix failing importlib
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
 
