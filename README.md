@@ -1,4 +1,6 @@
-> Version 2.X introduces new features and new interactive modes.
+> Version 2.x.x introduces new features and new interactive modes.
+>
+> Version 3.x.x improves compatibility and stability.
 >
 > New features allow for previously impossible applications, see examples below.
 
@@ -23,6 +25,8 @@ Lightweight utility to display the progress of your process as a pretty table in
 ![example](images/progress-after4.gif)
 
 ## Examples
+
+From `examples/` directory:
 
 * Neural network training
 
