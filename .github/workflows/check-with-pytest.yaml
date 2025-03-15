@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .
-          pip install pytest numpy pandas scikit-learn
+          pip install pytest pytest-cov numpy pandas scikit-learn
 
       - name: Test with pytest
-        run: pytest . --log-cli-level=WARNING
+        run: pytest . --cov=progress_table --cov-fail-under=90
