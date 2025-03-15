@@ -41,8 +41,9 @@ include = ["progress_table", "README.md"]
 [tool.hatch.build.targets.wheel]
 packages = ["progress_table"]
 
-[tool.hatch.build.hooks.custom]
+[tool.hatch.metadata.hooks.custom]
 path = "hooks.py"
+
 
 # %%
 
