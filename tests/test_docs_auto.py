@@ -1,4 +1,5 @@
-#  Copyright (c) 2022-2024 Szymon Mikler
+#  Copyright (c) 2022-2025 Szymon Mikler
+#  Licensed under the MIT License
 
 import logging
 import os
@@ -42,11 +43,11 @@ def test_all_code_blobs():
     # Testing whether code blobs from the documentation run without errors
     all_code_blobs = []
 
-    for root, dirs, files in os.walk("."):
+    for root, _dirs, files in os.walk("."):
         for file in files:
             path = pathlib.Path(os.path.join(root, file))
             if path.suffix == ".md":
-                code_blobs = scan_for_code_blobs(path.open("r").read())
+                code_blobs = scan_for_code_blobs(path.open("r", encoding="utf-8").read())
                 for blob in code_blobs:
                     all_code_blobs.append(blob)
 

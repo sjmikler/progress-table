@@ -1,13 +1,58 @@
-[tool.pytest.ini_options]
-pythonpath = ["."]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.mypy]
-ignore_missing_imports = true
+[project]
+name = "progress-table"
+dynamic = ["version"]
+description = "Display progress as a pretty table in the command line."
+dependencies = ["colorama"]
+license = { text = "MIT" }
+requires-python = ">=3.7"
+authors = [
+    { name = "Szymon Mikler", email = "sjmikler@gmail.com" }
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Home = "https://github.com/gahaalt/progress-table.git"
+Docs = "https://github.com/sjmikler/progress-table/blob/main/docs"
+
+[project.optional-dependencies]
+dev = ["black", "isort", "build", "twine"]
+
+[tool.hatch.version]
+path = "progress_table/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["progress_table", "README.md"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["progress_table"]
+
+[tool.hatch.build.hooks.custom]
+path = "hooks.py"
+
+# %%
+
+[tool.pyright]
+typeCheckingMode = "standard"
 exclude = ["devel", "build", "dist"]
 
-[tool.isort]
-profile = "black"
-line_length = 140
+[tool.ruff]
+line-length = 120
+fix = true
+target-version = "py37"
 
-[tool.black]
-line_length = 140
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]

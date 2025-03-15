@@ -1,4 +1,5 @@
-#  Copyright (c) 2022-2024 Szymon Mikler
+#  Copyright (c) 2022-2025 Szymon Mikler
+#  Licensed under the MIT License
 
 import math
 import random
@@ -38,7 +39,9 @@ def shift_rows_up(table, last_row_color):
         table.at[-2, col, "color"] = last_row_color
 
 
-def main(random_seed=random.randint(0, 100), sleep_duration=0.001, **overrides):
+def main(random_seed=None, sleep_duration=0.001, **overrides):
+    if random_seed is None:
+        random_seed = random.randint(0, 100)
     random.seed(random_seed)
 
     table = ProgressTable(

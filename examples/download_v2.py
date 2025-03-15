@@ -1,4 +1,5 @@
-#  Copyright (c) 2024 Szymon Mikler
+#  Copyright (c) 2022-2025 Szymon Mikler
+#  Licensed under the MIT License
 import random
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -32,7 +33,7 @@ table = ProgressTable(
 )
 
 main_pbar = table.pbar(
-    0,  # We might now know how many downloads we'll get, so we use 0 to mark the unknown value
+    NUM_FILES,
     position=1,
     show_progress=True,
     style="square clean blue",
@@ -84,7 +85,7 @@ table.add_columns("total size", "downloaded", "seeds", "peers", "warnings")
 threads = []
 executor = ThreadPoolExecutor()
 
-for idx, pkg in enumerate(files_to_download):
+for _idx, pkg in enumerate(files_to_download):
     threads.append(executor.submit(fake_download, pkg))
     random_wait_time = random.randint(1, 10)
     time.sleep(random_wait_time / 10)

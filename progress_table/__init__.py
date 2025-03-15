@@ -1,11 +1,18 @@
-#  Copyright (c) 2022-2024 Szymon Mikler
+#  Copyright (c) 2022-2025 Szymon Mikler
+#  Licensed under the MIT License
 
-__version__ = "2.3.2"
+"""Progress Table provides an easy and pretty way to track your process.
 
-from progress_table.v0.progress_table import ProgressTableV0
-from progress_table.v1 import styles
-from progress_table.v1.progress_table import ProgressTableV1
+Supported features:
+    - Styling and coloring
+    - Modifying existing cells
+    - Progress bars integrated into the table
+"""
 
-ProgressTable = ProgressTableV1
+__license__ = "MIT"
+__version__ = "3.0.0"
+__author__ = "Szymon Mikler"
 
-__all__ = ["ProgressTable", "ProgressTableV0", "ProgressTableV1", "styles"]
+from progress_table.progress_table import ProgressTable, styles
+
+__all__ = ["ProgressTable", "styles"]

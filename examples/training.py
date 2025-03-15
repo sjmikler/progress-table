@@ -1,19 +1,20 @@
-#  Copyright (c) 2022-2024 Szymon Mikler
+#  Copyright (c) 2022-2025 Szymon Mikler
+#  Licensed under the MIT License
 
 import random
 import time
 
 try:
     import numpy as np
-except ImportError:
-    raise ImportError("Numpy is required to run the example!")
+except ImportError as ex:
+    raise ImportError("Numpy is required to run the example!") from ex
 
 try:
     from sklearn.datasets import load_iris
     from sklearn.model_selection import train_test_split
     from sklearn.utils import shuffle
-except ImportError:
-    raise ImportError("Scikit-learn is required to run the example!")
+except ImportError as ex:
+    raise ImportError("Scikit-learn is required to run the example!") from ex
 
 from progress_table import ProgressTable
 
@@ -55,7 +56,9 @@ def model_grads(targets, logits, inputs):
     return inputs.T @ cross_entropy_grads
 
 
-def main(random_seed=random.randint(0, 100), sleep_duration=SLEEP_DURATION, **overrides):
+def main(random_seed=None, sleep_duration=SLEEP_DURATION, **overrides):
+    if random_seed is None:
+        random_seed = random.randint(0, 100)
     global SLEEP_DURATION
     SLEEP_DURATION = sleep_duration
 

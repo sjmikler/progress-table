@@ -51,7 +51,7 @@ When using Progress Table, you get detailed and clean logs. Moreover, your code 
 ```python
 ...
 
-table = ProgressTable(["Epoch", "Step"])
+table = ProgressTable("Epoch", "Step")
 table.add_columns(["Loss", "Accuracy"], aggregate="mean")
 
 for epoch in range(n_epochs):

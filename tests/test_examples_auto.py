@@ -1,15 +1,15 @@
-#  Copyright (c) 2022-2024 Szymon Mikler
+#  Copyright (c) 2022-2025 Szymon Mikler
+#  Licensed under the MIT License
 
 import hashlib
 import importlib
-import sys
 from glob import glob
 from io import StringIO
 
 EXPECTED_OUTPUTS = {
-    "examples.training": "6993e60d3edc3cb48014480fc4890404",
-    "examples.tictactoe": "378133fb7804a678282564d751068531",
-    "examples.brown2d": "c0f37fdfcfc2db6ef465473c67c05d83",
+    "examples.brown2d": "e85fcc33e982cb783059c09c090fca4e",
+    "examples.training": "91ca0321e3776d5f2ac45add37e0db27",
+    "examples.tictactoe": "b71d814bc517e3aa6d2477dd72e55e8f",
 }
 
 
@@ -19,16 +19,14 @@ def capture_example_stdout(main_fn):
     # * refresh rate
     # * throughput display
 
+    # We will replace stdout with custom StringIO and check whether example stdout is as expected
+    out_buffer = StringIO()
     override_kwds = dict(
         pbar_show_throughput=False,
         refresh_rate=0,
+        file=out_buffer,
     )
-
-    # We will replace stdout with custom StringIO and check whether example stdout is as expected
-    out_buffer = StringIO()
-    sys.stdout = out_buffer
     main_fn(random_seed=42, sleep_duration=0, **override_kwds)
-    sys.stdout = sys.__stdout__
     return out_buffer.getvalue()
 
 
@@ -37,13 +35,13 @@ def test_all_examples():
 
     outputs = {}
     for module in glob("examples/*"):
-        module = module.replace(".py", "").replace("/", ".")
+        module = module.replace(".py", "").replace("/", ".").replace("\\", ".")
 
         if module not in EXPECTED_OUTPUTS:
             print(f"Skipping example: {module}")
             continue
-        print(f"Running example: {module}")
 
+        print(f"Running example: {module}")
         main_fn = importlib.import_module(module).main
         out_str = capture_example_stdout(main_fn)
 
@@ -59,4 +57,4 @@ def test_all_examples():
     err_msg = "\n".join(err_msg)
 
     if err_msg:
-        assert False, f"Errors in example outputs\n{err_msg}"
+        raise AssertionError(f"Errors in example outputs\n{err_msg}")

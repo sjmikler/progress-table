@@ -1,6 +1,7 @@
-#  Copyright (c) 2022-2024 Szymon Mikler
+#  Copyright (c) 2022-2025 Szymon Mikler
+#  Licensed under the MIT License
 
-from __future__ import annotations
+"""Common utilities for progress_table."""
 
 from typing import Union
 
@@ -20,12 +21,11 @@ COLORAMA_TRANSLATE = {
 NoneType = type(None)
 ColorFormat = Union[str, tuple, list, NoneType]
 ColorFormatTuple = (str, tuple, list, NoneType)
-
 CURSOR_UP = "\033[A"
 
 
 def maybe_convert_to_colorama_str(color: str) -> str:
-    # Translation layer to fix unintuitive colorama names
+    """Convert color from string to colorama string."""
     color = COLORAMA_TRANSLATE.get(color.lower(), color)
 
     if isinstance(color, str):
@@ -39,6 +39,10 @@ def maybe_convert_to_colorama_str(color: str) -> str:
 
 
 def maybe_convert_to_colorama(color: ColorFormat) -> str:
+    """Fix unintuitive colorama names.
+
+    Translation layer from user-passed to colorama-compatible names.
+    """
     if color is None or color == "":
         return ""
     if isinstance(color, str):

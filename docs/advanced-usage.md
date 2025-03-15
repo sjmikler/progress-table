@@ -20,11 +20,12 @@ from progress_table import ProgressTable
 
 table = ProgressTable()
 table.add_column("Value")
-table.add_rows(4)  # Adding empty rows
+table.add_rows(3)  # Adding empty rows
 
 table.update(name="Value", value=1.0, row=1)
 table.update(name="Value", value=2.0, row=0, cell_color="red bold")
-table.update(name="Value", value=3.0, row=-1)  # modify last-but-one row
+table.update(name="Value", value=3.0, row=2)  # modify last-but-one row
+table.close()
 ```
 
 Which might give you the following:
@@ -36,6 +37,7 @@ Which might give you the following:
 │  2.0000  │
 │  1.0000  │
 │  3.0000  │
+╰──────────╯
 ```
 
 ### `.at` indexing
@@ -74,9 +76,9 @@ Which might give you the following:
 There are two types of progress bars in Progress Table: embedded and non-embedded.
 
 
-> When using `interactive==0` mode, the progress bars will not be displayed.
+> When using `interactive=0` mode, the progress bars will not be displayed.
 
-> When using `interactive==1` mode, progress bars will be displayed in the current (bottom-most) row.
+> When using `interactive=1` mode, progress bars are be displayed only in the bottom row.
 
 ### Embedded progress bars
 
@@ -185,7 +187,7 @@ You can display detailed information like:
 * custom description
 
 To add or remove some of this information, specify the arguments like below.
-Additionaly, you can create a progress bar object and specify 
+Additionaly, you can create a progress bar object and specify
 all the options only for this specific progress bar.
 
 ```python
@@ -210,10 +212,11 @@ pbar = table.pbar(
 )
 ```
 
-Which results in something like this:
+Which, when used, might look like this:
 
 ```
-│[train epoch, 24.1 it/s, ETA 53s] ●●●●●●●◉○○○○○○○○○○○○○○○│
+│           │           │           │           │
+│[train epoch, 24.1 it/s, ETA 53s] ●●●●●●●◉○○○○○│
 ```
 
 ### More progress bar customization
