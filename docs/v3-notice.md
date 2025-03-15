@@ -5,6 +5,7 @@ Version 3.0.0 of Progress Table is now available.
 It introduces:
 
 * Important internal changes to increase the stability.
+* Increased compatibility with some types of terminals.
 * Minor breaking changes in the API.
 
 ## BREAKING API CHANGES
