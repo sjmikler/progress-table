@@ -263,7 +263,7 @@ The available keywords are:
 Additionaly, you can specify the color of the progress bar using
 `color` and `color_empty` arguments when creating a progress bar object.
 This will override whatever color is set in `style` or `style_embed`.
-We can connect this option with `colorama.Back` to modify colors
+We can combine this option with `colorama.Back` to modify colors
 of the background instead of the foreground symbols.
 
 ```python

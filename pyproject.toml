@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-readme = "README.md"
+readme = "docs/README.md"
 
 [project.urls]
 Home = "https://github.com/gahaalt/progress-table"
@@ -43,7 +43,6 @@ packages = ["progress_table"]
 
 [tool.hatch.metadata.hooks.custom]
 path = "hooks.py"
-
 
 # %%
 
