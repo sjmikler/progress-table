@@ -30,7 +30,7 @@ Home = "https://github.com/gahaalt/progress-table"
 Documentation = "https://github.com/sjmikler/progress-table/blob/main/docs"
 
 [project.optional-dependencies]
-dev = ["black", "isort", "build", "twine"]
+dev = ["ruff", "pyright", "pytest", "pytest-cov", "hatch", "twine"]
 
 [tool.hatch.version]
 path = "progress_table/__init__.py"
