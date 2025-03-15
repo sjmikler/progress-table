@@ -140,6 +140,7 @@ def test_write_message():
     table = ProgressTable("col1", "col2")
     table.add_row(1, 2)
     table.write("test message")
+    assert isinstance(table._display_rows[-1], str)
     assert "USER WRITE" in table._display_rows[-1]
 
 

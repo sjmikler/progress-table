@@ -20,11 +20,12 @@ from progress_table import ProgressTable
 
 table = ProgressTable()
 table.add_column("Value")
-table.add_rows(4)  # Adding empty rows
+table.add_rows(3)  # Adding empty rows
 
 table.update(name="Value", value=1.0, row=1)
 table.update(name="Value", value=2.0, row=0, cell_color="red bold")
-table.update(name="Value", value=3.0, row=-1)  # modify last-but-one row
+table.update(name="Value", value=3.0, row=2)  # modify last-but-one row
+table.close()
 ```
 
 Which might give you the following:
@@ -36,6 +37,7 @@ Which might give you the following:
 │  2.0000  │
 │  1.0000  │
 │  3.0000  │
+╰──────────╯
 ```
 
 ### `.at` indexing

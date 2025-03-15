@@ -5,7 +5,6 @@
 
 from __future__ import annotations  # for PEP 563
 
-import atexit
 import inspect
 import logging
 import math
@@ -295,8 +294,6 @@ class ProgressTable:
         self._append_new_empty_data_row()
         self._at_indexer = TableAtIndexer(self)
 
-        atexit.register(self.close)
-
     ####################
     ## PUBLIC METHODS ##
     ####################
@@ -417,7 +414,7 @@ class ProgressTable:
             msg = f"Row {data_row_index} out of range! Number of rows: {len(self._data_rows)}"
             raise IndexError(msg)
 
-        # Set default values for new rows
+        # Set default values for rows without values in this column
         data_row = self._data_rows[row]
         data_row.values.setdefault(name, 0)
         data_row.weights.setdefault(name, 0)
