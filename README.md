@@ -46,7 +46,7 @@ From `examples/` directory:
 
 ## Quick start code
 
-```python
+```python #test
 import random
 import time
 
