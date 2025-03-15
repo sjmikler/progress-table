@@ -1,9 +1,3 @@
-> Version 2.x.x introduces new features and new interactive modes.
->
-> Version 3.x.x improves compatibility and stability.
->
-> New features allow for previously impossible applications, see examples below.
-
 # Progress Table
 
 [![PyPi version](https://img.shields.io/badge/dynamic/json?label=latest&query=info.version&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
