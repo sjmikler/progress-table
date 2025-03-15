@@ -23,7 +23,7 @@ def with_direct_github_urls(text):
 
 
 class ReadmeHook(MetadataHookInterface):
-    def update(self, _: dict):
+    def update(self, metadata: dict):
         readme_path = Path("README.md")
         original_text = readme_path.read_text(encoding="utf-8")
         updated_text = with_direct_github_urls(original_text)
