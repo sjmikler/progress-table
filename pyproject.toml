@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-readme = "docs/README.md"
+readme = "README_pypi.md"
 
 [project.urls]
 Home = "https://github.com/gahaalt/progress-table"
