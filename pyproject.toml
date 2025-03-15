@@ -36,7 +36,7 @@ dev = ["black", "isort", "build", "twine"]
 path = "progress_table/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = ["progress_table", "README.md"]
+include = ["progress_table", "examples", "docs", "README.md"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["progress_table"]
