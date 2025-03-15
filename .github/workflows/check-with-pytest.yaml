@@ -41,14 +41,6 @@ jobs:
           pip install .
           pip install pytest numpy pandas scikit-learn
 
-      # Fix failing importlib
-      - name: Set PYTHONPATH (Linux)
-        if: runner.os == 'Linux'
-        run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
-      - name: Set PYTHONPATH (Windows)
-        if: runner.os == 'Windows'
-        run: echo "PYTHONPATH=$PWD" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
-
       # For some reason it is necessary to run pytest separately for each test.
       # Otherwise, tests might fail.
       - name: Test with pytest 1
