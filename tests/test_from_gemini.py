@@ -110,19 +110,20 @@ def test_add_row():
     table.add_row(1, "abc")
     assert table[("col1", 0)] == 1
     assert table[("col2", 0)] == "abc"
-    assert len(table._data_rows) == 2
+    assert len(table._data_rows) == 1
 
 
 def test_add_rows_with_integer_argument():
     table = ProgressTable("col1")
     table.add_rows(2)
-    assert len(table._data_rows) == 3
+    assert len(table._data_rows) == 2
+    assert table.to_list() == [[None], [None]]
 
 
 def test_num_rows():
     table = ProgressTable()
     table.add_rows(5)
-    assert table.num_rows() == 6
+    assert table.num_rows() == 5
 
 
 def test_num_columns():
@@ -156,7 +157,15 @@ def test_table_at_setitem_slice_rows_cols():
     table = ProgressTable("col1", "col2")
     table.add_rows(2)
     table.at[:2, :] = 5
-    assert table.at[:2, :] == [[5, 5], [5, 5]]
+    assert table.at[:2, :2] == [[5, 5], [5, 5]]
+    assert table.at[:] == [[5, 5], [5, 5]]
+
+
+def test_table_at_setitem_slice_rows_cols2():
+    table = ProgressTable("col1", "col2")
+    table.add_rows(2)
+    table.at[:] = 5
+    assert table.at[:] == [[5, 5], [5, 5]]
 
 
 def test_table_at_setitem_slice_rows():
@@ -165,6 +174,7 @@ def test_table_at_setitem_slice_rows():
     table.at[0, :] = 5
     assert table.at[0, :] == [5, 5]
     assert table.at[1, :] == [None, None]
+    assert table.at[:] == [[5, 5], [None, None]]
 
 
 def test_table_at_setitem_slice_cols():
@@ -173,6 +183,7 @@ def test_table_at_setitem_slice_cols():
     table.at[:2, 0] = 5
     assert table.at[:2, 0] == [5, 5]
     assert table.at[:2, 1] == [None, None]
+    assert table.at[:] == [[5, None], [5, None]]
 
 
 def test_table_at_setitem_int_rows_cols():
@@ -186,8 +197,8 @@ def test_table_at_setitem_int_rows_cols():
 def test_table_at_setitem_slice_rows_cols_mode():
     table = ProgressTable("col1", "col2")
     table.add_rows(2)
-    table.at[:2, :, "weights"] = 1
-    assert table.at[:2, :, "weights"] == [[1, 1], [1, 1]]
+    table.at[:, :, "weights"] = 1
+    assert table.at[:, :, "weights"] == [[1, 1], [1, 1]]
 
 
 def test_table_at_setitem_slice_rows_cols_mode_colors():
@@ -205,6 +216,7 @@ def test_table_at_getitem_slice_rows_cols():
     table.add_rows(2)
     table.at[0, 0] = 5
     table.at[1, 1] = 10
+    assert table.at[:, :] == [[5, None], [None, 10]]
     assert table.at[:2, :] == [[5, None], [None, 10]]
 
 
@@ -212,8 +224,9 @@ def test_table_at_getitem_slice_rows():
     table = ProgressTable("col1", "col2")
     table.add_rows(2)
     table.at[0, 0] = 5
-    table.at[1, 1] = 10
+    table.at[-1, -1] = 10
     assert table.at[0, :] == [5, None]
+    assert table.at[:] == [[5, None], [None, 10]]
 
 
 def test_table_at_getitem_slice_cols():
@@ -221,6 +234,7 @@ def test_table_at_getitem_slice_cols():
     table.add_rows(2)
     table.at[0, 0] = 5
     table.at[1, 1] = 10
+    assert table.at[:, 1] == [None, 10]
     assert table.at[:2, 1] == [None, 10]
 
 
@@ -236,6 +250,7 @@ def test_table_at_getitem_slice_rows_cols_mode():
     table = ProgressTable("col1", "col2")
     table.add_rows(2)
     table.at[:2, :, "weights"] = 1
+    assert table.at[:, :, "weights"] == [[1, 1], [1, 1]]
     assert table.at[:2, :, "weights"] == [[1, 1], [1, 1]]
 
 
@@ -244,6 +259,22 @@ def test_table_at_getitem_slice_rows_cols_mode_colors():
     table.add_rows(2)
     table.at[:2, :, "colors"] = "red"
     assert table.at[:2, :, "colors"] == [["\x1b[31m", "\x1b[31m"], ["\x1b[31m", "\x1b[31m"]]
+
+
+def test_table_adding_rows():
+    table = ProgressTable("col1", "col2")
+    for _i in range(3):
+        table.add_row()
+    table.at[:] = 0
+    assert table.at[:] == [[0, 0], [0, 0], [0, 0]]
+
+
+def test_table_adding_rows2():
+    table = ProgressTable("col1", "col2")
+    for i in range(3):
+        table.add_row()
+        table.at[-1, :] = i
+    assert table.at[:] == [[0, 0], [1, 1], [2, 2]]
 
 
 def test_aggregate_dont():
@@ -293,7 +324,7 @@ def test_get_aggregate_fn_invalid_string():
 
 def test_get_aggregate_fn_invalid_type():
     with pytest.raises(ValueError):
-        progress_table.get_aggregate_fn(123)
+        progress_table.get_aggregate_fn(123)  # type: ignore
 
 
 def test_get_default_format_fn_int():

@@ -25,6 +25,7 @@ jobs:
         ]
         os: [
           "ubuntu-22.04",
+          "windows-latest",
         ]
 
     runs-on: ${{ matrix.os }}

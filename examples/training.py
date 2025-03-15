@@ -80,7 +80,7 @@ def main(random_seed=None, sleep_duration=SLEEP_DURATION, **overrides):
     for epoch in table(NUM_EPOCHS, show_throughput=False, show_eta=True):
         table["epoch"] = epoch
         # Shuffling training dataset each epoch
-        X_train, Y_train = shuffle(X_train, Y_train)
+        X_train, Y_train = shuffle(X_train, Y_train)  # type: ignore
 
         NUM_BATCHES = 16
         X_batches = np.array_split(X_train, NUM_BATCHES)

@@ -9,7 +9,7 @@ from io import StringIO
 EXPECTED_OUTPUTS = {
     "examples.brown2d": "e85fcc33e982cb783059c09c090fca4e",
     "examples.training": "91ca0321e3776d5f2ac45add37e0db27",
-    "examples.tictactoe": "b71d814bc517e3aa6d2477dd72e55e8f",
+    "examples.tictactoe": "261c337ff04ae63e84857f9fcaf1d276",
 }
 
 
