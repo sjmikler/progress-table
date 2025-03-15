@@ -52,7 +52,6 @@ exclude = ["devel", "build", "dist"]
 
 [tool.ruff]
 line-length = 120
-fix = true
 target-version = "py37"
 
 [tool.ruff.lint]
