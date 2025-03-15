@@ -58,12 +58,6 @@ target-version = "py37"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
 
-[tool.black]
-line-length = 120
-
-[tool.isort]
-line_length = 120
-
 # %%
 
 [tool.pytest.ini_options]
@@ -75,7 +69,7 @@ exclude = ["devel", "build", "dist"]
 
 [tool.isort]
 profile = "black"
-line_length = 140
+line_length = 120
 
 [tool.black]
-line_length = 140
+line_length = 120
