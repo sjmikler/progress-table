@@ -20,7 +20,12 @@ from typing import Any, TextIO
 from colorama import Style
 
 from progress_table import styles
-from progress_table.common import CURSOR_UP, ColorFormat, ColorFormatTuple, maybe_convert_to_colorama
+from progress_table.common import (
+    CURSOR_UP,
+    ColorFormat,
+    ColorFormatTuple,
+    maybe_convert_to_colorama,
+)
 
 ######################
 ## HELPER FUNCTIONS ##

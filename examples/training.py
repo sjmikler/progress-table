@@ -116,8 +116,20 @@ def main(random_seed=None, sleep_duration=SLEEP_DURATION, **overrides):
 
                 # Use aggregation weight equal to batch size to get real mean over the validation dataset
                 batch_size = x.shape[0]
-                table.update("valid loss", loss_value, weight=batch_size, aggregate="mean", color="red")
-                table.update("valid accuracy", accuracy, weight=batch_size, aggregate="mean", color="red bold")
+                table.update(
+                    "valid loss",
+                    loss_value,
+                    weight=batch_size,
+                    aggregate="mean",
+                    color="red",
+                )
+                table.update(
+                    "valid accuracy",
+                    accuracy,
+                    weight=batch_size,
+                    aggregate="mean",
+                    color="red bold",
+                )
         table.next_row(split=run_validation)
     table.close()
 

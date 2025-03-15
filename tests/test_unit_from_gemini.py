@@ -258,7 +258,10 @@ def test_table_at_getitem_slice_rows_cols_mode_colors():
     table = ProgressTable("col1", "col2")
     table.add_rows(2)
     table.at[:2, :, "colors"] = "red"
-    assert table.at[:2, :, "colors"] == [["\x1b[31m", "\x1b[31m"], ["\x1b[31m", "\x1b[31m"]]
+    assert table.at[:2, :, "colors"] == [
+        ["\x1b[31m", "\x1b[31m"],
+        ["\x1b[31m", "\x1b[31m"],
+    ]
 
 
 def test_table_adding_rows():
