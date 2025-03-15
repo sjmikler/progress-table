@@ -42,4 +42,7 @@ jobs:
           pip install pytest pytest-cov numpy pandas scikit-learn
 
       - name: Test with pytest
-        run: pytest . --cov=progress_table --cov-fail-under=90
+        run: pytest . --cov=progress_table --cov-fail-under=90  --cov-report=xml
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v5
