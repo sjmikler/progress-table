@@ -7,7 +7,8 @@
 # Progress Table
 
 [![PyPi version](https://img.shields.io/badge/dynamic/json?label=latest&query=info.version&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
-[![PyPI license](https://img.shields.io/badge/dynamic/json?label=license&query=info.license&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
+[![PyPI license](https://img.shields.io/badge/dynamic/json?label=license&query=info.license&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://github.com/sjmikler/progress-table/blob/main/LICENSE.txt)
+[![codecov](https://codecov.io/gh/sjmikler/progress-table/graph/badge.svg?token=CDJKF0FFAQ)](https://codecov.io/gh/sjmikler/progress-table)
 
 Lightweight utility to display the progress of your process as a pretty table in the command line.
 
