@@ -33,7 +33,6 @@ class UnknownStyleError(ValueError):
     """Raised when style description is not recognized."""
 
 
-
 def parse_pbar_style(description: str | PbarStyleBase) -> PbarStyleBase:
     """Parse progress bar style description and return a style object.
 
