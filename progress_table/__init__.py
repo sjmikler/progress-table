@@ -10,7 +10,7 @@ Supported features:
 """
 
 __license__ = "MIT"
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 __author__ = "Szymon Mikler"
 
 from progress_table.progress_table import ProgressTable, styles

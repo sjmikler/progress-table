@@ -23,21 +23,15 @@ def with_direct_github_urls(text):
     return text.replace("(docs", "(" + docs_github_link)
 
 
-class PreparePyPiREADME(BuildHookInterface):
-    def __init__(self, *args, **kwds) -> None:
-        super().__init__(*args, **kwds)
-        self.temp_path = None
-
+class CustomBuildHook(BuildHookInterface):
     def initialize(self, version, build_data) -> None:
         readme_path = Path("README.md")
         original_text = readme_path.read_text(encoding="utf-8")
         updated_text = with_direct_github_urls(original_text)
-
-        with tempfile.NamedTemporaryFile("w", delete=False) as file:
-            file.write(updated_text)
-
+        with open("README_pypi.md", "w", encoding="utf-8") as f:
+            f.write(updated_text)
         # Tell Hatch to use this modified README
-        build_data["readme"] = file.name
+        build_data["readme"] = f.name
 
     def finalize(self, version, build_data, artifact_path) -> None:
         p = Path(build_data["readme"])
