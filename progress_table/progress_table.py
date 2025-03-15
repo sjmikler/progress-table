@@ -433,7 +433,8 @@ class ProgressTable:
     def __setitem__(self, key: str | tuple[str, int], value: Any) -> None:
         """Update value in the current row. Calls 'update'."""
         if isinstance(key, slice):
-            raise IndexError("slicing not supported! Did you want to use 'table.at[:]' indexer?")
+            msg = "slicing not supported! Did you want to use 'table.at[:]' indexer?"
+            raise IndexError(msg)
 
         if isinstance(key, tuple):
             name, row = key
@@ -448,7 +449,8 @@ class ProgressTable:
     def __getitem__(self, key: str | tuple[str, int]) -> Any:
         """Get the value from the current row in table."""
         if isinstance(key, slice):
-            raise IndexError("slicing not supported! Did you want to use 'table.at[:]' indexer?")
+            msg = "slicing not supported! Did you want to use 'table.at[:]' indexer?"
+            raise IndexError(msg)
 
         if isinstance(key, tuple):
             name, row = key

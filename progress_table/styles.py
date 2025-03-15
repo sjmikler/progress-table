@@ -32,7 +32,6 @@ def _parse_colors_from_description(description: str) -> tuple[str, str, str]:
 class UnknownStyleError(ValueError):
     """Raised when style description is not recognized."""
 
-    pass
 
 
 def parse_pbar_style(description: str | PbarStyleBase) -> PbarStyleBase:
