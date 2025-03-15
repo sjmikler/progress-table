@@ -15,12 +15,17 @@ import time
 from collections.abc import Callable, Iterable, Iterator, Sized
 from dataclasses import dataclass
 from threading import Thread
-from typing import TextIO
+from typing import Any, TextIO
 
 from colorama import Style
 
 from progress_table import styles
-from progress_table.common import CURSOR_UP, ColorFormat, ColorFormatTuple, maybe_convert_to_colorama
+from progress_table.common import (
+    CURSOR_UP,
+    ColorFormat,
+    ColorFormatTuple,
+    maybe_convert_to_colorama,
+)
 
 ######################
 ## HELPER FUNCTIONS ##
@@ -83,8 +88,8 @@ def get_aggregate_fn(aggregate: None | str | Callable) -> Callable:
     raise ValueError(msg)
 
 
-def get_default_format_fn(decimal_places: int) -> Callable[[object], str]:
-    def fmt(x: object) -> str:
+def get_default_format_fn(decimal_places: int) -> Callable[[Any], str]:
+    def fmt(x: Any) -> str:
         if isinstance(x, int):
             return str(x)
         try:
@@ -104,13 +109,14 @@ def get_default_format_fn(decimal_places: int) -> Callable[[object], str]:
 class DataRow:
     """Basic unit of data storage for the table."""
 
-    values: dict[str, object]
+    values: dict[str, Any]
     weights: dict[str, float]
     colors: dict[str, str]
+    user: bool = False
 
     def is_empty(self) -> bool:
         """Check if the row is empty."""
-        return not any(self.values)
+        return not any(self.values) and not self.user
 
 
 class ProgressTable:
@@ -144,7 +150,7 @@ class ProgressTable:
         pbar_style_embed: str | styles.PbarStyleBase = "cdots",
         print_header_on_top: bool = True,
         print_header_every_n_rows: int = 30,
-        custom_cell_format: Callable[[object], str] | None = None,
+        custom_cell_format: Callable[[Any], str] | None = None,
         table_style: str | styles.TableStyleBase = "round",
         file: TextIO | list[TextIO] | tuple[TextIO] | None = None,
         # DEPRECATED ARGUMENTS
@@ -387,7 +393,7 @@ class ProgressTable:
     def update(
         self,
         name: str,
-        value: object,
+        value: Any,
         *,
         row: int = -1,
         weight: float = 1.0,
@@ -429,8 +435,12 @@ class ProgressTable:
         if self.interactive > 0:
             self._append_or_update_display_row(data_row_index)
 
-    def __setitem__(self, key: str | tuple[str, int], value: object) -> None:
+    def __setitem__(self, key: str | tuple[str, int], value: Any) -> None:
         """Update value in the current row. Calls 'update'."""
+        if isinstance(key, slice):
+            msg = "slicing not supported! Did you want to use 'table.at[:]' indexer?"
+            raise IndexError(msg)
+
         if isinstance(key, tuple):
             name, row = key
             if isinstance(name, int) and isinstance(row, str):
@@ -441,8 +451,12 @@ class ProgressTable:
         assert isinstance(row, int), f"Row {row} has to be an integer, not {type(row)}!"
         self.update(name, value, row=row, weight=1)
 
-    def __getitem__(self, key: str | tuple[str, int]) -> object | None:
+    def __getitem__(self, key: str | tuple[str, int]) -> Any:
         """Get the value from the current row in table."""
+        if isinstance(key, slice):
+            msg = "slicing not supported! Did you want to use 'table.at[:]' indexer?"
+            raise IndexError(msg)
+
         if isinstance(key, tuple):
             name, row = key
             if isinstance(name, int) and isinstance(row, int):
@@ -454,7 +468,7 @@ class ProgressTable:
         assert isinstance(row, int), f"Row {row} has to be an integer, not {type(row)}!"
         return self._data_rows[row].values.get(name, None)
 
-    def update_from_dict(self, dictionary: dict[str, object]) -> None:
+    def update_from_dict(self, dictionary: dict[str, Any]) -> None:
         """Update multiple values in the current row."""
         for key, value in dictionary.items():
             self.update(key, value)
@@ -500,7 +514,7 @@ class ProgressTable:
         row.colors = {**self._resolve_row_color_dict(color), **row.colors}
 
         # Refreshing the existing row is necessary to apply colors
-        # Or - if row is empty, this will cause the first addition to display rows
+        # Or - if row is new - this will add it to display rows
         self._append_or_update_display_row(data_row_index)
 
         self._append_new_empty_data_row()
@@ -513,9 +527,18 @@ class ProgressTable:
 
     def add_row(self, *values, **kwds) -> None:
         """Mimicking rich.table behavior for adding full rows in one call."""
+        if not self._data_rows[-1].is_empty():
+            self.next_row(**kwds)
+
         for key, value in zip(self.column_names, values):
             self.update(key, value)
-        self.next_row(**kwds)
+
+        # The row was explicitly added, make sure it is displayed
+        data_row_index = len(self._data_rows) - 1
+        self._append_or_update_display_row(data_row_index)
+
+        # Mark row as explicitly added by the user
+        self._data_rows[data_row_index].user = True
 
     def add_rows(self, *rows, **kwds) -> None:
         """Like `add_row` but adds multiple rows at once.
@@ -574,14 +597,14 @@ class ProgressTable:
 
             self._append_or_update_display_row("USER WRITE " + line)
 
-    def to_list(self) -> list[list[object]]:
+    def to_list(self) -> list[list[Any]]:
         """Convert to Python nested list."""
         values = [[row.values.get(col, None) for col in self.column_names] for row in self._data_rows]
         if self._data_rows[-1].is_empty():
             values.pop(-1)
         return values
 
-    def to_numpy(self) -> object:
+    def to_numpy(self) -> Any:
         """Convert to numpy array.
 
         Numpy library is required.
@@ -590,7 +613,7 @@ class ProgressTable:
 
         return np.array(self.to_list())
 
-    def to_df(self) -> object:
+    def to_df(self) -> Any:
         """Convert to pandas DataFrame.
 
         Pandas library is required.
@@ -809,7 +832,7 @@ class ProgressTable:
         color_colorama = {column: maybe_convert_to_colorama(color) for column, color in color.items()}
         return {col: self.column_colors[col] + color_colorama[col] for col in color}
 
-    def _apply_cell_formatting(self, value: object, column_name: str, color: str) -> str:
+    def _apply_cell_formatting(self, value: Any, column_name: str, color: str) -> str:
         str_value = self.custom_cell_format(value)
         width = self.column_widths[column_name]
         alignment = self.column_alignments[column_name]
@@ -1284,7 +1307,7 @@ class TableAtIndexer:
         column_names = self.table.column_names[cols] if isinstance(cols, slice) else [self.table.column_names[cols]]
         return row_indices, column_names, mode
 
-    def __setitem__(self, key: slice | tuple, value: object) -> None:
+    def __setitem__(self, key: slice | tuple, value: Any) -> None:
         """Set the values, colors, or weights of a slice in the table."""
         row_indices, column_names, edit_mode = self._parse_index(key)
         if edit_mode == "colors":

@@ -58,7 +58,12 @@ def main(random_seed=None, sleep_duration=0.001, **overrides):
     MAX_ROWS = 20
     STEP_SIZE = 100
 
-    distance_pbar = table.pbar(TARGET_DISTANCE, description="Distance", show_throughput=False, show_progress=True)
+    distance_pbar = table.pbar(
+        TARGET_DISTANCE,
+        description="Distance",
+        show_throughput=False,
+        show_progress=True,
+    )
 
     current_position = (0, 0)
     current_velocity = PARTICLE_VELOCITY
@@ -72,8 +77,14 @@ def main(random_seed=None, sleep_duration=0.001, **overrides):
         random_direction = random.uniform(0, 2 * 3.1415)
         new_velocity = random.uniform(0, PARTICLE_VELOCITY * 2)
         current_velocity = current_velocity * PARTICLE_MOMENTUM + new_velocity * (1 - PARTICLE_MOMENTUM)
-        move_vector = (current_velocity * math.cos(random_direction), current_velocity * math.sin(random_direction))
-        current_position = (current_position[0] + move_vector[0], current_position[1] + move_vector[1])
+        move_vector = (
+            current_velocity * math.cos(random_direction),
+            current_velocity * math.sin(random_direction),
+        )
+        current_position = (
+            current_position[0] + move_vector[0],
+            current_position[1] + move_vector[1],
+        )
         distance_from_center = calc_distance(current_position)
 
         tick += 1

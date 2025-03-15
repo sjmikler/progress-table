@@ -7,8 +7,7 @@
 # Progress Table
 
 [![PyPi version](https://img.shields.io/badge/dynamic/json?label=latest&query=info.version&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
-[![PyPI license](https://img.shields.io/badge/dynamic/json?label=license&query=info.license&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://github.com/sjmikler/progress-table/blob/main/LICENSE.txt)
-[![codecov](https://codecov.io/gh/sjmikler/progress-table/graph/badge.svg?token=CDJKF0FFAQ)](https://codecov.io/gh/sjmikler/progress-table)
+[![PyPI license](https://img.shields.io/badge/dynamic/json?label=license&query=info.license&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fprogress-table%2Fjson)](https://pypi.org/project/progress-table)
 
 Lightweight utility to display the progress of your process as a pretty table in the command line.
 
@@ -19,11 +18,11 @@ Lightweight utility to display the progress of your process as a pretty table in
 
 ### Change this:
 
-![example](images/progress-before3.gif)
+![example](https://raw.githubusercontent.com/sjmikler/progress-table/main/images/progress-before3.gif)
 
 ### Into this:
 
-![example](images/progress-after4.gif)
+![example](https://raw.githubusercontent.com/sjmikler/progress-table/main/images/progress-after4.gif)
 
 ## Examples
 
@@ -31,19 +30,19 @@ From `examples/` directory:
 
 * Neural network training
 
-![example-training](images/examples-training.gif)
+![example-training](https://raw.githubusercontent.com/sjmikler/progress-table/main/images/examples-training.gif)
 
 * Progress of multi-threaded downloads
 
-![example-download](images/examples-download.gif)
+![example-download](https://raw.githubusercontent.com/sjmikler/progress-table/main/images/examples-download.gif)
 
 * Simulation and interactive display of Brownian motion
 
-![example-brown2d](images/examples-brown2d.gif)
+![example-brown2d](https://raw.githubusercontent.com/sjmikler/progress-table/main/images/examples-brown2d.gif)
 
 * Display of a game board
 
-![example-tictactoe](images/examples-tictactoe.gif)
+![example-tictactoe](https://raw.githubusercontent.com/sjmikler/progress-table/main/images/examples-tictactoe.gif)
 
 ## Quick start code
 
@@ -84,12 +83,12 @@ table.close()
 
 ```
 
-> Go to [integrations](docs/integrations.md)
+> Go to [integrations](https://github.com/sjmikler/progress-table/blob/main/docs//integrations.md)
 > page to see examples of integration with deep learning libraries.
 
 ## Advanced usage
 
-Go to [advanced usage](docs/advanced-usage.md) page for more information.
+Go to [advanced usage](https://github.com/sjmikler/progress-table/blob/main/docs//advanced-usage.md) page for more information.
 
 ## Troubleshooting
 

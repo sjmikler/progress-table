@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-readme = "README.md"
+readme = "docs/README.md"
 
 [project.urls]
 Home = "https://github.com/gahaalt/progress-table"
@@ -36,7 +36,7 @@ dev = ["black", "isort", "build", "twine"]
 path = "progress_table/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = ["progress_table", "README.md"]
+include = ["progress_table", "examples", "docs", "README.md"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["progress_table"]
@@ -44,8 +44,7 @@ packages = ["progress_table"]
 [tool.hatch.metadata.hooks.custom]
 path = "hooks.py"
 
-
-# %%
+# %% TOOLS
 
 [tool.pyright]
 typeCheckingMode = "standard"
@@ -53,8 +52,23 @@ exclude = ["devel", "build", "dist"]
 
 [tool.ruff]
 line-length = 120
-fix = true
 target-version = "py37"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
+
+# %%
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.mypy]
+ignore_missing_imports = true
+exclude = ["devel", "build", "dist"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.black]
+line_length = 120

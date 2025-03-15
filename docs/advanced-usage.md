@@ -30,7 +30,7 @@ table.close()
 
 Which might give you the following:
 
-```
+```output
 ╭──────────╮
 │  Value   │
 ├──────────┤
@@ -56,10 +56,12 @@ table.add_rows(4)  # Adding empty rows
 table.at[:] = 0.0  # Initialize all values to 0.0
 table.at[0, :] = 2.0  # Set all values in the first row to 2.0
 table.at[:, 1] = 2.0  # Set all values in the second column to 2.0
-table.at[-2, 0] = 3.0  # Set the first column in the second-to-last row to 3.0
+table.at[2, 0] = 3.0  # Set the first column in the second-to-last row to 3.0
+
+table.close()
 ```
 
-Which might give you the following:
+Which should give you the following:
 
 ```
 ╭──────────┬──────────┬──────────┬──────────╮
@@ -69,6 +71,7 @@ Which might give you the following:
 │  0.0000  │  2.0000  │  0.0000  │  0.0000  │
 │  3.0000  │  2.0000  │  0.0000  │  0.0000  │
 │  0.0000  │  2.0000  │  0.0000  │  0.0000  │
+╰──────────┴──────────┴──────────┴──────────╯
 ```
 
 ## Progress Bars
@@ -90,20 +93,27 @@ It is possible to customize the looks of the embedded progress bar by specyfing 
 ```python
 from progress_table import ProgressTable
 
-table = ProgressTable(pbar_style_embed="cdots")
+table = ProgressTable(pbar_style_embed="dash")
 ```
 
-Below we show a sample of available styles for embedded progress bars
+Below we show a sample of available styles for embedded progress bars:
 
----
-
-`cdots`
+`dash`
 
 ```
 |   Name   |   Value   |   Number   |
 |-----------------------------------|
 |   test1  |    1.0    |     42     |
-|ꞏꞏꞏtest2ꞏꞏ|ꞏꞏꞏꞏ2.0ꞏ>  |     37     |
+|---test2--|----2.0->  |     37     |
+```
+
+`rich`
+
+```
+|   Name   |   Value   |   Number   |
+|-----------------------------------|
+|   test1  |    1.0    |     42     |
+|━━━test2━━|━━━━2.0━━  |     37     |
 ```
 
 `under`
@@ -253,20 +263,28 @@ The available keywords are:
 Additionaly, you can specify the color of the progress bar using
 `color` and `color_empty` arguments when creating a progress bar object.
 This will override whatever color is set in `style` or `style_embed`.
+We can combine this option with `colorama.Back` to modify colors
+of the background instead of the foreground symbols.
 
 ```python
 from progress_table import ProgressTable
 import colorama
+import time
 
-table = ProgressTable()
+table = ProgressTable("a", "b", "c")
+table.add_rows(1)
 
 pbar = table.pbar(
-    range(1000),
+    range(100),
     style_embed="hidden",
     color=colorama.Back.RED,
     color_empty=colorama.Back.BLUE,
 )
+
+for _ in pbar:
+    time.sleep(0.1)
 ```
 
-In the example above, we use a very specific embedded progress bar.
-The typical progress bar symbols will be hidden, but the background color will show us the progress of the process.
+Try the example above. It contains a different type of embedded progress bar.
+Here the typical progress bar symbols will are hidden,
+but the background color will show us the progress of the process.

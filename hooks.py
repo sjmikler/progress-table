@@ -10,7 +10,7 @@ file would be rendered without the images.
 """
 
 from pathlib import Path
-from hatchling.plugin import hookimpl
+
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 
@@ -22,13 +22,13 @@ def with_direct_github_urls(text):
     return text.replace("(docs", "(" + docs_github_link)
 
 
-class CustomBuildHook(MetadataHookInterface):
+class ReadmeHook(MetadataHookInterface):
     def update(self, metadata: dict):
         readme_path = Path("README.md")
         original_text = readme_path.read_text(encoding="utf-8")
         updated_text = with_direct_github_urls(original_text)
-        with open("README_pypi.md", "w", encoding="utf-8") as f:
+        with open("docs/README.md", "w", encoding="utf-8") as f:
             f.write(updated_text)
 
         # Tell Hatch to use this modified README
-        metadata["readme"] = f.name
+        print("Generated README for Pypi!")

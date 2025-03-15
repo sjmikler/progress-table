@@ -80,7 +80,7 @@ def main(random_seed=None, sleep_duration=SLEEP_DURATION, **overrides):
     for epoch in table(NUM_EPOCHS, show_throughput=False, show_eta=True):
         table["epoch"] = epoch
         # Shuffling training dataset each epoch
-        X_train, Y_train = shuffle(X_train, Y_train)
+        X_train, Y_train = shuffle(X_train, Y_train)  # type: ignore
 
         NUM_BATCHES = 16
         X_batches = np.array_split(X_train, NUM_BATCHES)
@@ -116,8 +116,20 @@ def main(random_seed=None, sleep_duration=SLEEP_DURATION, **overrides):
 
                 # Use aggregation weight equal to batch size to get real mean over the validation dataset
                 batch_size = x.shape[0]
-                table.update("valid loss", loss_value, weight=batch_size, aggregate="mean", color="red")
-                table.update("valid accuracy", accuracy, weight=batch_size, aggregate="mean", color="red bold")
+                table.update(
+                    "valid loss",
+                    loss_value,
+                    weight=batch_size,
+                    aggregate="mean",
+                    color="red",
+                )
+                table.update(
+                    "valid accuracy",
+                    accuracy,
+                    weight=batch_size,
+                    aggregate="mean",
+                    color="red bold",
+                )
         table.next_row(split=run_validation)
     table.close()
 

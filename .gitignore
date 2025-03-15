@@ -3,6 +3,8 @@
 *.ipynb
 __pycache__
 *.egg-info
+.coverage
+coverage.xml
 
 devel/
 dist
